@@ -14,6 +14,7 @@
 #![feature(label_break_value)]
 #![feature(ptr_wrapping_offset_from)]
 #![feature(register_tool)]
+#![feature(untagged_unions)]
 #![register_tool(c2rust)]
 
 #[macro_use]
