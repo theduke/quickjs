@@ -16,9 +16,9 @@
 #![feature(register_tool)]
 #![register_tool(c2rust)]
 
-
 #[macro_use]
-extern crate c2rust_bitfields;#[macro_use]
+extern crate c2rust_bitfields;
+#[macro_use]
 extern crate c2rust_asm_casts;
 extern crate libc;
 
@@ -28,4 +28,3 @@ pub mod libregexp;
 pub mod libunicode;
 pub mod quickjs;
 pub mod quickjs_libc;
-
