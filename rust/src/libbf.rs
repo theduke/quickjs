@@ -1,15 +1,4 @@
 use ::libc;
-extern "C" {
-    pub type _IO_wide_data;
-    pub type _IO_codecvt;
-    pub type _IO_marker;
-    #[no_mangle]
-    static mut stdout: *mut FILE;
-    #[no_mangle]
-    fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
-    #[no_mangle]
-    fn putc(__c: libc::c_int, __stream: *mut FILE) -> libc::c_int;
-}
 
 use libc::c_int;
 
@@ -182,10 +171,7 @@ pub type ZivFunc = unsafe extern "C" fn(
     _: limb_t,
     _: *mut libc::c_void,
 ) -> libc::c_int;
-#[inline]
-unsafe extern "C" fn putchar(mut __c: libc::c_int) -> libc::c_int {
-    return putc(__c, stdout);
-}
+
 #[inline]
 unsafe extern "C" fn clz64(mut a: uint64_t) -> libc::c_int {
     return (a as libc::c_ulonglong).leading_zeros() as i32;
@@ -1054,6 +1040,8 @@ pub unsafe extern "C" fn bf_round(
     }
     return __bf_round(r, prec, flags, (*r).len, 0 as libc::c_int);
 }
+
+/*
 #[no_mangle]
 pub unsafe extern "C" fn mp_print_str(
     mut str: *const libc::c_char,
@@ -1075,6 +1063,9 @@ pub unsafe extern "C" fn mp_print_str(
     }
     printf(b"\n\x00" as *const u8 as *const libc::c_char);
 }
+*/
+
+/*
 /* for debugging */
 #[no_mangle]
 pub unsafe extern "C" fn bf_print_str(mut str: *const libc::c_char, mut a: *const bf_t) {
@@ -1107,6 +1098,8 @@ pub unsafe extern "C" fn bf_print_str(mut str: *const libc::c_char, mut a: *cons
     }
     printf(b"\n\x00" as *const u8 as *const libc::c_char);
 }
+*/
+
 /* compare the absolute value of 'a' and 'b'. Return < 0 if a < b, 0
 if a = b and > 0 otherwise. */
 #[no_mangle]
@@ -11032,6 +11025,7 @@ unsafe extern "C" fn clz_dec(mut a: limb_t) -> libc::c_int {
         _ => return 0 as libc::c_int,
     };
 }
+/*
 /* for debugging */
 #[no_mangle]
 pub unsafe extern "C" fn bfdec_print_str(mut str: *const libc::c_char, mut a: *const bfdec_t) {
@@ -11065,6 +11059,8 @@ pub unsafe extern "C" fn bfdec_print_str(mut str: *const libc::c_char, mut a: *c
     }
     printf(b"\n\x00" as *const u8 as *const libc::c_char);
 }
+*/
+
 /* return != 0 if one digit between 0 and bit_pos inclusive is not zero. */
 #[inline]
 unsafe extern "C" fn scan_digit_nz(mut r: *const bfdec_t, mut bit_pos: slimb_t) -> limb_t {
