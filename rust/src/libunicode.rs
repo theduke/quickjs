@@ -3,8 +3,8 @@ use ::libc;
 use std::process::abort;
 
 use crate::cutils::{
-    __builtin_va_list, __va_list_tag, dbuf_error, dbuf_init2, dbuf_put, dbuf_put_u32, dbuf_realloc,
-    global_realloc, ptr_compare, strchr, strlen, DynBuf, DynBufReallocFunc,
+    __builtin_va_list, __va_list_tag, cstr_find_char, cstr_len, dbuf_error, dbuf_init2, dbuf_put,
+    dbuf_put_u32, dbuf_realloc, global_realloc, ptr_compare, DynBuf, DynBufReallocFunc,
 };
 
 const POP_STACK_LEN_MAX: i32 = 4;
@@ -28716,12 +28716,12 @@ unsafe extern "C" fn unicode_find_name(
     let mut len: size_t = 0;
     p = name_table;
     pos = 0 as libc::c_int;
-    name_len = strlen(name) as u64;
+    name_len = cstr_len(name) as u64;
     while *p != 0 {
         loop {
-            r = strchr(p, ',' as i8);
+            r = cstr_find_char(p, ',' as i8);
             if r.is_null() {
-                len = strlen(p) as u64
+                len = cstr_len(p) as u64
             } else {
                 len = r.wrapping_offset_from(p) as libc::c_long as size_t
             }

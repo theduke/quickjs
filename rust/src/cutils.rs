@@ -16,7 +16,7 @@ pub type __builtin_va_list = [__va_list_tag; 1];
 
 pub type C_Char = i8;
 
-pub unsafe fn strlen(mut s: *const C_Char) -> usize {
+pub unsafe fn cstr_len(mut s: *const C_Char) -> usize {
     let mut tail = s as *const u8;
     while *tail != b'\0' {
         tail = tail.add(1);
@@ -24,13 +24,13 @@ pub unsafe fn strlen(mut s: *const C_Char) -> usize {
     (tail as usize) - (s as usize)
 }
 
-pub unsafe fn strcpy(mut dest: *mut C_Char, src: *const C_Char) -> *const C_Char {
-    dest.copy_from(src, strlen(src) + 1);
+pub unsafe fn cstr_copy(mut dest: *mut C_Char, src: *const C_Char) -> *const C_Char {
+    dest.copy_from(src, cstr_len(src) + 1);
     dest
 }
 
 // FIXME: this is a naive implementaton and much slower than a libc impl.
-pub unsafe fn strchr(mut s: *const C_Char, c: C_Char) -> *const C_Char {
+pub unsafe fn cstr_find_char(mut s: *const C_Char, c: C_Char) -> *const C_Char {
     loop {
         let cur = *s;
         if cur == c || cur == b'\0' as i8 {
@@ -38,6 +38,47 @@ pub unsafe fn strchr(mut s: *const C_Char, c: C_Char) -> *const C_Char {
         }
         s = s.add(1);
     }
+}
+
+// FIXME: this is a naive implementaton and much slower than a libc impl.
+pub unsafe fn cstr_find_char_right(mut s: *const u8, c: u8) -> *const u8 {
+    let mut matched = std::ptr::null();
+    while *s != b'\0' {
+        if *s == c {
+            matched = s;
+            s = s.add(1);
+        }
+    }
+    matched
+}
+
+pub unsafe fn cstr_append(mut target: *mut u8, mut value: *const u8) -> *mut u8 {
+    let start = target;
+    while *target != b'\0' {
+        target = target.add(1);
+    }
+    while *value != b'\0' {
+        *target = *value;
+        target = target.add(1);
+        value = value.add(1);
+    }
+
+    // Write final \0 byte.
+    *target = b'\0';
+
+    start
+}
+
+pub unsafe fn ptr_search(source: *const u8, value: u8, len: usize) -> *const u8 {
+    let mut head = source;
+    let end = source.add(len);
+    while head != end {
+        if *head == value {
+            return head;
+        }
+        head = head.add(1);
+    }
+    std::ptr::null()
 }
 
 #[inline]
@@ -60,7 +101,7 @@ pub unsafe fn ptr_compare(a: *const u8, b: *const u8, len: usize) -> i32 {
 }
 
 // TODO: remove!
-pub unsafe fn strcmp(a: *const i8, b: *const i8) -> i32 {
+pub unsafe fn cstr_compare(a: *const i8, b: *const i8) -> i32 {
     let mut a = a as *const u8;
     let mut b = b as *const u8;
 
@@ -198,7 +239,7 @@ pub unsafe extern "C" fn pstrcat(
     mut s: *const libc::c_char,
 ) -> *mut libc::c_char {
     let mut len: libc::c_int = 0;
-    len = strlen(buf) as libc::c_int;
+    len = cstr_len(buf) as libc::c_int;
     if len < buf_size {
         pstrcpy(buf.offset(len as isize), buf_size - len, s);
     }
@@ -231,8 +272,8 @@ pub unsafe extern "C" fn has_suffix(
     mut str: *const libc::c_char,
     mut suffix: *const libc::c_char,
 ) -> libc::c_int {
-    let mut len = strlen(str);
-    let mut slen = strlen(suffix);
+    let mut len = cstr_len(str);
+    let mut slen = cstr_len(suffix);
     return (len >= slen
         && ptr_compare(
             str.offset(len as isize).offset(-(slen as isize)) as *const u8,
@@ -396,7 +437,7 @@ pub unsafe extern "C" fn dbuf_putstr(
     mut s: *mut DynBuf,
     mut str: *const libc::c_char,
 ) -> libc::c_int {
-    return dbuf_put(s, str as *const uint8_t, strlen(str));
+    return dbuf_put(s, str as *const uint8_t, cstr_len(str));
 }
 #[no_mangle]
 pub unsafe extern "C" fn dbuf_printf(

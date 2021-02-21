@@ -4,9 +4,9 @@ use ::libc;
 use std::process::abort;
 
 use crate::cutils::{
-    __builtin_va_list, __va_list_tag, dbuf_error, dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self,
-    dbuf_put_u16, dbuf_put_u32, dbuf_putc, dbuf_realloc, pstrcpy, ptr_compare, strchr, strcmp,
-    strlen, DynBuf,
+    __builtin_va_list, __va_list_tag, cstr_compare, cstr_find_char, cstr_len, dbuf_error,
+    dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self, dbuf_put_u16, dbuf_put_u32, dbuf_putc,
+    dbuf_realloc, pstrcpy, ptr_compare, DynBuf,
 };
 
 use crate::libunicode::{
@@ -978,27 +978,27 @@ unsafe extern "C" fn parse_unicode_property(
             }
             p = p.offset(1);
             //    printf("name=%s value=%s\n", name, value);
-            if strcmp(name.as_mut_ptr(), b"Script\x00" as *const u8 as *const i8) == 0
-                || strcmp(name.as_mut_ptr(), b"sc\x00" as *const u8 as *const i8) == 0
+            if cstr_compare(name.as_mut_ptr(), b"Script\x00" as *const u8 as *const i8) == 0
+                || cstr_compare(name.as_mut_ptr(), b"sc\x00" as *const u8 as *const i8) == 0
             {
                 script_ext = FALSE as libc::c_int;
                 current_block = 11427802459928075752;
-            } else if strcmp(
+            } else if cstr_compare(
                 name.as_mut_ptr(),
                 b"Script_Extensions\x00" as *const u8 as *const i8,
             ) == 0
-                || strcmp(
+                || cstr_compare(
                     name.as_mut_ptr(),
                     b"scx\x00" as *const u8 as *const libc::c_char,
                 ) == 0
             {
                 script_ext = TRUE as libc::c_int;
                 current_block = 11427802459928075752;
-            } else if strcmp(
+            } else if cstr_compare(
                 name.as_mut_ptr(),
                 b"General_Category\x00" as *const u8 as *const libc::c_char,
             ) == 0
-                || strcmp(
+                || cstr_compare(
                     name.as_mut_ptr(),
                     b"gc\x00" as *const u8 as *const libc::c_char,
                 ) == 0
@@ -1233,7 +1233,7 @@ unsafe extern "C" fn get_class_atom(
                                     current_block = 5159818223158340697;
                                 } else if ret == -(2 as libc::c_int)
                                     && *p as libc::c_int != '\u{0}' as i32
-                                    && !strchr(
+                                    && !cstr_find_char(
                                         b"^$\\.*+?()[]{}|/\x00" as *const u8 as *const libc::c_char,
                                         *p as i8,
                                     )
@@ -1808,7 +1808,7 @@ unsafe extern "C" fn re_parse_captures(
                                 (*s).is_utf16,
                             ) == 0 as libc::c_int
                             {
-                                if strcmp(name.as_mut_ptr(), capture_name) == 0 {
+                                if cstr_compare(name.as_mut_ptr(), capture_name) == 0 {
                                     return capture_index;
                                 }
                             }
@@ -1869,12 +1869,12 @@ unsafe extern "C" fn find_group_name(
     let mut len: size_t = 0;
     let mut name_len: size_t = 0;
     let mut capture_index: libc::c_int = 0;
-    name_len = strlen(name) as u64;
+    name_len = cstr_len(name) as u64;
     p = (*s).group_names.buf as *mut libc::c_char;
     buf_end = ((*s).group_names.buf as *mut libc::c_char).offset((*s).group_names.size as isize);
     capture_index = 1 as libc::c_int;
     while p < buf_end {
-        len = strlen(p) as u64;
+        len = cstr_len(p) as u64;
         if len == name_len
             && ptr_compare(name as *const u8, p as *const u8, name_len as usize) == 0 as libc::c_int
         {
@@ -2032,7 +2032,7 @@ unsafe extern "C" fn re_parse_term(
                             dbuf_put(
                                 &mut (*s).group_names,
                                 (*s).u.tmp_buf.as_mut_ptr() as *mut uint8_t,
-                                strlen((*s).u.tmp_buf.as_mut_ptr()).wrapping_add(1) as usize,
+                                cstr_len((*s).u.tmp_buf.as_mut_ptr()).wrapping_add(1) as usize,
                             );
                             (*s).has_named_captures = 1 as libc::c_int
                         } else {
