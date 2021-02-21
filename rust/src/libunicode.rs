@@ -79,10 +79,10 @@ pub struct CharRange {
         ) -> *mut libc::c_void,
     >,
 }
-pub type C2RustUnnamed_0 = libc::c_uint;
-pub const CR_OP_XOR: C2RustUnnamed_0 = 2;
-pub const CR_OP_INTER: C2RustUnnamed_0 = 1;
-pub const CR_OP_UNION: C2RustUnnamed_0 = 0;
+pub type CharRangeOp = libc::c_uint;
+pub const CR_OP_XOR: CharRangeOp = 2;
+pub const CR_OP_INTER: CharRangeOp = 1;
+pub const CR_OP_UNION: CharRangeOp = 0;
 pub const DECOMP_TYPE_S2_UL: C2RustUnnamed_5 = 33;
 pub const DECOMP_TYPE_LS2_UL: C2RustUnnamed_5 = 34;
 pub const DECOMP_TYPE_PAT3: C2RustUnnamed_5 = 32;
@@ -27670,6 +27670,7 @@ pub unsafe extern "C" fn lre_case_conv(
     *res.offset(0 as libc::c_int as isize) = c;
     return 1 as libc::c_int;
 }
+
 unsafe extern "C" fn get_le24(mut ptr: *const uint8_t) -> uint32_t {
     return (*(ptr as *mut uint16_t) as libc::c_int
         | (*ptr.offset(2 as libc::c_int as isize) as libc::c_int) << 16 as libc::c_int)
@@ -29905,6 +29906,146 @@ pub unsafe extern "C" fn unicode_prop(
     }
     return ret;
 }
+
+/* Note: at most 31 bits are encoded. At most UTF8_CHAR_LEN_MAX bytes
+are output. */
+#[no_mangle]
+pub unsafe extern "C" fn unicode_to_utf8(
+    mut buf: *mut uint8_t,
+    mut c: libc::c_uint,
+) -> libc::c_int {
+    let mut q: *mut uint8_t = buf;
+    if c < 0x80 as libc::c_int as libc::c_uint {
+        let fresh2 = q;
+        q = q.offset(1);
+        *fresh2 = c as uint8_t
+    } else {
+        if c < 0x800 as libc::c_int as libc::c_uint {
+            let fresh3 = q;
+            q = q.offset(1);
+            *fresh3 = (c >> 6 as libc::c_int | 0xc0 as libc::c_int as libc::c_uint) as uint8_t
+        } else {
+            if c < 0x10000 as libc::c_int as libc::c_uint {
+                let fresh4 = q;
+                q = q.offset(1);
+                *fresh4 = (c >> 12 as libc::c_int | 0xe0 as libc::c_int as libc::c_uint) as uint8_t
+            } else {
+                if c < 0x200000 as libc::c_int as libc::c_uint {
+                    let fresh5 = q;
+                    q = q.offset(1);
+                    *fresh5 =
+                        (c >> 18 as libc::c_int | 0xf0 as libc::c_int as libc::c_uint) as uint8_t
+                } else {
+                    if c < 0x4000000 as libc::c_int as libc::c_uint {
+                        let fresh6 = q;
+                        q = q.offset(1);
+                        *fresh6 = (c >> 24 as libc::c_int | 0xf8 as libc::c_int as libc::c_uint)
+                            as uint8_t
+                    } else if c < 0x80000000 as libc::c_uint {
+                        let fresh7 = q;
+                        q = q.offset(1);
+                        *fresh7 = (c >> 30 as libc::c_int | 0xfc as libc::c_int as libc::c_uint)
+                            as uint8_t;
+                        let fresh8 = q;
+                        q = q.offset(1);
+                        *fresh8 = (c >> 24 as libc::c_int & 0x3f as libc::c_int as libc::c_uint
+                            | 0x80 as libc::c_int as libc::c_uint)
+                            as uint8_t
+                    } else {
+                        return 0 as libc::c_int;
+                    }
+                    let fresh9 = q;
+                    q = q.offset(1);
+                    *fresh9 = (c >> 18 as libc::c_int & 0x3f as libc::c_int as libc::c_uint
+                        | 0x80 as libc::c_int as libc::c_uint)
+                        as uint8_t
+                }
+                let fresh10 = q;
+                q = q.offset(1);
+                *fresh10 = (c >> 12 as libc::c_int & 0x3f as libc::c_int as libc::c_uint
+                    | 0x80 as libc::c_int as libc::c_uint) as uint8_t
+            }
+            let fresh11 = q;
+            q = q.offset(1);
+            *fresh11 = (c >> 6 as libc::c_int & 0x3f as libc::c_int as libc::c_uint
+                | 0x80 as libc::c_int as libc::c_uint) as uint8_t
+        }
+        let fresh12 = q;
+        q = q.offset(1);
+        *fresh12 = (c & 0x3f as libc::c_int as libc::c_uint | 0x80 as libc::c_int as libc::c_uint)
+            as uint8_t
+    }
+    return q.wrapping_offset_from(buf) as libc::c_long as libc::c_int;
+}
+
+static mut utf8_min_code: [libc::c_uint; 5] = [
+    0x80 as libc::c_int as libc::c_uint,
+    0x800 as libc::c_int as libc::c_uint,
+    0x10000 as libc::c_int as libc::c_uint,
+    0x200000 as libc::c_int as libc::c_uint,
+    0x4000000 as libc::c_int as libc::c_uint,
+];
+static mut utf8_first_code_mask: [libc::c_uchar; 5] = [
+    0x1f as libc::c_int as libc::c_uchar,
+    0xf as libc::c_int as libc::c_uchar,
+    0x7 as libc::c_int as libc::c_uchar,
+    0x3 as libc::c_int as libc::c_uchar,
+    0x1 as libc::c_int as libc::c_uchar,
+];
+
+/* return -1 if error. *pp is not updated in this case. max_len must
+be >= 1. The maximum length for a UTF8 byte sequence is 6 bytes. */
+#[no_mangle]
+pub unsafe extern "C" fn unicode_from_utf8(
+    mut p: *const uint8_t,
+    mut max_len: libc::c_int,
+    mut pp: *mut *const uint8_t,
+) -> libc::c_int {
+    let mut l: libc::c_int = 0;
+    let mut c: libc::c_int = 0;
+    let mut b: libc::c_int = 0;
+    let mut i: libc::c_int = 0;
+    let fresh13 = p;
+    p = p.offset(1);
+    c = *fresh13 as libc::c_int;
+    if c < 0x80 as libc::c_int {
+        *pp = p;
+        return c;
+    }
+    match c {
+        192 | 193 | 194 | 195 | 196 | 197 | 198 | 199 | 200 | 201 | 202 | 203 | 204 | 205 | 206
+        | 207 | 208 | 209 | 210 | 211 | 212 | 213 | 214 | 215 | 216 | 217 | 218 | 219 | 220
+        | 221 | 222 | 223 => l = 1 as libc::c_int,
+        224 | 225 | 226 | 227 | 228 | 229 | 230 | 231 | 232 | 233 | 234 | 235 | 236 | 237 | 238
+        | 239 => l = 2 as libc::c_int,
+        240 | 241 | 242 | 243 | 244 | 245 | 246 | 247 => l = 3 as libc::c_int,
+        248 | 249 | 250 | 251 => l = 4 as libc::c_int,
+        252 | 253 => l = 5 as libc::c_int,
+        _ => return -(1 as libc::c_int),
+    }
+    /* check that we have enough characters */
+    if l > max_len - 1 as libc::c_int {
+        return -(1 as libc::c_int);
+    }
+    c &= utf8_first_code_mask[(l - 1 as libc::c_int) as usize] as libc::c_int;
+    i = 0 as libc::c_int;
+    while i < l {
+        let fresh14 = p;
+        p = p.offset(1);
+        b = *fresh14 as libc::c_int;
+        if b < 0x80 as libc::c_int || b >= 0xc0 as libc::c_int {
+            return -(1 as libc::c_int);
+        }
+        c = c << 6 as libc::c_int | b & 0x3f as libc::c_int;
+        i += 1
+    }
+    if (c as libc::c_uint) < utf8_min_code[(l - 1 as libc::c_int) as usize] {
+        return -(1 as libc::c_int);
+    }
+    *pp = p;
+    return c;
+}
+
 unsafe extern "C" fn run_static_initializers() {
     unicode_prop_len_table = [
         (::std::mem::size_of::<[uint8_t; 28]>() as libc::c_ulong)

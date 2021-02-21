@@ -7,7 +7,8 @@ fn make_cstring(value: impl Into<Vec<u8>>) -> CString {
 }
 
 fn main() {
-    let code = "\"abc\".length + [1, 2, 3, 4].length";
+    // let code = "\"abc\".length + [1, 2, 3, 4].length";
+    let code = "\"(abc)?\".match(/abc/).length";
 
     unsafe {
         let rt = JS_NewRuntime();

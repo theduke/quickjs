@@ -1,8 +1,23 @@
 use ::c2rust_bitfields;
 use ::libc;
+
+use std::process::abort;
+
+use crate::cutils::{
+    __builtin_va_list, __va_list_tag, dbuf_error, dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self,
+    dbuf_put_u16, dbuf_put_u32, dbuf_putc, dbuf_realloc, pstrcpy, ptr_compare, strchr, strcmp,
+    strlen, DynBuf,
+};
+
+use crate::libunicode::{
+    cr_free, cr_init, cr_invert, cr_op, cr_realloc, cr_union1, lre_case_conv, lre_is_id_continue,
+    lre_is_id_start, unicode_from_utf8, unicode_general_category, unicode_prop, unicode_script,
+    unicode_to_utf8, CharRange, CharRangeOp,
+};
+
+use crate::quickjs::{lre_check_stack_overflow, lre_realloc};
+
 extern "C" {
-    #[no_mangle]
-    fn abort() -> !;
     #[no_mangle]
     fn vsnprintf(
         _: *mut libc::c_char,
@@ -10,98 +25,7 @@ extern "C" {
         _: *const libc::c_char,
         _: ::std::ffi::VaList,
     ) -> libc::c_int;
-    #[no_mangle]
-    fn strcmp(_: *const libc::c_char, _: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
-    fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
-    #[no_mangle]
-    fn memmove(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
-        -> *mut libc::c_void;
-    #[no_mangle]
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
-    fn memcmp(_: *const libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> libc::c_int;
-    #[no_mangle]
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    #[no_mangle]
-    fn __assert_fail(
-        __assertion: *const libc::c_char,
-        __file: *const libc::c_char,
-        __line: libc::c_uint,
-        __function: *const libc::c_char,
-    ) -> !;
-    #[no_mangle]
-    fn pstrcpy(buf: *mut libc::c_char, buf_size: libc::c_int, str: *const libc::c_char);
-    #[no_mangle]
-    #[no_mangle]
-    fn unicode_to_utf8(buf: *mut uint8_t, c: libc::c_uint) -> libc::c_int;
-    #[no_mangle]
-    fn unicode_from_utf8(
-        p: *const uint8_t,
-        max_len: libc::c_int,
-        pp: *mut *const uint8_t,
-    ) -> libc::c_int;
-    #[no_mangle]
-    fn cr_free(cr: *mut CharRange);
-    #[no_mangle]
-    fn lre_check_stack_overflow(opaque: *mut libc::c_void, alloca_size: size_t) -> libc::c_int;
-    #[no_mangle]
-    fn cr_init(
-        cr: *mut CharRange,
-        mem_opaque: *mut libc::c_void,
-        realloc_func: Option<
-            unsafe extern "C" fn(
-                _: *mut libc::c_void,
-                _: *mut libc::c_void,
-                _: size_t,
-            ) -> *mut libc::c_void,
-        >,
-    );
-    #[no_mangle]
-    fn lre_case_conv(res: *mut uint32_t, c: uint32_t, conv_type: libc::c_int) -> libc::c_int;
-    #[no_mangle]
-    fn lre_realloc(
-        opaque: *mut libc::c_void,
-        ptr: *mut libc::c_void,
-        size: size_t,
-    ) -> *mut libc::c_void;
-    #[no_mangle]
-    fn cr_realloc(cr: *mut CharRange, size: libc::c_int) -> libc::c_int;
-    #[no_mangle]
-    fn cr_union1(cr: *mut CharRange, b_pt: *const uint32_t, b_len: libc::c_int) -> libc::c_int;
-    #[no_mangle]
-    fn cr_op(
-        cr: *mut CharRange,
-        a_pt: *const uint32_t,
-        a_len: libc::c_int,
-        b_pt: *const uint32_t,
-        b_len: libc::c_int,
-        op: libc::c_int,
-    ) -> libc::c_int;
-    #[no_mangle]
-    fn cr_invert(cr: *mut CharRange) -> libc::c_int;
-    #[no_mangle]
-    fn lre_is_id_start(c: uint32_t) -> libc::c_int;
-    #[no_mangle]
-    fn lre_is_id_continue(c: uint32_t) -> libc::c_int;
-    #[no_mangle]
-    fn unicode_script(
-        cr: *mut CharRange,
-        script_name: *const libc::c_char,
-        is_ext: libc::c_int,
-    ) -> libc::c_int;
-    #[no_mangle]
-    fn unicode_general_category(cr: *mut CharRange, gc_name: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
-    fn unicode_prop(cr: *mut CharRange, prop_name: *const libc::c_char) -> libc::c_int;
 }
-
-use crate::cutils::{
-    __builtin_va_list, __va_list_tag, dbuf_error, dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self,
-    dbuf_put_u16, dbuf_put_u32, dbuf_putc, dbuf_realloc, DynBuf,
-};
 
 pub type size_t = libc::c_ulong;
 pub type __uint8_t = libc::c_uchar;
@@ -131,31 +55,6 @@ pub struct packed_u32 {
 pub struct packed_u16 {
     pub v: uint16_t,
 }
-pub type DynBufReallocFunc = unsafe extern "C" fn(
-    _: *mut libc::c_void,
-    _: *mut libc::c_void,
-    _: size_t,
-) -> *mut libc::c_void;
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct CharRange {
-    pub len: libc::c_int,
-    pub size: libc::c_int,
-    pub points: *mut uint32_t,
-    pub mem_opaque: *mut libc::c_void,
-    pub realloc_func: Option<
-        unsafe extern "C" fn(
-            _: *mut libc::c_void,
-            _: *mut libc::c_void,
-            _: size_t,
-        ) -> *mut libc::c_void,
-    >,
-}
-pub type C2RustUnnamed_0 = libc::c_uint;
-pub const CR_OP_XOR: C2RustUnnamed_0 = 2;
-pub const CR_OP_INTER: C2RustUnnamed_0 = 1;
-pub const CR_OP_UNION: C2RustUnnamed_0 = 0;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -518,13 +417,16 @@ unsafe extern "C" fn dbuf_insert(
     mut len: libc::c_int,
 ) -> libc::c_int {
     if dbuf_realloc(s, (*s).size.wrapping_add(len as libc::c_ulong)) != 0 {
-        return -(1 as libc::c_int);
+        return -1;
     }
-    memmove(
-        (*s).buf.offset(pos as isize).offset(len as isize) as *mut libc::c_void,
-        (*s).buf.offset(pos as isize) as *const libc::c_void,
-        (*s).size.wrapping_sub(pos as libc::c_ulong),
-    );
+
+    (*s).buf
+        .offset(pos as isize)
+        .offset(len as isize)
+        .copy_from_nonoverlapping(
+            (*s).buf.offset(pos as isize),
+            (*s).size.wrapping_sub(pos as libc::c_ulong) as usize,
+        );
     (*s).size = ((*s).size as libc::c_ulong).wrapping_add(len as libc::c_ulong) as size_t as size_t;
     return 0 as libc::c_int;
 }
@@ -736,7 +638,7 @@ unsafe extern "C" fn cr_canonicalize(mut cr: *mut CharRange) -> libc::c_int {
         (*cr).len,
         pt.as_mut_ptr(),
         2 as libc::c_int,
-        CR_OP_INTER as libc::c_int,
+        crate::libunicode::CR_OP_INTER as libc::c_int,
     );
     if !(ret != 0) {
         /* convert to upper case */
@@ -1079,20 +981,14 @@ unsafe extern "C" fn parse_unicode_property(
             }
             p = p.offset(1);
             //    printf("name=%s value=%s\n", name, value);
-            if strcmp(
-                name.as_mut_ptr(),
-                b"Script\x00" as *const u8 as *const libc::c_char,
-            ) == 0
-                || strcmp(
-                    name.as_mut_ptr(),
-                    b"sc\x00" as *const u8 as *const libc::c_char,
-                ) == 0
+            if strcmp(name.as_mut_ptr(), b"Script\x00" as *const u8 as *const i8) == 0
+                || strcmp(name.as_mut_ptr(), b"sc\x00" as *const u8 as *const i8) == 0
             {
                 script_ext = FALSE as libc::c_int;
                 current_block = 11427802459928075752;
             } else if strcmp(
                 name.as_mut_ptr(),
-                b"Script_Extensions\x00" as *const u8 as *const libc::c_char,
+                b"Script_Extensions\x00" as *const u8 as *const i8,
             ) == 0
                 || strcmp(
                     name.as_mut_ptr(),
@@ -1342,7 +1238,7 @@ unsafe extern "C" fn get_class_atom(
                                     && *p as libc::c_int != '\u{0}' as i32
                                     && !strchr(
                                         b"^$\\.*+?()[]{}|/\x00" as *const u8 as *const libc::c_char,
-                                        *p as libc::c_int,
+                                        *p as i8,
                                     )
                                     .is_null()
                                 {
@@ -1669,11 +1565,7 @@ unsafe extern "C" fn re_check_advance(
     ret = -(2 as libc::c_int);
     pos = 0 as libc::c_int;
     has_back_reference = FALSE as libc::c_int;
-    memset(
-        capture_bitmap.as_mut_ptr() as *mut libc::c_void,
-        0 as libc::c_int,
-        ::std::mem::size_of::<[uint8_t; 255]>() as libc::c_ulong,
-    );
+    (capture_bitmap.as_mut_ptr() as *mut u8).write_bytes(0, std::mem::size_of::<[uint8_t; 255]>());
     while pos < bc_buf_len {
         opcode = *bc_buf.offset(pos as isize) as libc::c_int;
         len = reopcode_info[opcode as usize].size as libc::c_int;
@@ -1980,18 +1872,14 @@ unsafe extern "C" fn find_group_name(
     let mut len: size_t = 0;
     let mut name_len: size_t = 0;
     let mut capture_index: libc::c_int = 0;
-    name_len = strlen(name);
+    name_len = strlen(name) as u64;
     p = (*s).group_names.buf as *mut libc::c_char;
     buf_end = ((*s).group_names.buf as *mut libc::c_char).offset((*s).group_names.size as isize);
     capture_index = 1 as libc::c_int;
     while p < buf_end {
-        len = strlen(p);
+        len = strlen(p) as u64;
         if len == name_len
-            && memcmp(
-                name as *const libc::c_void,
-                p as *const libc::c_void,
-                name_len,
-            ) == 0 as libc::c_int
+            && ptr_compare(name as *const u8, p as *const u8, name_len as usize) == 0 as libc::c_int
         {
             return capture_index;
         }
@@ -5060,19 +4948,18 @@ unsafe extern "C" fn re_parse_alternative(
             if dbuf_realloc(&mut (*s).byte_code, end.wrapping_add(term_size)) != 0 {
                 return -(1 as libc::c_int);
             }
-            memmove(
-                (*s).byte_code
-                    .buf
-                    .offset(start as isize)
-                    .offset(term_size as isize) as *mut libc::c_void,
-                (*s).byte_code.buf.offset(start as isize) as *const libc::c_void,
-                end.wrapping_sub(start),
-            );
-            memcpy(
-                (*s).byte_code.buf.offset(start as isize) as *mut libc::c_void,
-                (*s).byte_code.buf.offset(end as isize) as *const libc::c_void,
-                term_size,
-            );
+            (*s).byte_code
+                .buf
+                .offset(start as isize)
+                .offset(term_size as isize)
+                .copy_from_nonoverlapping(
+                    (*s).byte_code.buf.offset(start as isize),
+                    end.wrapping_sub(start) as usize,
+                );
+            (*s).byte_code
+                .buf
+                .offset(start as isize)
+                .copy_from((*s).byte_code.buf.offset(end as isize), term_size as usize);
         }
     }
     return 0 as libc::c_int;
@@ -5141,27 +5028,11 @@ unsafe extern "C" fn compute_stack_size(
         len = reopcode_info[opcode as usize].size as libc::c_int;
         if opcode < REOP_COUNT as libc::c_int {
         } else {
-            __assert_fail(
-                b"opcode < REOP_COUNT\x00" as *const u8 as *const libc::c_char,
-                b"libregexp.c\x00" as *const u8 as *const libc::c_char,
-                1786 as libc::c_int as libc::c_uint,
-                (*::std::mem::transmute::<&[u8; 45], &[libc::c_char; 45]>(
-                    b"int compute_stack_size(const uint8_t *, int)\x00",
-                ))
-                .as_ptr(),
-            );
+            assert!(opcode < REOP_COUNT as i32);
         }
         if pos + len <= bc_buf_len {
         } else {
-            __assert_fail(
-                b"(pos + len) <= bc_buf_len\x00" as *const u8 as *const libc::c_char,
-                b"libregexp.c\x00" as *const u8 as *const libc::c_char,
-                1787 as libc::c_int as libc::c_uint,
-                (*::std::mem::transmute::<&[u8; 45], &[libc::c_char; 45]>(
-                    b"int compute_stack_size(const uint8_t *, int)\x00",
-                ))
-                .as_ptr(),
-            );
+            assert!(pos + len <= bc_buf_len);
         }
         match opcode {
             15 | 25 => {
@@ -5176,15 +5047,7 @@ unsafe extern "C" fn compute_stack_size(
             16 | 26 => {
                 if stack_size > 0 as libc::c_int {
                 } else {
-                    __assert_fail(
-                        b"stack_size > 0\x00" as *const u8 as *const libc::c_char,
-                        b"libregexp.c\x00" as *const u8 as *const libc::c_char,
-                        1800 as libc::c_int as libc::c_uint,
-                        (*::std::mem::transmute::<&[u8; 45], &[libc::c_char; 45]>(
-                            b"int compute_stack_size(const uint8_t *, int)\x00",
-                        ))
-                        .as_ptr(),
-                    );
+                    assert!(stack_size > 0);
                 }
                 stack_size -= 1
             }
@@ -5263,11 +5126,9 @@ pub unsafe extern "C" fn lre_compile(
     let mut s: *mut REParseState = &mut s_s; /* second element is the number of captures */
     let mut stack_size: libc::c_int = 0; /* stack size */
     let mut is_sticky: BOOL = 0; /* bytecode length */
-    memset(
-        s as *mut libc::c_void,
-        0 as libc::c_int,
-        ::std::mem::size_of::<REParseState>() as libc::c_ulong,
-    );
+
+    (s as *mut u8).write_bytes(0, std::mem::size_of::<REParseState>());
+
     (*s).opaque = opaque;
     (*s).buf_ptr = buf as *const uint8_t;
     (*s).buf_end = (*s).buf_ptr.offset(buf_len as isize);
@@ -5706,13 +5567,7 @@ unsafe extern "C" fn lre_exec_backtrack(
                 val = *fresh32 as uint32_t;
                 if val < (*s).capture_count as libc::c_uint {
                 } else {
-                    __assert_fail(b"val < s->capture_count\x00" as
-                                          *const u8 as *const libc::c_char,
-                                      b"libregexp.c\x00" as *const u8 as
-                                          *const libc::c_char,
-                                      2260 as libc::c_int as libc::c_uint,
-                                      (*::std::mem::transmute::<&[u8; 114],
-                                                                &[libc::c_char; 114]>(b"intptr_t lre_exec_backtrack(REExecContext *, uint8_t **, StackInt *, int, const uint8_t *, const uint8_t *, BOOL)\x00")).as_ptr());
+                    assert!(val < (*s).capture_count as u32);
                 }
                 let ref mut fresh33 = *capture.offset(
                     (2 as libc::c_int as libc::c_uint)
@@ -5731,13 +5586,7 @@ unsafe extern "C" fn lre_exec_backtrack(
                 pc = pc.offset(2 as libc::c_int as isize);
                 if val2 < (*s).capture_count as libc::c_uint {
                 } else {
-                    __assert_fail(b"val2 < s->capture_count\x00" as
-                                          *const u8 as *const libc::c_char,
-                                      b"libregexp.c\x00" as *const u8 as
-                                          *const libc::c_char,
-                                      2269 as libc::c_int as libc::c_uint,
-                                      (*::std::mem::transmute::<&[u8; 114],
-                                                                &[libc::c_char; 114]>(b"intptr_t lre_exec_backtrack(REExecContext *, uint8_t **, StackInt *, int, const uint8_t *, const uint8_t *, BOOL)\x00")).as_ptr());
+                    assert!(val2 < (*s).capture_count as u32);
                 }
                 while val <= val2 {
                     let ref mut fresh34 = *capture
@@ -6377,23 +6226,21 @@ unsafe extern "C" fn lre_exec_backtrack(
                 if ret == 0 {
                     let mut char_count: uint32_t = 0;
                     let mut i: uint32_t = 0;
-                    memcpy(
-                        capture as *mut libc::c_void,
-                        (*rs).buf.as_mut_ptr() as *const libc::c_void,
-                        (::std::mem::size_of::<*mut uint8_t>() as libc::c_ulong)
-                            .wrapping_mul(2 as libc::c_int as libc::c_ulong)
-                            .wrapping_mul((*s).capture_count as libc::c_ulong),
+
+                    (capture as *mut u8).copy_from(
+                        (*rs).buf.as_mut_ptr() as *const u8,
+                        (std::mem::size_of::<*mut uint8_t>())
+                            .wrapping_mul(2)
+                            .wrapping_mul((*s).capture_count as usize),
                     );
                     stack_len = (*rs).stack_len as libc::c_int;
-                    memcpy(
-                        stack as *mut libc::c_void,
+                    stack.copy_from(
                         (*rs)
                             .buf
                             .as_mut_ptr()
-                            .offset((2 as libc::c_int * (*s).capture_count) as isize)
-                            as *const libc::c_void,
-                        (stack_len as libc::c_ulong)
-                            .wrapping_mul(::std::mem::size_of::<StackInt>() as libc::c_ulong),
+                            .offset((2 * (*s).capture_count as isize))
+                            as *const u64,
+                        (stack_len as usize).wrapping_mul(std::mem::size_of::<StackInt>()),
                     );
                     pc = (*rs).pc;
                     cptr = (*rs).cptr;
@@ -6460,12 +6307,11 @@ unsafe extern "C" fn lre_exec_backtrack(
                     continue;
                 }
                 2041432150095197404 => {
-                    memcpy(
-                        capture as *mut libc::c_void,
-                        (*rs).buf.as_mut_ptr() as *const libc::c_void,
-                        (::std::mem::size_of::<*mut uint8_t>() as libc::c_ulong)
-                            .wrapping_mul(2 as libc::c_int as libc::c_ulong)
-                            .wrapping_mul((*s).capture_count as libc::c_ulong),
+                    (capture as *mut u8).copy_from(
+                        (*rs).buf.as_mut_ptr() as *const u8,
+                        (std::mem::size_of::<*mut uint8_t>())
+                            .wrapping_mul(2)
+                            .wrapping_mul((*s).capture_count as usize),
                     );
                 }
                 _ => {}
@@ -6473,15 +6319,12 @@ unsafe extern "C" fn lre_exec_backtrack(
             pc = (*rs).pc;
             cptr = (*rs).cptr;
             stack_len = (*rs).stack_len as libc::c_int;
-            memcpy(
-                stack as *mut libc::c_void,
+            stack.copy_from(
                 (*rs)
                     .buf
                     .as_mut_ptr()
-                    .offset((2 as libc::c_int * (*s).capture_count) as isize)
-                    as *const libc::c_void,
-                (stack_len as libc::c_ulong)
-                    .wrapping_mul(::std::mem::size_of::<StackInt>() as libc::c_ulong),
+                    .offset((2 * (*s).capture_count as isize)) as *const u64,
+                (stack_len as usize).wrapping_mul(std::mem::size_of::<StackInt>()),
             );
             (*s).state_stack_len = (*s).state_stack_len.wrapping_sub(1);
             break;
