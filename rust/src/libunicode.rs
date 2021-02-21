@@ -1,33 +1,13 @@
 use ::libc;
-extern "C" {
-    #[no_mangle]
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
-    fn abort() -> !;
-    #[no_mangle]
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
-    fn memmove(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
-        -> *mut libc::c_void;
-    #[no_mangle]
-    fn memcmp(_: *const libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> libc::c_int;
-    #[no_mangle]
-    fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
-    #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    #[no_mangle]
-    fn __assert_fail(
-        __assertion: *const libc::c_char,
-        __file: *const libc::c_char,
-        __line: libc::c_uint,
-        __function: *const libc::c_char,
-    ) -> !;
-}
+
+use std::process::abort;
 
 use crate::cutils::{
     __builtin_va_list, __va_list_tag, dbuf_error, dbuf_init2, dbuf_put, dbuf_put_u32, dbuf_realloc,
-    DynBuf, DynBufReallocFunc,
+    global_realloc, ptr_compare, strchr, strlen, DynBuf, DynBufReallocFunc,
 };
+
+const POP_STACK_LEN_MAX: i32 = 4;
 
 pub type size_t = libc::c_ulong;
 pub type __uint8_t = libc::c_uchar;
@@ -27827,8 +27807,9 @@ unsafe extern "C" fn cr_default_realloc(
     mut ptr: *mut libc::c_void,
     mut size: size_t,
 ) -> *mut libc::c_void {
-    return realloc(ptr, size);
+    global_realloc(ptr as *mut u8, size as usize) as *mut libc::c_void
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn cr_init(
     mut cr: *mut CharRange,
@@ -27885,11 +27866,9 @@ pub unsafe extern "C" fn cr_copy(mut cr: *mut CharRange, mut cr1: *const CharRan
     if cr_realloc(cr, (*cr1).len) != 0 {
         return -(1 as libc::c_int);
     }
-    memcpy(
-        (*cr).points as *mut libc::c_void,
-        (*cr1).points as *const libc::c_void,
-        (::std::mem::size_of::<uint32_t>() as libc::c_ulong)
-            .wrapping_mul((*cr1).len as libc::c_ulong),
+    (*cr).points.copy_from(
+        (*cr1).points,
+        (std::mem::size_of::<uint32_t>()).wrapping_mul((*cr1).len as usize),
     );
     (*cr).len = (*cr1).len;
     return 0 as libc::c_int;
@@ -28020,10 +27999,9 @@ pub unsafe extern "C" fn cr_invert(mut cr: *mut CharRange) -> libc::c_int {
     if cr_realloc(cr, len + 2 as libc::c_int) != 0 {
         return -(1 as libc::c_int);
     }
-    memmove(
-        (*cr).points.offset(1 as libc::c_int as isize) as *mut libc::c_void,
-        (*cr).points as *const libc::c_void,
-        (len as libc::c_ulong).wrapping_mul(::std::mem::size_of::<uint32_t>() as libc::c_ulong),
+    (*cr).points.offset(1).copy_from_nonoverlapping(
+        (*cr).points,
+        (len as usize).wrapping_mul(std::mem::size_of::<uint32_t>()),
     );
     *(*cr).points.offset(0 as libc::c_int as isize) = 0 as libc::c_int as uint32_t;
     *(*cr).points.offset((len + 1 as libc::c_int) as isize) = 4294967295 as libc::c_uint;
@@ -28640,11 +28618,9 @@ pub unsafe extern "C" fn unicode_normalize(
                 10599921512955367680 => {}
                 _ => {
                     buf = (*dbuf).buf as *mut libc::c_int;
-                    memcpy(
-                        buf as *mut libc::c_void,
-                        src as *const libc::c_void,
-                        (src_len as libc::c_ulong)
-                            .wrapping_mul(::std::mem::size_of::<libc::c_int>() as libc::c_ulong),
+                    buf.copy_from(
+                        src as *const i32,
+                        (src_len as usize).wrapping_mul(std::mem::size_of::<libc::c_int>()),
                     );
                     *pdst = buf as *mut uint32_t;
                     return src_len;
@@ -28740,21 +28716,17 @@ unsafe extern "C" fn unicode_find_name(
     let mut len: size_t = 0;
     p = name_table;
     pos = 0 as libc::c_int;
-    name_len = strlen(name);
+    name_len = strlen(name) as u64;
     while *p != 0 {
         loop {
-            r = strchr(p, ',' as i32);
+            r = strchr(p, ',' as i8);
             if r.is_null() {
-                len = strlen(p)
+                len = strlen(p) as u64
             } else {
                 len = r.wrapping_offset_from(p) as libc::c_long as size_t
             }
             if len == name_len
-                && memcmp(
-                    p as *const libc::c_void,
-                    name as *const libc::c_void,
-                    name_len,
-                ) == 0
+                && ptr_compare(p as *const u8, name as *const u8, name_len as usize) == 0
             {
                 return pos;
             }
@@ -29344,7 +29316,7 @@ unsafe extern "C" fn unicode_case1(
 unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> libc::c_int {
     let mut current_block: u64;
     let mut ap: ::std::ffi::VaListImpl;
-    let mut stack: [CharRange; 4] = [CharRange {
+    let mut stack: [CharRange; POP_STACK_LEN_MAX as usize] = [CharRange {
         len: 0,
         size: 0,
         points: 0 as *mut uint32_t,
@@ -29364,15 +29336,7 @@ unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> 
             0 => {
                 if stack_len < 4 as libc::c_int {
                 } else {
-                    __assert_fail(
-                        b"stack_len < POP_STACK_LEN_MAX\x00" as *const u8 as *const libc::c_char,
-                        b"libunicode.c\x00" as *const u8 as *const libc::c_char,
-                        1266 as libc::c_int as libc::c_uint,
-                        (*::std::mem::transmute::<&[u8; 39], &[libc::c_char; 39]>(
-                            b"int unicode_prop_ops(CharRange *, ...)\x00",
-                        ))
-                        .as_ptr(),
-                    );
+                    assert!(stack_len < POP_STACK_LEN_MAX);
                 }
                 a = ap.arg::<libc::c_int>() as uint32_t;
                 let fresh31 = stack_len;
@@ -29396,15 +29360,7 @@ unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> 
             1 => {
                 if stack_len < 4 as libc::c_int {
                 } else {
-                    __assert_fail(
-                        b"stack_len < POP_STACK_LEN_MAX\x00" as *const u8 as *const libc::c_char,
-                        b"libunicode.c\x00" as *const u8 as *const libc::c_char,
-                        1273 as libc::c_int as libc::c_uint,
-                        (*::std::mem::transmute::<&[u8; 39], &[libc::c_char; 39]>(
-                            b"int unicode_prop_ops(CharRange *, ...)\x00",
-                        ))
-                        .as_ptr(),
-                    );
+                    assert!(stack_len < POP_STACK_LEN_MAX);
                 }
                 a = ap.arg::<libc::c_int>() as uint32_t;
                 let fresh32 = stack_len;
@@ -29428,15 +29384,7 @@ unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> 
             2 => {
                 if stack_len < 4 as libc::c_int {
                 } else {
-                    __assert_fail(
-                        b"stack_len < POP_STACK_LEN_MAX\x00" as *const u8 as *const libc::c_char,
-                        b"libunicode.c\x00" as *const u8 as *const libc::c_char,
-                        1280 as libc::c_int as libc::c_uint,
-                        (*::std::mem::transmute::<&[u8; 39], &[libc::c_char; 39]>(
-                            b"int unicode_prop_ops(CharRange *, ...)\x00",
-                        ))
-                        .as_ptr(),
-                    );
+                    assert!(stack_len < POP_STACK_LEN_MAX);
                 }
                 a = ap.arg::<libc::c_int>() as uint32_t;
                 let fresh33 = stack_len;
@@ -29463,27 +29411,11 @@ unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> 
                 let mut cr3: *mut CharRange = 0 as *mut CharRange;
                 if stack_len >= 2 as libc::c_int {
                 } else {
-                    __assert_fail(
-                        b"stack_len >= 2\x00" as *const u8 as *const libc::c_char,
-                        b"libunicode.c\x00" as *const u8 as *const libc::c_char,
-                        1291 as libc::c_int as libc::c_uint,
-                        (*::std::mem::transmute::<&[u8; 39], &[libc::c_char; 39]>(
-                            b"int unicode_prop_ops(CharRange *, ...)\x00",
-                        ))
-                        .as_ptr(),
-                    );
+                    assert!(stack_len >= 2);
                 }
                 if stack_len < 4 as libc::c_int {
                 } else {
-                    __assert_fail(
-                        b"stack_len < POP_STACK_LEN_MAX\x00" as *const u8 as *const libc::c_char,
-                        b"libunicode.c\x00" as *const u8 as *const libc::c_char,
-                        1292 as libc::c_int as libc::c_uint,
-                        (*::std::mem::transmute::<&[u8; 39], &[libc::c_char; 39]>(
-                            b"int unicode_prop_ops(CharRange *, ...)\x00",
-                        ))
-                        .as_ptr(),
-                    );
+                    assert!(stack_len < POP_STACK_LEN_MAX);
                 }
                 cr1 = &mut *stack
                     .as_mut_ptr()
@@ -29517,15 +29449,7 @@ unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> 
             6 => {
                 if stack_len >= 1 as libc::c_int {
                 } else {
-                    __assert_fail(
-                        b"stack_len >= 1\x00" as *const u8 as *const libc::c_char,
-                        b"libunicode.c\x00" as *const u8 as *const libc::c_char,
-                        1307 as libc::c_int as libc::c_uint,
-                        (*::std::mem::transmute::<&[u8; 39], &[libc::c_char; 39]>(
-                            b"int unicode_prop_ops(CharRange *, ...)\x00",
-                        ))
-                        .as_ptr(),
-                    );
+                    assert!(stack_len >= 1);
                 }
                 if cr_invert(
                     &mut *stack
@@ -29558,15 +29482,7 @@ unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> 
         _ => {
             if stack_len == 1 as libc::c_int {
             } else {
-                __assert_fail(
-                    b"stack_len == 1\x00" as *const u8 as *const libc::c_char,
-                    b"libunicode.c\x00" as *const u8 as *const libc::c_char,
-                    1318 as libc::c_int as libc::c_uint,
-                    (*::std::mem::transmute::<&[u8; 39], &[libc::c_char; 39]>(
-                        b"int unicode_prop_ops(CharRange *, ...)\x00",
-                    ))
-                    .as_ptr(),
-                );
+                assert!(stack_len == 1);
             }
             ret = cr_copy(
                 cr,
