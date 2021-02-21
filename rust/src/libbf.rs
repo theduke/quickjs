@@ -9,20 +9,6 @@ extern "C" {
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     #[no_mangle]
     fn putc(__c: libc::c_int, __stream: *mut FILE) -> libc::c_int;
-    #[no_mangle]
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
-    fn memmove(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
-        -> *mut libc::c_void;
-    #[no_mangle]
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
-    fn __assert_fail(
-        __assertion: *const libc::c_char,
-        __file: *const libc::c_char,
-        __line: libc::c_uint,
-        __function: *const libc::c_char,
-    ) -> !;
 }
 
 use libc::c_int;
@@ -118,7 +104,9 @@ pub struct bfdec_t {
     pub len: limb_t,
     pub tab: *mut limb_t,
 }
+
 pub type bf_rnd_t = libc::c_uint;
+
 pub const BF_RNDF: bf_rnd_t = 6;
 pub const BF_RNDA: bf_rnd_t = 5;
 pub const BF_RNDNA: bf_rnd_t = 4;
@@ -127,6 +115,41 @@ pub const BF_RNDD: bf_rnd_t = 2;
 pub const BF_RNDZ: bf_rnd_t = 1;
 pub const BF_RNDN: bf_rnd_t = 0;
 pub type bf_flags_t = uint32_t;
+
+const LIMB_LOG2_BITS: u64 = 6;
+const LIMB_BITS: u64 = 1 << LIMB_LOG2_BITS;
+
+const BF_RAW_EXP_MIN: i64 = std::i64::MIN;
+const BF_RAW_EXP_MAX: i64 = std::i64::MAX;
+
+const LIMB_DIGITS: u64 = 19;
+const BF_DEC_BASE: u64 = 10_000_000_000_000_000_000;
+
+/* in bits */
+/* minimum number of bits for the exponent */
+const BF_EXP_BITS_MIN: u64 = 3;
+/* maximum number of bits for the exponent */
+const BF_EXP_BITS_MAX: u64 = (LIMB_BITS - 3);
+/* extended range for exponent, used internally */
+const BF_EXT_EXP_BITS_MAX: u64 = (BF_EXP_BITS_MAX + 1);
+/* minimum possible precision */
+const BF_PREC_MIN: u64 = 2;
+/* minimum possible precision */
+const BF_PREC_MAX: u64 = (1 << (LIMB_BITS - 2)) - 2;
+/* some operations support infinite precision */
+/* infinite precision */
+const BF_PREC_INF: u64 = (BF_PREC_MAX + 1);
+
+const BF_CHKSUM_MOD: u64 = 975620677 * 9795002197;
+
+const BF_EXP_ZERO: i64 = BF_RAW_EXP_MIN;
+const BF_EXP_INF: i64 = (BF_RAW_EXP_MAX - 1);
+const BF_EXP_NAN: i64 = BF_RAW_EXP_MAX;
+
+const NTT_MOD_LOG2_MIN: u64 = 50;
+const NTT_MOD_LOG2_MAX: u64 = 51;
+const NB_MODS: u64 = 5;
+const NTT_PROOT_2EXP: u64 = 39;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -400,11 +423,7 @@ pub unsafe extern "C" fn bf_context_init(
     mut realloc_func: Option<bf_realloc_func_t>,
     mut realloc_opaque: *mut libc::c_void,
 ) {
-    memset(
-        s as *mut libc::c_void,
-        0 as libc::c_int,
-        ::std::mem::size_of::<bf_context_t>() as libc::c_ulong,
-    );
+    (s as *mut u8).write_bytes(0, std::mem::size_of::<bf_context_t>());
     (*s).realloc_func = realloc_func;
     (*s).realloc_opaque = realloc_opaque;
 }
@@ -501,11 +520,9 @@ pub unsafe extern "C" fn bf_set(mut r: *mut bf_t, mut a: *const bf_t) -> libc::c
     }
     (*r).sign = (*a).sign;
     (*r).expn = (*a).expn;
-    memcpy(
-        (*r).tab as *mut libc::c_void,
-        (*a).tab as *const libc::c_void,
-        (*a).len
-            .wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
+    ((*r).tab as *mut u8).copy_from(
+        (*a).tab as *const u8,
+        ((*a).len as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
     );
     return 0 as libc::c_int;
 }
@@ -796,15 +813,7 @@ unsafe extern "C" fn __bf_round(
                 .wrapping_add(1 as libc::c_int as libc::c_ulong)
         {
         } else {
-            __assert_fail(
-                b"prec1 != BF_PREC_INF\x00" as *const u8 as *const libc::c_char,
-                b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                505 as libc::c_int as libc::c_uint,
-                (*::std::mem::transmute::<&[u8; 56], &[libc::c_char; 56]>(
-                    b"int __bf_round(bf_t *, limb_t, bf_flags_t, limb_t, int)\x00",
-                ))
-                .as_ptr(),
-            );
+            assert!(prec1 != BF_PREC_INF);
         }
         prec = prec1.wrapping_sub((e_min - (*r).expn) as libc::c_ulong) as slimb_t
     } else {
@@ -908,10 +917,9 @@ unsafe extern "C" fn __bf_round(
                 } /* cannot fail */
                 if i > 0 as libc::c_int as libc::c_long {
                     l = (l as libc::c_ulong).wrapping_sub(i as libc::c_ulong) as limb_t as limb_t;
-                    memmove(
-                        (*r).tab as *mut libc::c_void,
-                        (*r).tab.offset(i as isize) as *const libc::c_void,
-                        l.wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
+                    ((*r).tab as *mut u8).copy_from_nonoverlapping(
+                        (*r).tab.offset(i as isize) as *const u8,
+                        (l as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
                     );
                 }
                 bf_resize(r, l);
@@ -1668,15 +1676,7 @@ unsafe extern "C" fn mp_shr(
     let mut a: limb_t = 0;
     if shift >= 1 as libc::c_int && shift < (1 as libc::c_int) << 6 as libc::c_int {
     } else {
-        __assert_fail(
-            b"shift >= 1 && shift < LIMB_BITS\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            1119 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 64], &[libc::c_char; 64]>(
-                b"limb_t mp_shr(limb_t *, const limb_t *, mp_size_t, int, limb_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(shift >= 1 && (shift as u64) < LIMB_BITS);
     }
     l = high;
     i = n - 1 as libc::c_int as libc::c_long;
@@ -2262,11 +2262,7 @@ unsafe extern "C" fn mp_divnorm_large(
     nq = na.wrapping_sub(nb);
     if nq >= 1 as libc::c_int as libc::c_ulong {
     } else {
-        __assert_fail(b"nq >= 1\x00" as *const u8 as *const libc::c_char,
-                      b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                      1444 as libc::c_int as libc::c_uint,
-                      (*::std::mem::transmute::<&[u8; 89],
-                                                &[libc::c_char; 89]>(b"int mp_divnorm_large(bf_context_t *, limb_t *, limb_t *, limb_t, const limb_t *, limb_t)\x00")).as_ptr());
+        assert!(nq >= 1);
     }
     n = nq;
     if nq < nb {
@@ -2308,11 +2304,8 @@ unsafe extern "C" fn mp_divnorm_large(
             }
             if mp_add_ui(tabt, 1 as libc::c_int as limb_t, n) != 0 {
                 /* tabt = B^n : tabb_inv = B^n */
-                memset(
-                    tabb_inv as *mut libc::c_void,
-                    0 as libc::c_int,
-                    n.wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
-                );
+                (tabb_inv as *mut u8)
+                    .write_bytes(0, (n as usize).wrapping_mul(std::mem::size_of::<limb_t>()));
                 *tabb_inv.offset(n as isize) = 1 as libc::c_int as limb_t;
                 current_block = 10280019852174212328;
             } else {
@@ -2696,16 +2689,10 @@ unsafe extern "C" fn __bf_div(
     ) as *mut limb_t;
     if !taba.is_null() {
         d = na.wrapping_sub((*a).len) as slimb_t;
-        memset(
-            taba as *mut libc::c_void,
-            0 as libc::c_int,
-            (d as libc::c_ulong).wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
-        );
-        memcpy(
-            taba.offset(d as isize) as *mut libc::c_void,
-            (*a).tab as *const libc::c_void,
-            (*a).len
-                .wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
+        (taba as *mut u8).write_bytes(0, (d as usize).wrapping_mul(std::mem::size_of::<limb_t>()));
+        (taba.offset(d as isize) as *mut u8).copy_from(
+            (*a).tab as *const u8,
+            ((*a).len as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
         );
         if !(bf_resize(r, n.wrapping_add(1 as libc::c_int as libc::c_ulong)) != 0) {
             if !(mp_divnorm(s, (*r).tab, taba, na, (*b).tab, nb) != 0) {
@@ -2768,29 +2755,15 @@ pub unsafe extern "C" fn bf_divrem(
     let mut is_rndn: BOOL = 0;
     if q != a as *mut bf_t && q != b as *mut bf_t {
     } else {
-        __assert_fail(b"q != a && q != b\x00" as *const u8 as
-                          *const libc::c_char,
-                      b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                      1740 as libc::c_int as libc::c_uint,
-                      (*::std::mem::transmute::<&[u8; 83],
-                                                &[libc::c_char; 83]>(b"int bf_divrem(bf_t *, bf_t *, const bf_t *, const bf_t *, limb_t, bf_flags_t, int)\x00")).as_ptr());
+        assert!(q as *const bf_t != a && q as *const bf_t != b);
     }
     if r != a as *mut bf_t && r != b as *mut bf_t {
     } else {
-        __assert_fail(b"r != a && r != b\x00" as *const u8 as
-                          *const libc::c_char,
-                      b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                      1741 as libc::c_int as libc::c_uint,
-                      (*::std::mem::transmute::<&[u8; 83],
-                                                &[libc::c_char; 83]>(b"int bf_divrem(bf_t *, bf_t *, const bf_t *, const bf_t *, limb_t, bf_flags_t, int)\x00")).as_ptr());
+        assert!(r as *const bf_t != a && r as *const bf_t != b);
     }
     if q != r {
     } else {
-        __assert_fail(b"q != r\x00" as *const u8 as *const libc::c_char,
-                      b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                      1742 as libc::c_int as libc::c_uint,
-                      (*::std::mem::transmute::<&[u8; 83],
-                                                &[libc::c_char; 83]>(b"int bf_divrem(bf_t *, bf_t *, const bf_t *, const bf_t *, limb_t, bf_flags_t, int)\x00")).as_ptr());
+        assert!(q != r);
     }
     if (*a).len == 0 as libc::c_int as libc::c_ulong
         || (*b).len == 0 as libc::c_int as libc::c_ulong
@@ -3559,15 +3532,7 @@ pub unsafe extern "C" fn bf_sqrt(
     let mut ret: libc::c_int = 0;
     if r != a as *mut bf_t {
     } else {
-        __assert_fail(
-            b"r != a\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            2131 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 54], &[libc::c_char; 54]>(
-                b"int bf_sqrt(bf_t *, const bf_t *, limb_t, bf_flags_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(r as *const bf_t != a);
     }
     if (*a).len == 0 as libc::c_int as libc::c_ulong {
         if (*a).expn == 9223372036854775807 as libc::c_long {
@@ -3620,19 +3585,14 @@ pub unsafe extern "C" fn bf_sqrt(
                 current_block = 3531709610370321912;
             } else {
                 n1 = bf_min(2 as libc::c_int as libc::c_long * n, (*a).len as slimb_t);
-                memset(
-                    a1 as *mut libc::c_void,
-                    0 as libc::c_int,
-                    ((2 as libc::c_int as libc::c_long * n - n1) as libc::c_ulong)
-                        .wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
+                (a1 as *mut u8).write_bytes(
+                    0,
+                    (2 * n as usize - n1 as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
                 );
-                memcpy(
-                    a1.offset((2 as libc::c_int as libc::c_long * n) as isize)
-                        .offset(-(n1 as isize)) as *mut libc::c_void,
-                    (*a).tab.offset((*a).len as isize).offset(-(n1 as isize))
-                        as *const libc::c_void,
-                    (n1 as libc::c_ulong)
-                        .wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
+
+                (a1.offset((2 * n as isize)).offset(-(n1 as isize)) as *mut u8).copy_from(
+                    (*a).tab.offset((*a).len as isize).offset(-(n1 as isize)) as *const u8,
+                    (n1 as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
                 );
                 if (*a).expn & 1 as libc::c_int as libc::c_long != 0 {
                     res = mp_shr(
@@ -3869,15 +3829,7 @@ unsafe extern "C" fn bf_pow_ui(
     let mut i: libc::c_int = 0;
     if r != a as *mut bf_t {
     } else {
-        __assert_fail(
-            b"r != a\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            2266 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 64], &[libc::c_char; 64]>(
-                b"int bf_pow_ui(bf_t *, const bf_t *, limb_t, limb_t, bf_flags_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(r as *const bf_t != a);
     }
     if b == 0 as libc::c_int as libc::c_ulong {
         return bf_set_ui(r, 1 as libc::c_int as uint64_t);
@@ -3976,15 +3928,7 @@ unsafe extern "C" fn bf_logic_op(
     let mut ret: libc::c_int = 0;
     if r != a1 as *mut bf_t && r != b1 as *mut bf_t {
     } else {
-        __assert_fail(
-            b"r != a1 && r != b1\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            2330 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 57], &[libc::c_char; 57]>(
-                b"int bf_logic_op(bf_t *, const bf_t *, const bf_t *, int)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(r as *const bf_t != a1 && r as *const bf_t != b1);
     }
     if (*a1).expn <= 0 as libc::c_int as libc::c_long {
         a_sign = 0 as libc::c_int as limb_t
@@ -4826,11 +4770,9 @@ unsafe extern "C" fn bf_add_limb(
         }
         (*a).tab = new_tab;
         d = new_size.wrapping_sub((*a).len);
-        memmove(
-            (*a).tab.offset(d as isize) as *mut libc::c_void,
-            (*a).tab as *const libc::c_void,
-            (*a).len
-                .wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
+        ((*a).tab.offset(d as isize) as *mut u8).copy_from_nonoverlapping(
+            (*a).tab as *const u8,
+            ((*a).len as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
         );
         (*a).len = new_size;
         pos = (pos as libc::c_ulong).wrapping_add(d) as slimb_t as slimb_t
@@ -4983,13 +4925,7 @@ unsafe extern "C" fn bf_atof_internal(
                 if is_dec != 0 {
                     if radix == 10 as libc::c_int {
                     } else {
-                        __assert_fail(b"radix == 10\x00" as *const u8 as
-                                          *const libc::c_char,
-                                      b"libbf.c\x00" as *const u8 as
-                                          *const libc::c_char,
-                                      2945 as libc::c_int as libc::c_uint,
-                                      (*::std::mem::transmute::<&[u8; 100],
-                                                                &[libc::c_char; 100]>(b"int bf_atof_internal(bf_t *, slimb_t *, const char *, const char **, int, limb_t, bf_flags_t, BOOL)\x00")).as_ptr());
+                        assert!(radix == 10);
                     }
                     radix_bits = 0 as libc::c_int;
                     a = r
@@ -5105,13 +5041,9 @@ unsafe extern "C" fn bf_atof_internal(
                             _ => {
                                 /* reset the next limbs to zero (we prefer to reallocate in the
                                 renormalization) */
-                                memset(
-                                    (*a).tab as *mut libc::c_void,
-                                    0 as libc::c_int,
-                                    ((pos + 1 as libc::c_int as libc::c_long) as libc::c_ulong)
-                                        .wrapping_mul(
-                                            ::std::mem::size_of::<limb_t>() as libc::c_ulong
-                                        ),
+                                ((*a).tab as *mut u8).write_bytes(
+                                    0,
+                                    (pos as usize + 1).wrapping_mul(std::mem::size_of::<limb_t>()),
                                 );
                                 if p == p_start {
                                     ret = 0 as libc::c_int;
@@ -5647,11 +5579,7 @@ unsafe extern "C" fn bf_integer_to_radix_rec(
     let mut ret: libc::c_int = 0;
     if n >= 1 as libc::c_int as libc::c_ulong {
     } else {
-        __assert_fail(b"n >= 1\x00" as *const u8 as *const libc::c_char,
-                      b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                      3381 as libc::c_int as libc::c_uint,
-                      (*::std::mem::transmute::<&[u8; 103],
-                                                &[libc::c_char; 103]>(b"int bf_integer_to_radix_rec(bf_t *, limb_t *, const bf_t *, limb_t, int, limb_t, limb_t, unsigned int)\x00")).as_ptr());
+        assert!(n >= 1);
     }
     if n == 1 as libc::c_int as libc::c_ulong {
         *out.offset(0 as libc::c_int as isize) = get_bits(
@@ -6512,10 +6440,9 @@ unsafe extern "C" fn bf_ftoa_internal(
                             pos = pos.wrapping_add(1)
                         }
                         if pos > start {
-                            memmove(
-                                (*s).buf.offset(start as isize) as *mut libc::c_void,
-                                (*s).buf.offset(pos as isize) as *const libc::c_void,
-                                (*s).size.wrapping_sub(pos),
+                            ((*s).buf.offset(start as isize) as *mut u8).copy_from_nonoverlapping(
+                                (*s).buf.offset(pos as isize) as *const u8,
+                                (*s).size.wrapping_sub(pos) as usize,
                             );
                             (*s).size = ((*s).size as libc::c_ulong)
                                 .wrapping_sub(pos.wrapping_sub(start))
@@ -6658,14 +6585,7 @@ unsafe extern "C" fn bf_ftoa_internal(
                                 .wrapping_add(1 as libc::c_int as libc::c_ulong)
                         {
                         } else {
-                            __assert_fail(b"prec != BF_PREC_INF\x00" as
-                                              *const u8 as
-                                              *const libc::c_char,
-                                          b"libbf.c\x00" as *const u8 as
-                                              *const libc::c_char,
-                                          3876 as libc::c_int as libc::c_uint,
-                                          (*::std::mem::transmute::<&[u8; 78],
-                                                                    &[libc::c_char; 78]>(b"char *bf_ftoa_internal(size_t *, const bf_t *, int, limb_t, bf_flags_t, BOOL)\x00")).as_ptr());
+                            assert!(prec != BF_PREC_INF);
                         }
                         n_digits = 1 as libc::c_int as libc::c_long
                             + bf_mul_log2_radix(
@@ -7343,11 +7263,7 @@ unsafe extern "C" fn bf_const_get(
 }
 unsafe extern "C" fn bf_const_free(mut c: *mut BFConstCache) {
     bf_delete(&mut (*c).val);
-    memset(
-        c as *mut libc::c_void,
-        0 as libc::c_int,
-        ::std::mem::size_of::<BFConstCache>() as libc::c_ulong,
-    );
+    (c as *mut u8).write_bytes(0, std::mem::size_of::<BFConstCache>());
 }
 #[no_mangle]
 pub unsafe extern "C" fn bf_const_log2(
@@ -7499,15 +7415,7 @@ unsafe extern "C" fn bf_exp_internal(
     let mut prec1: slimb_t = 0;
     if r != a as *mut bf_t {
     } else {
-        __assert_fail(
-            b"r != a\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            4286 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 58], &[libc::c_char; 58]>(
-                b"int bf_exp_internal(bf_t *, const bf_t *, limb_t, void *)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(r as *const bf_t != a);
     }
     /* argument reduction:
        T = a - n*log(2) with 0 <= T < log(2) and n integer.
@@ -7746,15 +7654,7 @@ pub unsafe extern "C" fn bf_exp(
     let mut ret: libc::c_int = 0;
     if r != a as *mut bf_t {
     } else {
-        __assert_fail(
-            b"r != a\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            4404 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 53], &[libc::c_char; 53]>(
-                b"int bf_exp(bf_t *, const bf_t *, limb_t, bf_flags_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(r as *const bf_t != a);
     }
     if (*a).len == 0 as libc::c_int as libc::c_ulong {
         if (*a).expn == 9223372036854775807 as libc::c_long {
@@ -7846,15 +7746,7 @@ unsafe extern "C" fn bf_log_internal(
     let mut K: slimb_t = 0;
     if r != a as *mut bf_t {
     } else {
-        __assert_fail(
-            b"r != a\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            4439 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 58], &[libc::c_char; 58]>(
-                b"int bf_log_internal(bf_t *, const bf_t *, limb_t, void *)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(r as *const bf_t != a);
     }
     bf_init(s, T);
     /* argument reduction 1 */
@@ -8079,15 +7971,7 @@ pub unsafe extern "C" fn bf_log(
     let mut T: *mut bf_t = &mut T_s;
     if r != a as *mut bf_t {
     } else {
-        __assert_fail(
-            b"r != a\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            4535 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 53], &[libc::c_char; 53]>(
-                b"int bf_log(bf_t *, const bf_t *, limb_t, bf_flags_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(r as *const bf_t != a)
     }
     if (*a).len == 0 as libc::c_int as libc::c_ulong {
         if (*a).expn == 9223372036854775807 as libc::c_long {
@@ -8507,13 +8391,7 @@ pub unsafe extern "C" fn bf_pow(
                         bf_get_limb(&mut y1, y, 0 as libc::c_int);
                         if (*y).sign == 0 {
                         } else {
-                            __assert_fail(b"!y->sign\x00" as *const u8 as
-                                              *const libc::c_char,
-                                          b"libbf.c\x00" as *const u8 as
-                                              *const libc::c_char,
-                                          4769 as libc::c_int as libc::c_uint,
-                                          (*::std::mem::transmute::<&[u8; 67],
-                                                                    &[libc::c_char; 67]>(b"int bf_pow(bf_t *, const bf_t *, const bf_t *, limb_t, bf_flags_t)\x00")).as_ptr());
+                            assert!((*y).sign != 0);
                         }
                         /* x must be an integer, so abs(x) >= 2 */
                         if y1
@@ -8695,15 +8573,7 @@ unsafe extern "C" fn bf_sincos(
     let mut is_neg: libc::c_int = 0;
     if c != a as *mut bf_t && s != a as *mut bf_t {
     } else {
-        __assert_fail(
-            b"c != a && s != a\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            4850 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 52], &[libc::c_char; 52]>(
-                b"int bf_sincos(bf_t *, bf_t *, const bf_t *, limb_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(c as *const bf_t != a && s as *const bf_t != a);
     }
     bf_init(s1, T);
     bf_init(s1, U);
@@ -9067,15 +8937,7 @@ pub unsafe extern "C" fn bf_tan(
 ) -> libc::c_int {
     if r != a as *mut bf_t {
     } else {
-        __assert_fail(
-            b"r != a\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            5023 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 53], &[libc::c_char; 53]>(
-                b"int bf_tan(bf_t *, const bf_t *, limb_t, bf_flags_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(r as *const bf_t != a);
     }
     if (*a).len == 0 as libc::c_int as libc::c_ulong {
         if (*a).expn == 9223372036854775807 as libc::c_long {
@@ -10451,11 +10313,7 @@ unsafe extern "C" fn mp_div_dec(
     r = *tabb1.offset((nb - 1 as libc::c_int as libc::c_long) as isize);
     if r != 0 as libc::c_int as libc::c_ulong {
     } else {
-        __assert_fail(b"r != 0\x00" as *const u8 as *const libc::c_char,
-                      b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                      5847 as libc::c_int as libc::c_uint,
-                      (*::std::mem::transmute::<&[u8; 89],
-                                                &[libc::c_char; 89]>(b"int mp_div_dec(bf_context_t *, limb_t *, limb_t *, mp_size_t, const limb_t *, mp_size_t)\x00")).as_ptr());
+        assert!(r != 0);
     }
     i = na - nb;
     if r >= (10000000000000000000 as libc::c_ulong).wrapping_div(2 as libc::c_int as libc::c_ulong)
@@ -10589,15 +10447,7 @@ unsafe extern "C" fn mp_shr_dec(
     let mut r: limb_t = 0;
     if shift >= 1 as libc::c_int as libc::c_ulong && shift < 19 as libc::c_int as libc::c_ulong {
     } else {
-        __assert_fail(
-            b"shift >= 1 && shift < LIMB_DIGITS\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            5943 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 71], &[libc::c_char; 71]>(
-                b"limb_t mp_shr_dec(limb_t *, const limb_t *, mp_size_t, limb_t, limb_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(shift >= 1 && shift < LIMB_DIGITS);
     }
     l = high;
     i = n - 1 as libc::c_int as libc::c_long;
@@ -10628,15 +10478,7 @@ unsafe extern "C" fn mp_shl_dec(
     let mut r: limb_t = 0;
     if shift >= 1 as libc::c_int as libc::c_ulong && shift < 19 as libc::c_int as libc::c_ulong {
     } else {
-        __assert_fail(
-            b"shift >= 1 && shift < LIMB_DIGITS\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            5961 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 71], &[libc::c_char; 71]>(
-                b"limb_t mp_shl_dec(limb_t *, const limb_t *, mp_size_t, limb_t, limb_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(shift >= 1 && shift < LIMB_DIGITS);
     }
     l = low;
     i = 0 as libc::c_int as mp_size_t;
@@ -11394,15 +11236,7 @@ unsafe extern "C" fn __bfdec_round(
                 .wrapping_add(1 as libc::c_int as libc::c_ulong)
         {
         } else {
-            __assert_fail(
-                b"prec1 != BF_PREC_INF\x00" as *const u8 as *const libc::c_char,
-                b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                6438 as libc::c_int as libc::c_uint,
-                (*::std::mem::transmute::<&[u8; 57], &[libc::c_char; 57]>(
-                    b"int __bfdec_round(bfdec_t *, limb_t, bf_flags_t, limb_t)\x00",
-                ))
-                .as_ptr(),
-            );
+            assert!(prec1 != BF_PREC_INF);
         }
         prec = prec1.wrapping_sub((e_min - (*r).expn) as libc::c_ulong) as slimb_t
     } else {
@@ -11496,10 +11330,9 @@ unsafe extern "C" fn __bfdec_round(
                 } /* cannot fail */
                 if i > 0 as libc::c_int as libc::c_long {
                     l = (l as libc::c_ulong).wrapping_sub(i as libc::c_ulong) as limb_t as limb_t;
-                    memmove(
-                        (*r).tab as *mut libc::c_void,
-                        (*r).tab.offset(i as isize) as *const libc::c_void,
-                        l.wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
+                    ((*r).tab as *mut u8).copy_from_nonoverlapping(
+                        (*r).tab.offset(i as isize) as *const u8,
+                        (l as usize).wrapping_mul(::std::mem::size_of::<limb_t>()),
                     );
                 }
                 bfdec_resize(r, l);
@@ -11789,15 +11622,7 @@ unsafe extern "C" fn bfdec_add_internal(
                                 );
                                 if carry == 0 as libc::c_int as libc::c_ulong {
                                 } else {
-                                    __assert_fail(b"carry == 0\x00" as
-                                                      *const u8 as
-                                                      *const libc::c_char,
-                                                  b"libbf.c\x00" as *const u8
-                                                      as *const libc::c_char,
-                                                  6685 as libc::c_int as
-                                                      libc::c_uint,
-                                                  (*::std::mem::transmute::<&[u8; 93],
-                                                                            &[libc::c_char; 93]>(b"int bfdec_add_internal(bfdec_t *, const bfdec_t *, const bfdec_t *, limb_t, bf_flags_t, int)\x00")).as_ptr());
+                                    assert!(carry == 0);
                                 }
                             }
                             current_block = 13484060386966298149;
@@ -12184,16 +12009,10 @@ unsafe extern "C" fn __bfdec_div(
     ) as *mut limb_t;
     if !taba.is_null() {
         d = na.wrapping_sub((*a).len) as slimb_t;
-        memset(
-            taba as *mut libc::c_void,
-            0 as libc::c_int,
-            (d as libc::c_ulong).wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
-        );
-        memcpy(
-            taba.offset(d as isize) as *mut libc::c_void,
-            (*a).tab as *const libc::c_void,
-            (*a).len
-                .wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
+        (taba as *mut u8).write_bytes(0, (d as usize).wrapping_mul(std::mem::size_of::<limb_t>()));
+        (taba.offset(d as isize) as *mut u8).copy_from(
+            (*a).tab as *const u8,
+            ((*a).len as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
         );
         if !(bfdec_resize(r, n.wrapping_add(1 as libc::c_int as libc::c_ulong)) != 0) {
             if !(mp_div_dec(
@@ -12368,29 +12187,15 @@ pub unsafe extern "C" fn bfdec_divrem(
     let mut is_rndn: BOOL = 0;
     if q != a as *mut bfdec_t && q != b as *mut bfdec_t {
     } else {
-        __assert_fail(b"q != a && q != b\x00" as *const u8 as
-                          *const libc::c_char,
-                      b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                      6959 as libc::c_int as libc::c_uint,
-                      (*::std::mem::transmute::<&[u8; 98],
-                                                &[libc::c_char; 98]>(b"int bfdec_divrem(bfdec_t *, bfdec_t *, const bfdec_t *, const bfdec_t *, limb_t, bf_flags_t, int)\x00")).as_ptr());
+        assert!(q as *const bfdec_t != a && q as *const bfdec_t != b);
     }
     if r != a as *mut bfdec_t && r != b as *mut bfdec_t {
     } else {
-        __assert_fail(b"r != a && r != b\x00" as *const u8 as
-                          *const libc::c_char,
-                      b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                      6960 as libc::c_int as libc::c_uint,
-                      (*::std::mem::transmute::<&[u8; 98],
-                                                &[libc::c_char; 98]>(b"int bfdec_divrem(bfdec_t *, bfdec_t *, const bfdec_t *, const bfdec_t *, limb_t, bf_flags_t, int)\x00")).as_ptr());
+        assert!(r as *const bfdec_t != a && r as *const bfdec_t != b);
     }
     if q != r {
     } else {
-        __assert_fail(b"q != r\x00" as *const u8 as *const libc::c_char,
-                      b"libbf.c\x00" as *const u8 as *const libc::c_char,
-                      6961 as libc::c_int as libc::c_uint,
-                      (*::std::mem::transmute::<&[u8; 98],
-                                                &[libc::c_char; 98]>(b"int bfdec_divrem(bfdec_t *, bfdec_t *, const bfdec_t *, const bfdec_t *, limb_t, bf_flags_t, int)\x00")).as_ptr());
+        assert!(q != r);
     }
     if (*a).len == 0 as libc::c_int as libc::c_ulong
         || (*b).len == 0 as libc::c_int as libc::c_ulong
@@ -12580,15 +12385,7 @@ pub unsafe extern "C" fn bfdec_sqrt(
     let mut res: limb_t = 0;
     if r != a as *mut bfdec_t {
     } else {
-        __assert_fail(
-            b"r != a\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            7080 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 63], &[libc::c_char; 63]>(
-                b"int bfdec_sqrt(bfdec_t *, const bfdec_t *, limb_t, bf_flags_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(r as *const bfdec_t != a);
     }
     if (*a).len == 0 as libc::c_int as libc::c_ulong {
         if (*a).expn == 9223372036854775807 as libc::c_long {
@@ -12650,19 +12447,13 @@ pub unsafe extern "C" fn bfdec_sqrt(
                 current_block = 6745124862139863313;
             } else {
                 n1 = bf_min(2 as libc::c_int as libc::c_long * n, (*a).len as slimb_t);
-                memset(
-                    a1 as *mut libc::c_void,
-                    0 as libc::c_int,
-                    ((2 as libc::c_int as libc::c_long * n - n1) as libc::c_ulong)
-                        .wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
+                (a1 as *mut u8).write_bytes(
+                    0,
+                    (2 * n as usize - n1 as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
                 );
-                memcpy(
-                    a1.offset((2 as libc::c_int as libc::c_long * n) as isize)
-                        .offset(-(n1 as isize)) as *mut libc::c_void,
-                    (*a).tab.offset((*a).len as isize).offset(-(n1 as isize))
-                        as *const libc::c_void,
-                    (n1 as libc::c_ulong)
-                        .wrapping_mul(::std::mem::size_of::<limb_t>() as libc::c_ulong),
+                (a1.offset(2 * n as isize).offset(-(n1 as isize)) as *mut u8).copy_from(
+                    (*a).tab.offset((*a).len as isize).offset(-(n1 as isize)) as *const u8,
+                    (n1 as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
                 );
                 if (*a).expn & 1 as libc::c_int as libc::c_long != 0 {
                     res = mp_shr_dec(
@@ -12822,15 +12613,7 @@ pub unsafe extern "C" fn bfdec_pow_ui(
     let mut i: libc::c_int = 0;
     if r != a as *mut bfdec_t {
     } else {
-        __assert_fail(
-            b"r != a\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            7208 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 53], &[libc::c_char; 53]>(
-                b"int bfdec_pow_ui(bfdec_t *, const bfdec_t *, limb_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(r as *const bfdec_t != a);
     }
     if b == 0 as libc::c_int as libc::c_ulong {
         return bfdec_set_ui(r, 1 as libc::c_int as uint64_t);
@@ -13033,27 +12816,11 @@ unsafe extern "C" fn init_mul_mod_fast(mut m: limb_t) -> limb_t {
     let mut t: dlimb_t = 0;
     if m < (1 as libc::c_int as limb_t) << 62 as libc::c_int {
     } else {
-        __assert_fail(
-            b"m < (limb_t)1 << NTT_MOD_LOG2_MAX\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            7421 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 33], &[libc::c_char; 33]>(
-                b"limb_t init_mul_mod_fast(limb_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(m < 1 << NTT_MOD_LOG2_MAX);
     }
     if m >= (1 as libc::c_int as limb_t) << 61 as libc::c_int {
     } else {
-        __assert_fail(
-            b"m >= (limb_t)1 << NTT_MOD_LOG2_MIN\x00" as *const u8 as *const libc::c_char,
-            b"libbf.c\x00" as *const u8 as *const libc::c_char,
-            7422 as libc::c_int as libc::c_uint,
-            (*::std::mem::transmute::<&[u8; 33], &[libc::c_char; 33]>(
-                b"limb_t init_mul_mod_fast(limb_t)\x00",
-            ))
-            .as_ptr(),
-        );
+        assert!(m >= 1 << NTT_MOD_LOG2_MIN);
     }
     t = (1 as libc::c_int as dlimb_t)
         << ((1 as libc::c_int) << 6 as libc::c_int) + 61 as libc::c_int;
@@ -13394,13 +13161,7 @@ unsafe extern "C" fn ntt_fft_partial(
                 c_mul = 1 as libc::c_int as limb_t;
                 if n2.wrapping_rem(strip_len) == 0 as libc::c_int as libc::c_ulong {
                 } else {
-                    __assert_fail(b"(n2 % strip_len) == 0\x00" as *const u8 as
-                                      *const libc::c_char,
-                                  b"libbf.c\x00" as *const u8 as
-                                      *const libc::c_char,
-                                  7905 as libc::c_int as libc::c_uint,
-                                  (*::std::mem::transmute::<&[u8; 84],
-                                                            &[libc::c_char; 84]>(b"int ntt_fft_partial(BFNTTState *, NTTLimb *, int, int, limb_t, limb_t, int, limb_t)\x00")).as_ptr());
+                    assert!((n2 % strip_len) == 0);
                 }
                 j = 0 as libc::c_int as limb_t;
                 's_71: loop {
@@ -13567,12 +13328,11 @@ unsafe extern "C" fn limb_to_ntt(
     let mut r: limb_t = 0;
     let mut m: limb_t = 0;
     let mut m_inv: limb_t = 0;
-    memset(
-        tabr as *mut libc::c_void,
-        0 as libc::c_int,
-        (::std::mem::size_of::<NTTLimb>() as libc::c_ulong)
-            .wrapping_mul(fft_len)
-            .wrapping_mul(nb_mods as libc::c_ulong),
+    (tabr as *mut u8).write_bytes(
+        0,
+        std::mem::size_of::<NTTLimb>()
+            .wrapping_mul(fft_len as usize)
+            .wrapping_mul(nb_mods as usize),
     );
     shift = dpl & ((1 as libc::c_int) << 6 as libc::c_int) - 1 as libc::c_int;
     if shift == 0 as libc::c_int {
@@ -13708,10 +13468,9 @@ unsafe extern "C" fn ntt_to_limb(
         u[j as usize] = 0 as libc::c_int as limb_t;
         j += 1
     }
-    memset(
-        tabr as *mut libc::c_void,
-        0 as libc::c_int,
-        (::std::mem::size_of::<limb_t>() as libc::c_ulong).wrapping_mul(r_len),
+    (tabr as *mut u8).write_bytes(
+        0,
+        std::mem::size_of::<limb_t>().wrapping_mul(r_len as usize),
     );
     fft_len = (1 as libc::c_int as limb_t) << fft_len_log2;
     len = bf_min(
@@ -13837,11 +13596,7 @@ unsafe extern "C" fn ntt_static_init(mut s1: *mut bf_context_t) -> libc::c_int {
     if s.is_null() {
         return -(1 as libc::c_int);
     }
-    memset(
-        s as *mut libc::c_void,
-        0 as libc::c_int,
-        ::std::mem::size_of::<BFNTTState>() as libc::c_ulong,
-    );
+    (s as *mut u8).write_bytes(0, std::mem::size_of::<BFNTTState>());
     (*s1).ntt_state = s;
     (*s).ctx = s1;
     j = 0 as libc::c_int;
