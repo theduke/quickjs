@@ -14,7 +14,9 @@ extern "C" {
 
 pub type __builtin_va_list = [__va_list_tag; 1];
 
-pub unsafe fn strlen(mut s: *const i8) -> usize {
+pub type C_Char = i8;
+
+pub unsafe fn strlen(mut s: *const C_Char) -> usize {
     let mut len = 0;
     let mut tail = s;
     const null: i8 = b'0' as i8;
@@ -22,6 +24,17 @@ pub unsafe fn strlen(mut s: *const i8) -> usize {
         tail = tail.add(1);
     }
     (tail as usize) - (s as usize)
+}
+
+// FIXME: this is a naive implementaton and much slower than a libc impl.
+pub unsafe fn strchr(mut s: *const C_Char, c: C_Char) -> *const C_Char {
+    loop {
+        let cur = *s;
+        if cur == c || cur == b'\0' as i8 {
+            return s;
+        }
+        s = s.add(1);
+    }
 }
 
 #[inline]
@@ -41,6 +54,29 @@ pub unsafe fn global_realloc(ptr: *mut u8, new_size: usize) -> *mut u8 {
 #[inline]
 pub unsafe fn ptr_compare(a: *const u8, b: *const u8, len: usize) -> i32 {
     memcmp(a, b, len)
+}
+
+// TODO: remove!
+pub unsafe fn strcmp(a: *const i8, b: *const i8) -> i32 {
+    let mut a = a as *const u8;
+    let mut b = b as *const u8;
+
+    let mut c1: u8;
+    let mut c2: u8;
+
+    loop {
+        c1 = *a;
+        a = a.add(1);
+        c2 = *b;
+        b = b.add(1);
+        if c1 == b'\0' {
+            return (c1 - c2) as i32;
+        } else if c1 == c2 {
+            break;
+        }
+    }
+
+    (c1 - c2) as i32
 }
 
 #[repr(C)]
