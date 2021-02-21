@@ -4,8 +4,6 @@ extern "C" {
     pub type _IO_codecvt;
     pub type _IO_marker;
     #[no_mangle]
-    fn abort() -> !;
-    #[no_mangle]
     static mut stdout: *mut FILE;
     #[no_mangle]
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
@@ -25,21 +23,19 @@ extern "C" {
         __line: libc::c_uint,
         __function: *const libc::c_char,
     ) -> !;
-    #[no_mangle]
-    fn dbuf_init2(
-        s: *mut DynBuf,
-        opaque: *mut libc::c_void,
-        realloc_func: Option<DynBufReallocFunc>,
-    );
-    #[no_mangle]
-    fn dbuf_put(s: *mut DynBuf, data: *const uint8_t, len: size_t) -> libc::c_int;
-    #[no_mangle]
-    fn dbuf_putc(s: *mut DynBuf, c: uint8_t) -> libc::c_int;
-    #[no_mangle]
-    fn dbuf_putstr(s: *mut DynBuf, str: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
-    fn dbuf_printf(s: *mut DynBuf, fmt: *const libc::c_char, _: ...) -> libc::c_int;
 }
+
+use libc::c_int;
+
+use std::process::abort;
+
+use crate::quickjs_libc::FILE;
+
+use crate::cutils::{
+    dbuf_error, dbuf_init2, dbuf_printf, dbuf_put, dbuf_putc, dbuf_putstr, dbuf_set_error, DynBuf,
+    DynBufReallocFunc,
+};
+
 pub type size_t = libc::c_ulong;
 pub type __int8_t = libc::c_schar;
 pub type __uint8_t = libc::c_uchar;
@@ -51,41 +47,8 @@ pub type __off_t = libc::c_long;
 pub type __off64_t = libc::c_long;
 pub type int8_t = __int8_t;
 pub type int64_t = __int64_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_FILE {
-    pub _flags: libc::c_int,
-    pub _IO_read_ptr: *mut libc::c_char,
-    pub _IO_read_end: *mut libc::c_char,
-    pub _IO_read_base: *mut libc::c_char,
-    pub _IO_write_base: *mut libc::c_char,
-    pub _IO_write_ptr: *mut libc::c_char,
-    pub _IO_write_end: *mut libc::c_char,
-    pub _IO_buf_base: *mut libc::c_char,
-    pub _IO_buf_end: *mut libc::c_char,
-    pub _IO_save_base: *mut libc::c_char,
-    pub _IO_backup_base: *mut libc::c_char,
-    pub _IO_save_end: *mut libc::c_char,
-    pub _markers: *mut _IO_marker,
-    pub _chain: *mut _IO_FILE,
-    pub _fileno: libc::c_int,
-    pub _flags2: libc::c_int,
-    pub _old_offset: __off_t,
-    pub _cur_column: libc::c_ushort,
-    pub _vtable_offset: libc::c_schar,
-    pub _shortbuf: [libc::c_char; 1],
-    pub _lock: *mut libc::c_void,
-    pub _offset: __off64_t,
-    pub _codecvt: *mut _IO_codecvt,
-    pub _wide_data: *mut _IO_wide_data,
-    pub _freeres_list: *mut _IO_FILE,
-    pub _freeres_buf: *mut libc::c_void,
-    pub __pad5: size_t,
-    pub _mode: libc::c_int,
-    pub _unused2: [libc::c_char; 20],
-}
+
 pub type _IO_lock_t = ();
-pub type FILE = _IO_FILE;
 pub type uint8_t = __uint8_t;
 pub type uint16_t = __uint16_t;
 pub type uint32_t = __uint32_t;
@@ -95,27 +58,14 @@ pub type BOOL = libc::c_int;
 pub type C2RustUnnamed = libc::c_uint;
 pub const TRUE: C2RustUnnamed = 1;
 pub const FALSE: C2RustUnnamed = 0;
-pub type DynBufReallocFunc = unsafe extern "C" fn(
-    _: *mut libc::c_void,
-    _: *mut libc::c_void,
-    _: size_t,
-) -> *mut libc::c_void;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct DynBuf {
-    pub buf: *mut uint8_t,
-    pub size: size_t,
-    pub allocated_size: size_t,
-    pub error: BOOL,
-    pub realloc_func: Option<DynBufReallocFunc>,
-    pub opaque: *mut libc::c_void,
-}
+
 pub type uint128_t = u128;
 pub type slimb_t = int64_t;
 pub type limb_t = uint64_t;
 pub type dlimb_t = uint128_t;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct bf_t {
     pub ctx: *mut bf_context_t,
     pub sign: libc::c_int,
@@ -123,8 +73,9 @@ pub struct bf_t {
     pub len: limb_t,
     pub tab: *mut limb_t,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct bf_context_t {
     pub realloc_opaque: *mut libc::c_void,
     pub realloc_func: Option<bf_realloc_func_t>,
@@ -132,8 +83,9 @@ pub struct bf_context_t {
     pub pi_cache: BFConstCache,
     pub ntt_state: *mut BFNTTState,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct BFNTTState {
     pub ctx: *mut bf_context_t,
     pub ntt_mods_div: [limb_t; 5],
@@ -144,8 +96,9 @@ pub struct BFNTTState {
     pub ntt_mods_cr_inv: [limb_t; 10],
 }
 pub type NTTLimb = limb_t;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct BFConstCache {
     pub val: bf_t,
     pub prec: limb_t,
@@ -155,8 +108,9 @@ pub type bf_realloc_func_t = unsafe extern "C" fn(
     _: *mut libc::c_void,
     _: size_t,
 ) -> *mut libc::c_void;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct bfdec_t {
     pub ctx: *mut bf_context_t,
     pub sign: libc::c_int,
@@ -173,8 +127,9 @@ pub const BF_RNDD: bf_rnd_t = 2;
 pub const BF_RNDZ: bf_rnd_t = 1;
 pub const BF_RNDN: bf_rnd_t = 0;
 pub type bf_flags_t = uint32_t;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub union Float64Union {
     pub d: libc::c_double,
     pub u: uint64_t,
@@ -187,8 +142,9 @@ pub type bf_op2_func_t = unsafe extern "C" fn(
     _: bf_flags_t,
 ) -> libc::c_int;
 pub type mp_size_t = intptr_t;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct FastDivData {
     pub m1: limb_t,
     pub shift1: int8_t,
@@ -215,16 +171,9 @@ unsafe extern "C" fn clz64(mut a: uint64_t) -> libc::c_int {
 unsafe extern "C" fn ctz64(mut a: uint64_t) -> libc::c_int {
     return (a as libc::c_ulonglong).trailing_zeros() as i32;
 }
+
 #[inline]
-unsafe extern "C" fn dbuf_error(mut s: *mut DynBuf) -> BOOL {
-    return (*s).error;
-}
-#[inline]
-unsafe extern "C" fn dbuf_set_error(mut s: *mut DynBuf) {
-    (*s).error = TRUE as libc::c_int;
-}
-#[inline]
-unsafe extern "C" fn bf_get_exp_bits(mut flags: bf_flags_t) -> libc::c_int {
+pub unsafe extern "C" fn bf_get_exp_bits(mut flags: bf_flags_t) -> libc::c_int {
     let mut e: libc::c_int = 0;
     e = (flags >> 5 as libc::c_int & 0x3f as libc::c_int as libc::c_uint) as libc::c_int;
     if e == 0x3f as libc::c_int {
@@ -234,7 +183,7 @@ unsafe extern "C" fn bf_get_exp_bits(mut flags: bf_flags_t) -> libc::c_int {
     };
 }
 #[inline]
-unsafe extern "C" fn bf_set_exp_bits(mut n: libc::c_int) -> bf_flags_t {
+pub unsafe extern "C" fn bf_set_exp_bits(mut n: libc::c_int) -> bf_flags_t {
     return ((((1 as libc::c_int) << 6 as libc::c_int) - 3 as libc::c_int - n & 0x3f as libc::c_int)
         << 5 as libc::c_int) as bf_flags_t;
 }
@@ -255,7 +204,7 @@ unsafe extern "C" fn bf_min(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
     };
 }
 #[inline]
-unsafe extern "C" fn bf_realloc(
+pub unsafe extern "C" fn bf_realloc(
     mut s: *mut bf_context_t,
     mut ptr: *mut libc::c_void,
     mut size: size_t,
@@ -267,74 +216,112 @@ unsafe extern "C" fn bf_malloc(mut s: *mut bf_context_t, mut size: size_t) -> *m
     return bf_realloc(s, 0 as *mut libc::c_void, size);
 }
 #[inline]
-unsafe extern "C" fn bf_free(mut s: *mut bf_context_t, mut ptr: *mut libc::c_void) {
+pub unsafe extern "C" fn bf_free(mut s: *mut bf_context_t, mut ptr: *mut libc::c_void) {
     if !ptr.is_null() {
         bf_realloc(s, ptr, 0 as libc::c_int as size_t);
     };
 }
 #[inline]
-unsafe extern "C" fn bf_delete(mut r: *mut bf_t) {
+pub unsafe extern "C" fn bf_delete(mut r: *mut bf_t) {
     let mut s: *mut bf_context_t = (*r).ctx;
     if !s.is_null() && !(*r).tab.is_null() {
         bf_realloc(s, (*r).tab as *mut libc::c_void, 0 as libc::c_int as size_t);
     };
 }
 #[inline]
-unsafe extern "C" fn bf_neg(mut r: *mut bf_t) {
+pub unsafe extern "C" fn bf_neg(mut r: *mut bf_t) {
     (*r).sign ^= 1 as libc::c_int;
 }
 #[inline]
-unsafe extern "C" fn bf_is_finite(mut a: *const bf_t) -> libc::c_int {
+pub unsafe extern "C" fn bf_is_finite(mut a: *const bf_t) -> libc::c_int {
     return ((*a).expn < 9223372036854775807 as libc::c_long - 1 as libc::c_int as libc::c_long)
         as libc::c_int;
 }
+
 #[inline]
-unsafe extern "C" fn bf_is_nan(mut a: *const bf_t) -> libc::c_int {
+pub unsafe extern "C" fn bf_is_zero(mut a: *const bf_t) -> c_int {
+    return ((*a).expn == -(9223372036854775807 as libc::c_long) - 1 as c_int as libc::c_long)
+        as c_int;
+}
+
+#[inline]
+pub unsafe extern "C" fn bf_is_nan(mut a: *const bf_t) -> libc::c_int {
     return ((*a).expn == 9223372036854775807 as libc::c_long) as libc::c_int;
 }
 #[inline]
-unsafe extern "C" fn bf_cmp_eq(mut a: *const bf_t, mut b: *const bf_t) -> libc::c_int {
+pub unsafe extern "C" fn bf_cmp_eq(mut a: *const bf_t, mut b: *const bf_t) -> libc::c_int {
     return (bf_cmp(a, b) == 0 as libc::c_int) as libc::c_int;
 }
+
 #[inline]
-unsafe extern "C" fn bf_cmp_lt(mut a: *const bf_t, mut b: *const bf_t) -> libc::c_int {
+pub unsafe extern "C" fn bf_cmp_le(mut a: *const bf_t, mut b: *const bf_t) -> c_int {
+    return (bf_cmp(a, b) <= 0 as c_int) as c_int;
+}
+
+#[inline]
+pub unsafe extern "C" fn bf_cmp_lt(mut a: *const bf_t, mut b: *const bf_t) -> libc::c_int {
     return (bf_cmp(a, b) < 0 as libc::c_int) as libc::c_int;
 }
 #[inline]
-unsafe extern "C" fn bfdec_init(mut s: *mut bf_context_t, mut r: *mut bfdec_t) {
+pub unsafe extern "C" fn bfdec_init(mut s: *mut bf_context_t, mut r: *mut bfdec_t) {
     bf_init(s, r as *mut bf_t);
 }
+
 #[inline]
-unsafe extern "C" fn bfdec_delete(mut r: *mut bfdec_t) {
+pub unsafe extern "C" fn bfdec_cmp_le(mut a: *const bfdec_t, mut b: *const bfdec_t) -> c_int {
+    return (bfdec_cmp(a, b) <= 0 as c_int) as c_int;
+}
+
+#[inline]
+pub unsafe extern "C" fn bfdec_cmp_eq(mut a: *const bfdec_t, mut b: *const bfdec_t) -> c_int {
+    return (bfdec_cmp(a, b) == 0 as c_int) as c_int;
+}
+
+#[inline]
+pub unsafe extern "C" fn bfdec_cmp_lt(mut a: *const bfdec_t, mut b: *const bfdec_t) -> c_int {
+    return (bfdec_cmp(a, b) < 0 as c_int) as c_int;
+}
+
+#[inline]
+pub unsafe extern "C" fn bfdec_neg(mut r: *mut bfdec_t) {
+    (*r).sign ^= 1 as c_int;
+}
+#[inline]
+pub unsafe extern "C" fn bfdec_delete(mut r: *mut bfdec_t) {
     bf_delete(r as *mut bf_t);
 }
 #[inline]
-unsafe extern "C" fn bfdec_is_nan(mut a: *const bfdec_t) -> libc::c_int {
+pub unsafe extern "C" fn bfdec_is_nan(mut a: *const bfdec_t) -> libc::c_int {
     return ((*a).expn == 9223372036854775807 as libc::c_long) as libc::c_int;
 }
 #[inline]
-unsafe extern "C" fn bfdec_set_nan(mut r: *mut bfdec_t) {
+pub unsafe extern "C" fn bfdec_set_nan(mut r: *mut bfdec_t) {
     bf_set_nan(r as *mut bf_t);
 }
 #[inline]
-unsafe extern "C" fn bfdec_set_zero(mut r: *mut bfdec_t, mut is_neg: libc::c_int) {
+pub unsafe extern "C" fn bfdec_set_zero(mut r: *mut bfdec_t, mut is_neg: libc::c_int) {
     bf_set_zero(r as *mut bf_t, is_neg);
 }
 #[inline]
-unsafe extern "C" fn bfdec_set_inf(mut r: *mut bfdec_t, mut is_neg: libc::c_int) {
+pub unsafe extern "C" fn bfdec_set_inf(mut r: *mut bfdec_t, mut is_neg: libc::c_int) {
     bf_set_inf(r as *mut bf_t, is_neg);
 }
 #[inline]
-unsafe extern "C" fn bfdec_set(mut r: *mut bfdec_t, mut a: *const bfdec_t) -> libc::c_int {
+pub unsafe extern "C" fn bfdec_set(mut r: *mut bfdec_t, mut a: *const bfdec_t) -> libc::c_int {
     return bf_set(r as *mut bf_t, a as *mut bf_t);
 }
 #[inline]
-unsafe extern "C" fn bfdec_move(mut r: *mut bfdec_t, mut a: *mut bfdec_t) {
+pub unsafe extern "C" fn bfdec_move(mut r: *mut bfdec_t, mut a: *mut bfdec_t) {
     bf_move(r as *mut bf_t, a as *mut bf_t);
 }
 #[inline]
-unsafe extern "C" fn bfdec_cmpu(mut a: *const bfdec_t, mut b: *const bfdec_t) -> libc::c_int {
+pub unsafe extern "C" fn bfdec_cmpu(mut a: *const bfdec_t, mut b: *const bfdec_t) -> libc::c_int {
     return bf_cmpu(a as *const bf_t, b as *const bf_t);
+}
+
+#[inline]
+pub unsafe extern "C" fn bfdec_cmp(mut a: *const bfdec_t, mut b: *const bfdec_t) -> c_int {
+    return bf_cmp(a as *const bf_t, b as *const bf_t);
 }
 #[inline]
 unsafe extern "C" fn bfdec_resize(mut r: *mut bfdec_t, mut len: limb_t) -> libc::c_int {
@@ -9734,7 +9721,8 @@ pub unsafe extern "C" fn bf_acos(
 #[inline]
 unsafe extern "C" fn shld(mut a1: limb_t, mut a0: limb_t, mut shift: libc::c_long) -> limb_t {
     if shift != 0 as libc::c_int as libc::c_long {
-        return a1 << shift | a0 >> ((1 as libc::c_int) << 6 as libc::c_int) as libc::c_long - shift;
+        return a1 << shift
+            | a0 >> ((1 as libc::c_int) << 6 as libc::c_int) as libc::c_long - shift;
     } else {
         return a1;
     };

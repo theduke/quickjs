@@ -549,26 +549,30 @@ pub type clockid_t = __clockid_t;
 pub type int16_t = __int16_t;
 pub type int32_t = __int32_t;
 pub type int64_t = __int64_t;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct timeval {
     pub tv_sec: __time_t,
     pub tv_usec: __suseconds_t,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct timespec {
     pub tv_sec: __time_t,
     pub tv_nsec: __syscall_slong_t,
 }
 pub type __fd_mask = libc::c_long;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct fd_set {
     pub fds_bits: [__fd_mask; 16],
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct _IO_FILE {
     pub _flags: libc::c_int,
     pub _IO_read_ptr: *mut libc::c_char,
@@ -821,8 +825,9 @@ pub const _SC_NGROUPS_MAX: C2RustUnnamed = 3;
 pub const _SC_CLK_TCK: C2RustUnnamed = 2;
 pub const _SC_CHILD_MAX: C2RustUnnamed = 1;
 pub const _SC_ARG_MAX: C2RustUnnamed = 0;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct stat {
     pub st_dev: __dev_t,
     pub st_ino: __ino_t,
@@ -842,8 +847,9 @@ pub struct stat {
 }
 pub type __sighandler_t = Option<unsafe extern "C" fn(_: libc::c_int) -> ()>;
 pub type sighandler_t = __sighandler_t;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct dirent {
     pub d_ino: __ino_t,
     pub d_off: __off_t,
@@ -855,8 +861,9 @@ pub type DIR = __dirstream;
 pub type cc_t = libc::c_uchar;
 pub type speed_t = libc::c_uint;
 pub type tcflag_t = libc::c_uint;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct termios {
     pub c_iflag: tcflag_t,
     pub c_oflag: tcflag_t,
@@ -867,8 +874,9 @@ pub struct termios {
     pub c_ispeed: speed_t,
     pub c_ospeed: speed_t,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct winsize {
     pub ws_row: libc::c_ushort,
     pub ws_col: libc::c_ushort,
@@ -884,8 +892,9 @@ pub type DynBufReallocFunc = unsafe extern "C" fn(
     _: *mut libc::c_void,
     _: size_t,
 ) -> *mut libc::c_void;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct DynBuf {
     pub buf: *mut uint8_t,
     pub size: size_t,
@@ -894,8 +903,9 @@ pub struct DynBuf {
     pub realloc_func: Option<DynBufReallocFunc>,
     pub opaque: *mut libc::c_void,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct list_head {
     pub prev: *mut list_head,
     pub next: *mut list_head,
@@ -920,20 +930,23 @@ pub const JS_TAG_BIG_FLOAT: C2RustUnnamed_1 = -9;
 pub const JS_TAG_BIG_INT: C2RustUnnamed_1 = -10;
 pub const JS_TAG_BIG_DECIMAL: C2RustUnnamed_1 = -11;
 pub const JS_TAG_FIRST: C2RustUnnamed_1 = -11;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSRefCountHeader {
     pub ref_count: libc::c_int,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub union JSValueUnion {
     pub int32: int32_t,
     pub float64: libc::c_double,
     pub ptr: *mut libc::c_void,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSValue {
     pub u: JSValueUnion,
     pub tag: int64_t,
@@ -941,22 +954,25 @@ pub struct JSValue {
 pub type JSCFunction =
     unsafe extern "C" fn(_: *mut JSContext, _: JSValue, _: libc::c_int, _: *mut JSValue) -> JSValue;
 pub type JS_MarkFunc = unsafe extern "C" fn(_: *mut JSRuntime, _: *mut JSGCObjectHeader) -> ();
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSPropertyEnum {
     pub is_enumerable: libc::c_int,
     pub atom: JSAtom,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSPropertyDescriptor {
     pub flags: libc::c_int,
     pub value: JSValue,
     pub getter: JSValue,
     pub setter: JSValue,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSClassExoticMethods {
     pub get_own_property: Option<
         unsafe extern "C" fn(
@@ -1014,8 +1030,9 @@ pub type JSClassCall = unsafe extern "C" fn(
     _: *mut JSValue,
     _: libc::c_int,
 ) -> JSValue;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSClassDef {
     pub class_name: *const libc::c_char,
     pub finalizer: Option<JSClassFinalizer>,
@@ -1039,8 +1056,9 @@ pub const JS_CFUNC_constructor_magic: JSCFunctionEnum = 3;
 pub const JS_CFUNC_constructor: JSCFunctionEnum = 2;
 pub const JS_CFUNC_generic_magic: JSCFunctionEnum = 1;
 pub const JS_CFUNC_generic: JSCFunctionEnum = 0;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub union JSCFunctionType {
     pub generic: Option<JSCFunction>,
     pub generic_magic: Option<
@@ -1083,8 +1101,9 @@ pub union JSCFunctionType {
         ) -> JSValue,
     >,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSCFunctionListEntry {
     pub name: *const libc::c_char,
     pub prop_flags: uint8_t,
@@ -1092,8 +1111,9 @@ pub struct JSCFunctionListEntry {
     pub magic: int16_t,
     pub u: C2RustUnnamed_2,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub union C2RustUnnamed_2 {
     pub func: C2RustUnnamed_6,
     pub getset: C2RustUnnamed_5,
@@ -1104,26 +1124,30 @@ pub union C2RustUnnamed_2 {
     pub i64_0: int64_t,
     pub f64_0: libc::c_double,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct C2RustUnnamed_3 {
     pub tab: *const JSCFunctionListEntry,
     pub len: libc::c_int,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct C2RustUnnamed_4 {
     pub name: *const libc::c_char,
     pub base: libc::c_int,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct C2RustUnnamed_5 {
     pub get: JSCFunctionType,
     pub set: JSCFunctionType,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct C2RustUnnamed_6 {
     pub length: uint8_t,
     pub cproto: uint8_t,
@@ -1131,15 +1155,17 @@ pub struct C2RustUnnamed_6 {
 }
 pub type JSModuleInitFunc =
     unsafe extern "C" fn(_: *mut JSContext, _: *mut JSModuleDef) -> libc::c_int;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSSTDFile {
     pub f: *mut FILE,
     pub close_in_finalizer: BOOL,
     pub is_popen: BOOL,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSThreadState {
     pub os_rw_handlers: list_head,
     pub os_signal_handlers: list_head,
@@ -1149,38 +1175,43 @@ pub struct JSThreadState {
     pub recv_pipe: *mut JSWorkerMessagePipe,
     pub send_pipe: *mut JSWorkerMessagePipe,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSWorkerMessagePipe {
     pub ref_count: libc::c_int,
     pub msg_queue: list_head,
     pub read_fd: libc::c_int,
     pub write_fd: libc::c_int,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSOSTimer {
     pub link: list_head,
     pub has_object: BOOL,
     pub timeout: int64_t,
     pub func: JSValue,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSOSSignalHandler {
     pub link: list_head,
     pub sig_num: libc::c_int,
     pub func: JSValue,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSOSRWHandler {
     pub link: list_head,
     pub fd: libc::c_int,
     pub rw_func: [JSValue; 2],
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct JSWorkerMessageHandler {
     pub link: list_head,
     pub recv_pipe: *mut JSWorkerMessagePipe,
@@ -6850,10 +6881,10 @@ unsafe extern "C" fn js_os_poll(mut ctx: *mut JSContext) -> libc::c_int {
     let fresh26 =
         &mut *rfds.fds_bits.as_mut_ptr().offset(0 as libc::c_int as isize) as *mut __fd_mask;
     asm!("cld; rep; stosq" : "={cx}" (fresh22), "={di}" (fresh24) : "{ax}"
-         (0 as libc::c_int), "0"
-         (c2rust_asm_casts::AsmCast::cast_in(fresh21, fresh25)), "1"
-         (c2rust_asm_casts::AsmCast::cast_in(fresh23, fresh26)) : "memory" :
-         "volatile");
+     (0 as libc::c_int), "0"
+     (c2rust_asm_casts::AsmCast::cast_in(fresh21, fresh25)), "1"
+     (c2rust_asm_casts::AsmCast::cast_in(fresh23, fresh26)) : "memory" :
+     "volatile");
     c2rust_asm_casts::AsmCast::cast_out(fresh21, fresh25, fresh22);
     c2rust_asm_casts::AsmCast::cast_out(fresh23, fresh26, fresh24);
     let mut __d0_0: libc::c_int = 0;
@@ -6867,10 +6898,10 @@ unsafe extern "C" fn js_os_poll(mut ctx: *mut JSContext) -> libc::c_int {
     let fresh32 =
         &mut *wfds.fds_bits.as_mut_ptr().offset(0 as libc::c_int as isize) as *mut __fd_mask;
     asm!("cld; rep; stosq" : "={cx}" (fresh28), "={di}" (fresh30) : "{ax}"
-         (0 as libc::c_int), "0"
-         (c2rust_asm_casts::AsmCast::cast_in(fresh27, fresh31)), "1"
-         (c2rust_asm_casts::AsmCast::cast_in(fresh29, fresh32)) : "memory" :
-         "volatile");
+     (0 as libc::c_int), "0"
+     (c2rust_asm_casts::AsmCast::cast_in(fresh27, fresh31)), "1"
+     (c2rust_asm_casts::AsmCast::cast_in(fresh29, fresh32)) : "memory" :
+     "volatile");
     c2rust_asm_casts::AsmCast::cast_out(fresh27, fresh31, fresh28);
     c2rust_asm_casts::AsmCast::cast_out(fresh29, fresh32, fresh30);
     fd_max = -(1 as libc::c_int);

@@ -22,26 +22,13 @@ extern "C" {
         __line: libc::c_uint,
         __function: *const libc::c_char,
     ) -> !;
-    #[no_mangle]
-    fn dbuf_init2(
-        s: *mut DynBuf,
-        opaque: *mut libc::c_void,
-        realloc_func: Option<DynBufReallocFunc>,
-    );
-    #[no_mangle]
-    fn dbuf_realloc(s: *mut DynBuf, new_size: size_t) -> libc::c_int;
-    #[no_mangle]
-    fn dbuf_put(s: *mut DynBuf, data: *const uint8_t, len: size_t) -> libc::c_int;
 }
-pub type __builtin_va_list = [__va_list_tag; 1];
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct __va_list_tag {
-    pub gp_offset: libc::c_uint,
-    pub fp_offset: libc::c_uint,
-    pub overflow_arg_area: *mut libc::c_void,
-    pub reg_save_area: *mut libc::c_void,
-}
+
+use crate::cutils::{
+    __builtin_va_list, __va_list_tag, dbuf_error, dbuf_init2, dbuf_put, dbuf_put_u32, dbuf_realloc,
+    DynBuf, DynBufReallocFunc,
+};
+
 pub type size_t = libc::c_ulong;
 pub type __uint8_t = libc::c_uchar;
 pub type __uint16_t = libc::c_ushort;
@@ -56,21 +43,7 @@ pub type BOOL = libc::c_int;
 pub type C2RustUnnamed = libc::c_uint;
 pub const TRUE: C2RustUnnamed = 1;
 pub const FALSE: C2RustUnnamed = 0;
-pub type DynBufReallocFunc = unsafe extern "C" fn(
-    _: *mut libc::c_void,
-    _: *mut libc::c_void,
-    _: size_t,
-) -> *mut libc::c_void;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct DynBuf {
-    pub buf: *mut uint8_t,
-    pub size: size_t,
-    pub allocated_size: size_t,
-    pub error: BOOL,
-    pub realloc_func: Option<DynBufReallocFunc>,
-    pub opaque: *mut libc::c_void,
-}
+
 pub type UnicodeNormalizationEnum = libc::c_uint;
 pub const UNICODE_NFKD: UnicodeNormalizationEnum = 3;
 pub const UNICODE_NFKC: UnicodeNormalizationEnum = 2;
@@ -90,8 +63,9 @@ pub const RUN_TYPE_UF: C2RustUnnamed_4 = 2;
 pub const RUN_TYPE_LF: C2RustUnnamed_4 = 3;
 pub const RUN_TYPE_L: C2RustUnnamed_4 = 1;
 pub const RUN_TYPE_U: C2RustUnnamed_4 = 0;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct CharRange {
     pub len: libc::c_int,
     pub size: libc::c_int,
@@ -456,18 +430,6 @@ unsafe extern "C" fn max_int(mut a: libc::c_int, mut b: libc::c_int) -> libc::c_
     } else {
         return b;
     };
-}
-#[inline]
-unsafe extern "C" fn dbuf_put_u32(mut s: *mut DynBuf, mut val: uint32_t) -> libc::c_int {
-    return dbuf_put(
-        s,
-        &mut val as *mut uint32_t as *mut uint8_t,
-        4 as libc::c_int as size_t,
-    );
-}
-#[inline]
-unsafe extern "C" fn dbuf_error(mut s: *mut DynBuf) -> BOOL {
-    return (*s).error;
 }
 #[inline]
 unsafe extern "C" fn cr_add_point(mut cr: *mut CharRange, mut v: uint32_t) -> libc::c_int {

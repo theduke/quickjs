@@ -34,10 +34,7 @@ fn main() {
 
             let cstr = unsafe { std::ffi::CStr::from_ptr(ptr) };
 
-            let s = cstr
-                .to_str()
-                .unwrap()
-                .to_string();
+            let s = cstr.to_str().unwrap().to_string();
 
             eprintln!("error: {}", s);
         }

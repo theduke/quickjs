@@ -19,8 +19,9 @@ extern "C" {
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
 }
 pub type __builtin_va_list = [__va_list_tag; 1];
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct __va_list_tag {
     pub gp_offset: libc::c_uint,
     pub fp_offset: libc::c_uint,
@@ -47,8 +48,9 @@ pub type DynBufReallocFunc = unsafe extern "C" fn(
     _: *mut libc::c_void,
     _: size_t,
 ) -> *mut libc::c_void;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct DynBuf {
     pub buf: *mut uint8_t,
     pub size: size_t,
@@ -66,8 +68,9 @@ pub type cmp_f = Option<
 >;
 pub type exchange_f =
     Option<unsafe extern "C" fn(_: *mut libc::c_void, _: *mut libc::c_void, _: size_t) -> ()>;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct C2RustUnnamed_0 {
     pub base: *mut uint8_t,
     pub count: size_t,
@@ -175,6 +178,17 @@ pub unsafe extern "C" fn has_suffix(
             slen,
         ) == 0) as libc::c_int;
 }
+
+#[inline]
+pub unsafe extern "C" fn dbuf_error(mut s: *mut DynBuf) -> BOOL {
+    return (*s).error;
+}
+
+#[inline]
+pub unsafe extern "C" fn dbuf_set_error(mut s: *mut DynBuf) {
+    (*s).error = TRUE as libc::c_int;
+}
+
 /* Dynamic buffer package */
 unsafe extern "C" fn dbuf_default_realloc(
     mut opaque: *mut libc::c_void,
@@ -241,6 +255,30 @@ pub unsafe extern "C" fn dbuf_realloc(mut s: *mut DynBuf, mut new_size: size_t) 
     }
     return 0 as libc::c_int;
 }
+
+#[inline]
+pub unsafe extern "C" fn dbuf_put_u16(mut s: *mut DynBuf, mut val: uint16_t) -> libc::c_int {
+    return dbuf_put(
+        s,
+        &mut val as *mut uint16_t as *mut uint8_t,
+        2 as libc::c_int as size_t,
+    );
+}
+
+#[inline]
+pub unsafe extern "C" fn dbuf_put_u32(mut s: *mut DynBuf, mut val: uint32_t) -> libc::c_int {
+    return dbuf_put(
+        s,
+        &mut val as *mut uint32_t as *mut uint8_t,
+        4 as libc::c_int as size_t,
+    );
+}
+
+#[inline]
+pub unsafe extern "C" fn dbuf_put_u64(mut s: *mut DynBuf, mut val: uint64_t) -> libc::c_int {
+    return dbuf_put(s, &mut val as *mut uint64_t as *mut uint8_t, 8 as u64);
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn dbuf_write(
     mut s: *mut DynBuf,

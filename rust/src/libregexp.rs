@@ -35,21 +35,6 @@ extern "C" {
     #[no_mangle]
     fn pstrcpy(buf: *mut libc::c_char, buf_size: libc::c_int, str: *const libc::c_char);
     #[no_mangle]
-    fn dbuf_init2(
-        s: *mut DynBuf,
-        opaque: *mut libc::c_void,
-        realloc_func: Option<DynBufReallocFunc>,
-    );
-    #[no_mangle]
-    fn dbuf_realloc(s: *mut DynBuf, new_size: size_t) -> libc::c_int;
-    #[no_mangle]
-    fn dbuf_put(s: *mut DynBuf, data: *const uint8_t, len: size_t) -> libc::c_int;
-    #[no_mangle]
-    fn dbuf_put_self(s: *mut DynBuf, offset: size_t, len: size_t) -> libc::c_int;
-    #[no_mangle]
-    fn dbuf_putc(s: *mut DynBuf, c: uint8_t) -> libc::c_int;
-    #[no_mangle]
-    fn dbuf_free(s: *mut DynBuf);
     #[no_mangle]
     fn unicode_to_utf8(buf: *mut uint8_t, c: libc::c_uint) -> libc::c_int;
     #[no_mangle]
@@ -112,15 +97,12 @@ extern "C" {
     #[no_mangle]
     fn unicode_prop(cr: *mut CharRange, prop_name: *const libc::c_char) -> libc::c_int;
 }
-pub type __builtin_va_list = [__va_list_tag; 1];
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct __va_list_tag {
-    pub gp_offset: libc::c_uint,
-    pub fp_offset: libc::c_uint,
-    pub overflow_arg_area: *mut libc::c_void,
-    pub reg_save_area: *mut libc::c_void,
-}
+
+use crate::cutils::{
+    __builtin_va_list, __va_list_tag, dbuf_error, dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self,
+    dbuf_put_u16, dbuf_put_u32, dbuf_putc, dbuf_realloc, DynBuf,
+};
+
 pub type size_t = libc::c_ulong;
 pub type __uint8_t = libc::c_uchar;
 pub type __uint16_t = libc::c_ushort;
@@ -137,13 +119,15 @@ pub type BOOL = libc::c_int;
 pub type C2RustUnnamed = libc::c_uint;
 pub const TRUE: C2RustUnnamed = 1;
 pub const FALSE: C2RustUnnamed = 0;
-#[derive(Copy, Clone)]
+
 #[repr(C, packed)]
+#[derive(Copy, Clone)]
 pub struct packed_u32 {
     pub v: uint32_t,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C, packed)]
+#[derive(Copy, Clone)]
 pub struct packed_u16 {
     pub v: uint16_t,
 }
@@ -152,18 +136,9 @@ pub type DynBufReallocFunc = unsafe extern "C" fn(
     _: *mut libc::c_void,
     _: size_t,
 ) -> *mut libc::c_void;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
-pub struct DynBuf {
-    pub buf: *mut uint8_t,
-    pub size: size_t,
-    pub allocated_size: size_t,
-    pub error: BOOL,
-    pub realloc_func: Option<DynBufReallocFunc>,
-    pub opaque: *mut libc::c_void,
-}
 #[derive(Copy, Clone)]
-#[repr(C)]
 pub struct CharRange {
     pub len: libc::c_int,
     pub size: libc::c_int,
@@ -181,8 +156,9 @@ pub type C2RustUnnamed_0 = libc::c_uint;
 pub const CR_OP_XOR: C2RustUnnamed_0 = 2;
 pub const CR_OP_INTER: C2RustUnnamed_0 = 1;
 pub const CR_OP_UNION: C2RustUnnamed_0 = 0;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct REParseState {
     pub byte_code: DynBuf,
     pub buf_ptr: *const uint8_t,
@@ -199,8 +175,9 @@ pub struct REParseState {
     pub group_names: DynBuf,
     pub u: C2RustUnnamed_1,
 }
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub union C2RustUnnamed_1 {
     pub error_msg: [libc::c_char; 128],
     pub tmp_buf: [libc::c_char; 128],
@@ -212,8 +189,9 @@ pub const REOP_drop: C2RustUnnamed_2 = 16;
 pub const REOP_push_char_pos: C2RustUnnamed_2 = 25;
 pub const REOP_push_i32: C2RustUnnamed_2 = 15;
 pub const REOP_COUNT: C2RustUnnamed_2 = 29;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct REOpCode {
     pub size: uint8_t,
 }
@@ -244,8 +222,9 @@ pub const CHAR_RANGE_s: C2RustUnnamed_3 = 2;
 pub const CHAR_RANGE_D: C2RustUnnamed_3 = 1;
 pub const CHAR_RANGE_d: C2RustUnnamed_3 = 0;
 pub const REOP_lookahead: C2RustUnnamed_2 = 23;
-#[derive(Copy, Clone)]
+
 #[repr(C)]
+#[derive(Copy, Clone)]
 pub struct REExecContext {
     pub cbuf: *const uint8_t,
     pub cbuf_end: *const uint8_t,
@@ -267,8 +246,9 @@ pub const RE_EXEC_STATE_GREEDY_QUANT: REExecStateEnum = 3;
 pub const RE_EXEC_STATE_NEGATIVE_LOOKAHEAD: REExecStateEnum = 2;
 pub const RE_EXEC_STATE_LOOKAHEAD: REExecStateEnum = 1;
 pub const RE_EXEC_STATE_SPLIT: REExecStateEnum = 0;
-#[derive(Copy, Clone, BitfieldStruct)]
+
 #[repr(C)]
+#[derive(Copy, Clone, BitfieldStruct)]
 pub struct REExecState {
     #[bitfield(name = "type_0", ty = "REExecStateEnum", bits = "0..=7")]
     pub type_0: [u8; 1],
@@ -293,26 +273,6 @@ unsafe extern "C" fn put_u32(mut tab: *mut uint8_t, mut val: uint32_t) {
 #[inline]
 unsafe extern "C" fn get_u16(mut tab: *const uint8_t) -> uint32_t {
     return (*(tab as *const packed_u16)).v as uint32_t;
-}
-#[inline]
-unsafe extern "C" fn dbuf_put_u16(mut s: *mut DynBuf, mut val: uint16_t) -> libc::c_int {
-    return dbuf_put(
-        s,
-        &mut val as *mut uint16_t as *mut uint8_t,
-        2 as libc::c_int as size_t,
-    );
-}
-#[inline]
-unsafe extern "C" fn dbuf_put_u32(mut s: *mut DynBuf, mut val: uint32_t) -> libc::c_int {
-    return dbuf_put(
-        s,
-        &mut val as *mut uint32_t as *mut uint8_t,
-        4 as libc::c_int as size_t,
-    );
-}
-#[inline]
-unsafe extern "C" fn dbuf_error(mut s: *mut DynBuf) -> BOOL {
-    return (*s).error;
 }
 #[inline]
 unsafe extern "C" fn from_hex(mut c: libc::c_int) -> libc::c_int {
