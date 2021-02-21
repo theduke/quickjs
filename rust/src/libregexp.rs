@@ -420,13 +420,10 @@ unsafe extern "C" fn dbuf_insert(
         return -1;
     }
 
-    (*s).buf
-        .offset(pos as isize)
-        .offset(len as isize)
-        .copy_from_nonoverlapping(
-            (*s).buf.offset(pos as isize),
-            (*s).size.wrapping_sub(pos as libc::c_ulong) as usize,
-        );
+    ((*s).buf.offset(pos as isize).offset(len as isize) as *mut u8).copy_from_nonoverlapping(
+        (*s).buf.offset(pos as isize) as *const u8,
+        (*s).size.wrapping_sub(pos as libc::c_ulong) as usize,
+    );
     (*s).size = ((*s).size as libc::c_ulong).wrapping_add(len as libc::c_ulong) as size_t as size_t;
     return 0 as libc::c_int;
 }
@@ -4948,18 +4945,19 @@ unsafe extern "C" fn re_parse_alternative(
             if dbuf_realloc(&mut (*s).byte_code, end.wrapping_add(term_size)) != 0 {
                 return -(1 as libc::c_int);
             }
-            (*s).byte_code
+            ((*s)
+                .byte_code
                 .buf
                 .offset(start as isize)
-                .offset(term_size as isize)
+                .offset(term_size as isize) as *mut u8)
                 .copy_from_nonoverlapping(
-                    (*s).byte_code.buf.offset(start as isize),
+                    (*s).byte_code.buf.offset(start as isize) as *const u8,
                     end.wrapping_sub(start) as usize,
                 );
-            (*s).byte_code
-                .buf
-                .offset(start as isize)
-                .copy_from((*s).byte_code.buf.offset(end as isize), term_size as usize);
+            ((*s).byte_code.buf.offset(start as isize) as *mut u8).copy_from(
+                (*s).byte_code.buf.offset(end as isize) as *const u8,
+                term_size as usize,
+            );
         }
     }
     return 0 as libc::c_int;
@@ -6234,12 +6232,12 @@ unsafe extern "C" fn lre_exec_backtrack(
                             .wrapping_mul((*s).capture_count as usize),
                     );
                     stack_len = (*rs).stack_len as libc::c_int;
-                    stack.copy_from(
+                    (stack as *mut u8).copy_from(
                         (*rs)
                             .buf
                             .as_mut_ptr()
                             .offset((2 * (*s).capture_count as isize))
-                            as *const u64,
+                            as *const u8,
                         (stack_len as usize).wrapping_mul(std::mem::size_of::<StackInt>()),
                     );
                     pc = (*rs).pc;
@@ -6319,11 +6317,12 @@ unsafe extern "C" fn lre_exec_backtrack(
             pc = (*rs).pc;
             cptr = (*rs).cptr;
             stack_len = (*rs).stack_len as libc::c_int;
-            stack.copy_from(
+            (stack as *mut u8).copy_from(
                 (*rs)
                     .buf
                     .as_mut_ptr()
-                    .offset((2 * (*s).capture_count as isize)) as *const u64,
+                    .offset((2 * (*s).capture_count as isize)) as *const u64
+                    as *const u8,
                 (stack_len as usize).wrapping_mul(std::mem::size_of::<StackInt>()),
             );
             (*s).state_stack_len = (*s).state_stack_len.wrapping_sub(1);

@@ -27866,8 +27866,8 @@ pub unsafe extern "C" fn cr_copy(mut cr: *mut CharRange, mut cr1: *const CharRan
     if cr_realloc(cr, (*cr1).len) != 0 {
         return -(1 as libc::c_int);
     }
-    (*cr).points.copy_from(
-        (*cr1).points,
+    ((*cr).points as *mut u8).copy_from(
+        (*cr1).points as *const u8,
         (std::mem::size_of::<uint32_t>()).wrapping_mul((*cr1).len as usize),
     );
     (*cr).len = (*cr1).len;
@@ -27999,8 +27999,8 @@ pub unsafe extern "C" fn cr_invert(mut cr: *mut CharRange) -> libc::c_int {
     if cr_realloc(cr, len + 2 as libc::c_int) != 0 {
         return -(1 as libc::c_int);
     }
-    (*cr).points.offset(1).copy_from_nonoverlapping(
-        (*cr).points,
+    ((*cr).points.offset(1) as *mut u8).copy_from_nonoverlapping(
+        (*cr).points as *const u8,
         (len as usize).wrapping_mul(std::mem::size_of::<uint32_t>()),
     );
     *(*cr).points.offset(0 as libc::c_int as isize) = 0 as libc::c_int as uint32_t;
@@ -28618,8 +28618,8 @@ pub unsafe extern "C" fn unicode_normalize(
                 10599921512955367680 => {}
                 _ => {
                     buf = (*dbuf).buf as *mut libc::c_int;
-                    buf.copy_from(
-                        src as *const i32,
+                    (buf as *mut u8).copy_from(
+                        src as *const u8,
                         (src_len as usize).wrapping_mul(std::mem::size_of::<libc::c_int>()),
                     );
                     *pdst = buf as *mut uint32_t;
