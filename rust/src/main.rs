@@ -8,7 +8,16 @@ fn make_cstring(value: impl Into<Vec<u8>>) -> CString {
 
 fn main() {
     // let code = "\"abc\".length + [1, 2, 3, 4].length";
-    let code = "\"(abc)?\".match(/abc/).length";
+    let code = r#"
+        function f() {
+            let a = 22;
+            let b = 100.55;
+            let c = a + b;
+            return (c + " / ").repeat(44);
+        }
+
+        f()
+    "#;
 
     unsafe {
         let rt = JS_NewRuntime();
@@ -26,16 +35,19 @@ fn main() {
             JS_EVAL_TYPE_GLOBAL as i32,
         );
 
-        if value_raw.tag == 0 {
+        if value_raw.tag == slimjs::quickjs::JS_TAG_EXCEPTION as i64
+            || value_raw.tag == slimjs::quickjs::JS_TAG_STRING as i64
+        {
             let ptr = unsafe { JS_ToCStringLen2(ctx, std::ptr::null_mut(), value_raw, 0) };
 
             if ptr.is_null() {
-                panic!("null ptr");
+                panic!("no exception");
             }
 
             let cstr = unsafe { std::ffi::CStr::from_ptr(ptr) };
 
             let s = cstr.to_str().unwrap().to_string();
+            eprintln!("string value: {}", s);
         }
 
         dbg!(value_raw);

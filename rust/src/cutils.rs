@@ -24,6 +24,11 @@ pub unsafe fn strlen(mut s: *const C_Char) -> usize {
     (tail as usize) - (s as usize)
 }
 
+pub unsafe fn strcpy(mut dest: *mut C_Char, src: *const C_Char) -> *const C_Char {
+    dest.copy_from(src, strlen(src) + 1);
+    dest
+}
+
 // FIXME: this is a naive implementaton and much slower than a libc impl.
 pub unsafe fn strchr(mut s: *const C_Char, c: C_Char) -> *const C_Char {
     loop {
