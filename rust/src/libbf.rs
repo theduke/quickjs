@@ -6248,7 +6248,7 @@ unsafe extern "C" fn output_digits(
                 dbuf_put(
                     s,
                     buf.as_mut_ptr().offset(buf_pos as isize) as *mut uint8_t,
-                    l,
+                    l as usize,
                 );
                 buf_pos = (buf_pos as libc::c_ulong).wrapping_add(l) as libc::c_int as libc::c_int;
                 i = (i as libc::c_ulong).wrapping_add(l) as limb_t as limb_t

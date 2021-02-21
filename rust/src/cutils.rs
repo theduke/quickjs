@@ -1,24 +1,47 @@
 use ::libc;
 extern "C" {
     #[no_mangle]
-    fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
     fn vsnprintf(
         _: *mut libc::c_char,
         _: libc::c_ulong,
         _: *const libc::c_char,
         _: ::std::ffi::VaList,
     ) -> libc::c_int;
+
     #[no_mangle]
-    fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
-    fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong) -> *mut libc::c_void;
-    #[no_mangle]
-    fn memcmp(_: *const libc::c_void, _: *const libc::c_void, _: libc::c_ulong) -> libc::c_int;
-    #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
+    fn memcmp(_: *const u8, _: *const u8, _: usize) -> libc::c_int;
 }
+
 pub type __builtin_va_list = [__va_list_tag; 1];
+
+pub unsafe fn strlen(mut s: *const i8) -> usize {
+    let mut len = 0;
+    let mut tail = s;
+    const null: i8 = b'0' as i8;
+    while *tail != null {
+        tail = tail.add(1);
+    }
+    (tail as usize) - (s as usize)
+}
+
+#[inline]
+pub unsafe fn global_alloc(size: usize) -> *mut u8 {
+    let layout =
+        std::alloc::Layout::from_size_align(size, std::mem::align_of::<u8>()).expect("Bad layout");
+    std::alloc::alloc(layout)
+}
+
+#[inline]
+pub unsafe fn global_realloc(ptr: *mut u8, new_size: usize) -> *mut u8 {
+    let layout = std::alloc::Layout::from_size_align(new_size, std::mem::align_of::<u8>())
+        .expect("Bad layout");
+    std::alloc::realloc(ptr, layout, new_size)
+}
+
+#[inline]
+pub unsafe fn ptr_compare(a: *const u8, b: *const u8, len: usize) -> i32 {
+    memcmp(a, b, len)
+}
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -169,13 +192,13 @@ pub unsafe extern "C" fn has_suffix(
     mut str: *const libc::c_char,
     mut suffix: *const libc::c_char,
 ) -> libc::c_int {
-    let mut len: size_t = strlen(str);
-    let mut slen: size_t = strlen(suffix);
+    let mut len = strlen(str);
+    let mut slen = strlen(suffix);
     return (len >= slen
-        && memcmp(
-            str.offset(len as isize).offset(-(slen as isize)) as *const libc::c_void,
-            suffix as *const libc::c_void,
-            slen,
+        && ptr_compare(
+            str.offset(len as isize).offset(-(slen as isize)) as *const u8,
+            suffix as *const u8,
+            slen as usize,
         ) == 0) as libc::c_int;
 }
 
@@ -195,19 +218,17 @@ unsafe extern "C" fn dbuf_default_realloc(
     mut ptr: *mut libc::c_void,
     mut size: size_t,
 ) -> *mut libc::c_void {
-    return realloc(ptr, size);
+    global_realloc(ptr as *mut u8, size as usize) as *mut libc::c_void
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn dbuf_init2(
     mut s: *mut DynBuf,
     mut opaque: *mut libc::c_void,
     mut realloc_func: Option<DynBufReallocFunc>,
 ) {
-    memset(
-        s as *mut libc::c_void,
-        0 as libc::c_int,
-        ::std::mem::size_of::<DynBuf>() as libc::c_ulong,
-    );
+    (s as *mut u8).write_bytes(0, std::mem::size_of::<DynBuf>());
+
     if realloc_func.is_none() {
         realloc_func = Some(
             dbuf_default_realloc
@@ -234,10 +255,7 @@ pub unsafe extern "C" fn dbuf_realloc(mut s: *mut DynBuf, mut new_size: size_t) 
         if (*s).error != 0 {
             return -(1 as libc::c_int);
         }
-        size = (*s)
-            .allocated_size
-            .wrapping_mul(3 as libc::c_int as libc::c_ulong)
-            .wrapping_div(2 as libc::c_int as libc::c_ulong);
+        size = (*s).allocated_size.wrapping_mul(3).wrapping_div(2);
         if size > new_size {
             new_size = size
         }
@@ -258,29 +276,21 @@ pub unsafe extern "C" fn dbuf_realloc(mut s: *mut DynBuf, mut new_size: size_t) 
 
 #[inline]
 pub unsafe extern "C" fn dbuf_put_u16(mut s: *mut DynBuf, mut val: uint16_t) -> libc::c_int {
-    return dbuf_put(
-        s,
-        &mut val as *mut uint16_t as *mut uint8_t,
-        2 as libc::c_int as size_t,
-    );
+    return dbuf_put(s, &mut val as *mut uint16_t as *mut uint8_t, 2);
 }
 
 #[inline]
 pub unsafe extern "C" fn dbuf_put_u32(mut s: *mut DynBuf, mut val: uint32_t) -> libc::c_int {
-    return dbuf_put(
-        s,
-        &mut val as *mut uint32_t as *mut uint8_t,
-        4 as libc::c_int as size_t,
-    );
+    return dbuf_put(s, &mut val as *mut u32 as *mut uint8_t, 4);
 }
 
 #[inline]
 pub unsafe extern "C" fn dbuf_put_u64(mut s: *mut DynBuf, mut val: uint64_t) -> libc::c_int {
-    return dbuf_put(s, &mut val as *mut uint64_t as *mut uint8_t, 8 as u64);
+    return dbuf_put(s, &mut val as *mut uint64_t as *mut uint8_t, 8);
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn dbuf_write(
+pub unsafe fn dbuf_write(
     mut s: *mut DynBuf,
     mut offset: size_t,
     mut data: *const uint8_t,
@@ -288,38 +298,38 @@ pub unsafe extern "C" fn dbuf_write(
 ) -> libc::c_int {
     let mut end: size_t = 0;
     end = offset.wrapping_add(len);
+
     if dbuf_realloc(s, end) != 0 {
         return -(1 as libc::c_int);
     }
-    memcpy(
-        (*s).buf.offset(offset as isize) as *mut libc::c_void,
-        data as *const libc::c_void,
-        len,
-    );
+    (*s).buf
+        .offset(offset as isize)
+        .copy_from(data, len as usize);
+
     if end > (*s).size {
         (*s).size = end
     }
-    return 0 as libc::c_int;
+    0
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn dbuf_put(
     mut s: *mut DynBuf,
     mut data: *const uint8_t,
-    mut len: size_t,
+    mut len: usize,
 ) -> libc::c_int {
-    if ((*s).size.wrapping_add(len) > (*s).allocated_size) as libc::c_int as libc::c_long != 0 {
-        if dbuf_realloc(s, (*s).size.wrapping_add(len)) != 0 {
-            return -(1 as libc::c_int);
+    if ((*s).size.wrapping_add(len as u64) > (*s).allocated_size) {
+        if dbuf_realloc(s, (*s).size.wrapping_add(len as u64)) != 0 {
+            return -1;
         }
     }
-    memcpy(
-        (*s).buf.offset((*s).size as isize) as *mut libc::c_void,
-        data as *const libc::c_void,
-        len,
-    );
-    (*s).size = ((*s).size as libc::c_ulong).wrapping_add(len) as size_t as size_t;
-    return 0 as libc::c_int;
+    (*s).buf
+        .offset((*s).size as isize)
+        .copy_from(data, len as usize);
+    (*s).size = ((*s).size as libc::c_ulong).wrapping_add(len as u64) as size_t;
+    0
 }
+
 #[no_mangle]
 pub unsafe extern "C" fn dbuf_put_self(
     mut s: *mut DynBuf,
@@ -328,20 +338,19 @@ pub unsafe extern "C" fn dbuf_put_self(
 ) -> libc::c_int {
     if ((*s).size.wrapping_add(len) > (*s).allocated_size) as libc::c_int as libc::c_long != 0 {
         if dbuf_realloc(s, (*s).size.wrapping_add(len)) != 0 {
-            return -(1 as libc::c_int);
+            return -1;
         }
     }
-    memcpy(
-        (*s).buf.offset((*s).size as isize) as *mut libc::c_void,
-        (*s).buf.offset(offset as isize) as *const libc::c_void,
-        len,
-    );
+    (*s).buf
+        .offset((*s).size as isize)
+        .copy_from((*s).buf.offset(offset as isize), len as usize);
+
     (*s).size = ((*s).size as libc::c_ulong).wrapping_add(len) as size_t as size_t;
-    return 0 as libc::c_int;
+    0
 }
 #[no_mangle]
 pub unsafe extern "C" fn dbuf_putc(mut s: *mut DynBuf, mut c: uint8_t) -> libc::c_int {
-    return dbuf_put(s, &mut c, 1 as libc::c_int as size_t);
+    return dbuf_put(s, &mut c, 1);
 }
 #[no_mangle]
 pub unsafe extern "C" fn dbuf_putstr(
@@ -358,7 +367,7 @@ pub unsafe extern "C" fn dbuf_printf(
 ) -> libc::c_int {
     let mut ap: ::std::ffi::VaListImpl;
     let mut buf: [libc::c_char; 128] = [0; 128];
-    let mut len: libc::c_int = 0;
+    let mut len = 0;
     ap = args.clone();
     len = vsnprintf(
         buf.as_mut_ptr(),
@@ -368,7 +377,7 @@ pub unsafe extern "C" fn dbuf_printf(
     );
     if (len as libc::c_ulong) < ::std::mem::size_of::<[libc::c_char; 128]>() as libc::c_ulong {
         /* fast case */
-        return dbuf_put(s, buf.as_mut_ptr() as *mut uint8_t, len as size_t);
+        return dbuf_put(s, buf.as_mut_ptr() as *mut uint8_t, len as usize);
     } else {
         if dbuf_realloc(
             s,
@@ -402,12 +411,9 @@ pub unsafe extern "C" fn dbuf_free(mut s: *mut DynBuf) {
             0 as libc::c_int as size_t,
         );
     }
-    memset(
-        s as *mut libc::c_void,
-        0 as libc::c_int,
-        ::std::mem::size_of::<DynBuf>() as libc::c_ulong,
-    );
+    (s as *mut u8).write_bytes(0, std::mem::size_of::<DynBuf>());
 }
+
 /* Note: at most 31 bits are encoded. At most UTF8_CHAR_LEN_MAX bytes
 are output. */
 #[no_mangle]

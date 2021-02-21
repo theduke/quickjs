@@ -7,7 +7,7 @@ fn make_cstring(value: impl Into<Vec<u8>>) -> CString {
 }
 
 fn main() {
-    let code = "\"abc\".length";
+    let code = "\"abc\".length + [1, 2, 3, 4].length";
 
     unsafe {
         let rt = JS_NewRuntime();
@@ -35,8 +35,6 @@ fn main() {
             let cstr = unsafe { std::ffi::CStr::from_ptr(ptr) };
 
             let s = cstr.to_str().unwrap().to_string();
-
-            eprintln!("error: {}", s);
         }
 
         dbg!(value_raw);

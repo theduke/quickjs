@@ -2147,8 +2147,7 @@ unsafe extern "C" fn re_parse_term(
                             dbuf_put(
                                 &mut (*s).group_names,
                                 (*s).u.tmp_buf.as_mut_ptr() as *mut uint8_t,
-                                strlen((*s).u.tmp_buf.as_mut_ptr())
-                                    .wrapping_add(1 as libc::c_int as libc::c_ulong),
+                                strlen((*s).u.tmp_buf.as_mut_ptr()).wrapping_add(1) as usize,
                             );
                             (*s).has_named_captures = 1 as libc::c_int
                         } else {
@@ -5373,7 +5372,7 @@ pub unsafe extern "C" fn lre_compile(
                     dbuf_put(
                         &mut (*s).byte_code,
                         (*s).group_names.buf,
-                        (*s).group_names.size,
+                        (*s).group_names.size as usize,
                     );
                     let ref mut fresh26 = *(*s).byte_code.buf.offset(0 as libc::c_int as isize);
                     *fresh26 = (*fresh26 as libc::c_int | (1 as libc::c_int) << 7 as libc::c_int)
