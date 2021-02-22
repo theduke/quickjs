@@ -1,4 +1,7 @@
 use ::libc;
+
+use std::os::raw::c_char;
+
 extern "C" {
     #[no_mangle]
     fn vsnprintf(
@@ -14,9 +17,7 @@ extern "C" {
 
 pub type __builtin_va_list = [__va_list_tag; 1];
 
-pub type C_Char = i8;
-
-pub unsafe fn cstr_len(mut s: *const C_Char) -> usize {
+pub unsafe fn cstr_len(mut s: *const c_char) -> usize {
     let mut tail = s as *const u8;
     while *tail != b'\0' {
         tail = tail.add(1);
@@ -24,13 +25,49 @@ pub unsafe fn cstr_len(mut s: *const C_Char) -> usize {
     (tail as usize) - (s as usize)
 }
 
-pub unsafe fn cstr_copy(mut dest: *mut C_Char, src: *const C_Char) -> *const C_Char {
+pub unsafe fn cstr_append_sized(
+    target: *mut c_char,
+    target_len: usize,
+    value: &str,
+) -> *mut c_char {
+    if target_len > 0 {
+        let bytes = if target_len >= value.len() + 1 {
+            value.as_bytes()
+        } else {
+            &value.as_bytes()[0..target_len - 1]
+        };
+
+        target.copy_from(bytes.as_ptr() as *const c_char, bytes.len());
+        *target.add(bytes.len()) = b'\0' as i8;
+        target
+    } else {
+        std::ptr::null_mut()
+    }
+}
+
+pub unsafe fn cstr_parse_f64(s: *const c_char) -> f64 {
+    std::ffi::CStr::from_ptr(s)
+        .to_str()
+        .ok()
+        .and_then(|x| x.parse::<f64>().ok())
+        .unwrap_or(0.0)
+}
+
+pub unsafe fn cstr_parse_i64(s: *const c_char) -> i64 {
+    std::ffi::CStr::from_ptr(s)
+        .to_str()
+        .ok()
+        .and_then(|x| x.parse::<i64>().ok())
+        .unwrap_or(0)
+}
+
+pub unsafe fn cstr_copy(mut dest: *mut c_char, src: *const c_char) -> *const c_char {
     dest.copy_from(src, cstr_len(src) + 1);
     dest
 }
 
 // FIXME: this is a naive implementaton and much slower than a libc impl.
-pub unsafe fn cstr_find_char(mut s: *const C_Char, c: C_Char) -> *const C_Char {
+pub unsafe fn cstr_find_char(mut s: *const c_char, c: c_char) -> *const c_char {
     loop {
         let cur = *s;
         if cur == c || cur == b'\0' as i8 {

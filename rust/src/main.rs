@@ -13,7 +13,7 @@ fn main() {
             let a = 22;
             let b = 100.55;
             let c = a + b;
-            return (c + " / ").repeat(44);
+            return (c + " / ").repeat(44) + " " + parseFloat("66.66");
         }
 
         f()
