@@ -20,7 +20,6 @@
 extern crate c2rust_bitfields;
 #[macro_use]
 extern crate c2rust_asm_casts;
-extern crate libc;
 
 pub mod cutils;
 pub mod libbf;

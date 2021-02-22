@@ -10,7 +10,6 @@ publish = false
 edition = "2018"
 autobins = false
 
-
 [[bin]]
 name = "slimjs"
 
@@ -21,7 +20,6 @@ crate-type = ["staticlib", "rlib", "cdylib"]
 [dependencies]
 c2rust-bitfields = "0.3"
 c2rust-asm-casts = "0.2"
-libc = "0.2"
 printf-compat = "0.1.1"
 format_num = "0.1.0"
 chrono = "0.4.19"

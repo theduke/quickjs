@@ -213,7 +213,6 @@ dependencies = [
  "chrono",
  "format_num",
  "getrandom",
- "libc",
  "printf-compat",
 ]
 
