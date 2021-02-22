@@ -1,31 +1,33 @@
 use ::libc;
 
 use std::os::raw::c_char;
+use std::io::Write;
 
 extern "C" {
-    #[no_mangle]
-    fn vsnprintf(
-        _: *mut libc::c_char,
-        _: libc::c_ulong,
-        _: *const libc::c_char,
-        _: ::std::ffi::VaList,
-    ) -> libc::c_int;
-
     #[no_mangle]
     fn memcmp(_: *const u8, _: *const u8, _: usize) -> libc::c_int;
 }
 
 pub type __builtin_va_list = [__va_list_tag; 1];
 
-/*
-unsafe extern "C" fn cstr_snprintf(buf: *mut c_char, buf_size: usize, format: *const c_char, mut args: ...) -> *const c_char {
-    use printf_compat::{format, output};
-    let mut s = String::new();
-    let mut slice = std::slice::from_raw_parts_mut(buf, buf_size);
-    let bytes_written = format(str, args.as_va_list(), output::fmt_write(&mut slice));
-    buf
+pub unsafe extern "C" fn cstr_snprintf(buf: *mut c_char, buf_size: usize, format_str: *const c_char, mut args: ...) -> i32 {
+    cstr_vsnprintf(buf, buf_size, format_str, args.as_va_list())
 }
-*/
+
+pub unsafe extern "C" fn cstr_vsnprintf(
+    buf: *mut c_char,
+    buf_size: usize,
+    format_str: *const c_char,
+    args: std::ffi::VaList,
+    ) -> i32 {
+    use printf_compat::{format, output};
+
+    let mut slice: &mut [u8] = std::slice::from_raw_parts_mut(buf as *mut u8, buf_size);
+    let mut c = std::io::Cursor::new(slice);
+    let bytes_written = format(format_str, args, output::io_write(&mut c));
+    bytes_written
+}
+
 
 pub trait PtrExt {
     // Backport removed std library method.
@@ -530,9 +532,9 @@ pub unsafe extern "C" fn dbuf_printf(
     let mut buf: [libc::c_char; 128] = [0; 128];
     let mut len = 0;
     ap = args.clone();
-    len = vsnprintf(
+    len = cstr_vsnprintf(
         buf.as_mut_ptr(),
-        ::std::mem::size_of::<[libc::c_char; 128]>() as libc::c_ulong,
+        ::std::mem::size_of::<[libc::c_char; 128]>(),
         fmt,
         ap.as_va_list(),
     );
@@ -550,9 +552,9 @@ pub unsafe extern "C" fn dbuf_printf(
             return -(1 as libc::c_int);
         }
         ap = args.clone();
-        vsnprintf(
+        cstr_vsnprintf(
             (*s).buf.offset((*s).size as isize) as *mut libc::c_char,
-            (*s).allocated_size.wrapping_sub((*s).size),
+            (*s).allocated_size.wrapping_sub((*s).size) as usize,
             fmt,
             ap.as_va_list(),
         );

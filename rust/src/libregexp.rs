@@ -17,16 +17,6 @@ use crate::libunicode::{
 
 use crate::quickjs::{lre_check_stack_overflow, lre_realloc};
 
-extern "C" {
-    #[no_mangle]
-    fn vsnprintf(
-        _: *mut libc::c_char,
-        _: libc::c_ulong,
-        _: *const libc::c_char,
-        _: ::std::ffi::VaList,
-    ) -> libc::c_int;
-}
-
 pub type size_t = libc::c_ulong;
 pub type __uint8_t = libc::c_uchar;
 pub type __uint16_t = libc::c_ushort;
@@ -707,9 +697,9 @@ unsafe extern "C" fn re_parse_error(
 ) -> libc::c_int {
     let mut ap: ::std::ffi::VaListImpl;
     ap = args.clone();
-    vsnprintf(
+    crate::cutils::cstr_vsnprintf(
         (*s).u.error_msg.as_mut_ptr(),
-        ::std::mem::size_of::<[libc::c_char; 128]>() as libc::c_ulong,
+        ::std::mem::size_of::<[libc::c_char; 128]>(),
         fmt,
         ap.as_va_list(),
     );
