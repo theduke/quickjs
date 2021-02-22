@@ -15,7 +15,7 @@ autobins = false
 name = "slimjs"
 
 [lib]
-crate-type = ["staticlib", "rlib"]
+crate-type = ["staticlib", "rlib", "cdylib"]
 
 
 [dependencies]
