@@ -17,6 +17,16 @@ extern "C" {
 
 pub type __builtin_va_list = [__va_list_tag; 1];
 
+/*
+unsafe extern "C" fn cstr_snprintf(buf: *mut c_char, buf_size: usize, format: *const c_char, mut args: ...) -> *const c_char {
+    use printf_compat::{format, output};
+    let mut s = String::new();
+    let mut slice = std::slice::from_raw_parts_mut(buf, buf_size);
+    let bytes_written = format(str, args.as_va_list(), output::fmt_write(&mut slice));
+    buf
+}
+*/
+
 pub unsafe fn cstr_len(mut s: *const c_char) -> usize {
     let mut tail = s as *const u8;
     while *tail != b'\0' {
