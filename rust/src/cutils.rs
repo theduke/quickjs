@@ -27,6 +27,40 @@ unsafe extern "C" fn cstr_snprintf(buf: *mut c_char, buf_size: usize, format: *c
 }
 */
 
+pub trait PtrExt {
+    // Backport removed std library method.
+    // Source: https://github.com/RalfJung/rust/blob/467415d50cdf8a0d15ec19dc63251443b35d4cee/src/libcore/ptr/const_ptr.rs#L340
+    // This is backported because c2rust uses thid method quite a bit.
+    // TODO: remove all usage
+    fn wrapping_offset_from(self, origin: Self) -> isize;
+}
+
+impl<T> PtrExt for *const T
+where
+    T: Sized,
+{
+    fn wrapping_offset_from(self, origin: Self) -> isize {
+        let pointee_size = std::mem::size_of::<T>();
+        assert!(0 < pointee_size && pointee_size <= isize::MAX as usize);
+
+        let d = isize::wrapping_sub(self as _, origin as _);
+        d.wrapping_div(pointee_size as _)
+    }
+}
+
+impl<T> PtrExt for *mut T
+where
+    T: Sized,
+{
+    fn wrapping_offset_from(self, origin: Self) -> isize {
+        let pointee_size = std::mem::size_of::<T>();
+        assert!(0 < pointee_size && pointee_size <= isize::MAX as usize);
+
+        let d = isize::wrapping_sub(self as _, origin as _);
+        d.wrapping_div(pointee_size as _)
+    }
+}
+
 pub unsafe fn cstr_len(mut s: *const c_char) -> usize {
     let mut tail = s as *const u8;
     while *tail != b'\0' {

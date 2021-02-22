@@ -9,12 +9,11 @@
 #![feature(asm)]
 #![feature(c_variadic)]
 #![feature(const_raw_ptr_to_usize_cast)]
-#![feature(const_transmute)]
 #![feature(extern_types)]
 #![feature(label_break_value)]
-#![feature(ptr_wrapping_offset_from)]
 #![feature(register_tool)]
 #![feature(untagged_unions)]
+#![feature(llvm_asm)]
 #![register_tool(c2rust)]
 
 #[macro_use]

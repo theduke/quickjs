@@ -6,7 +6,7 @@ use std::process::abort;
 use crate::cutils::{
     __builtin_va_list, __va_list_tag, cstr_compare, cstr_find_char, cstr_len, dbuf_error,
     dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self, dbuf_put_u16, dbuf_put_u32, dbuf_putc,
-    dbuf_realloc, pstrcpy, ptr_compare, DynBuf,
+    dbuf_realloc, pstrcpy, ptr_compare, DynBuf, PtrExt,
 };
 
 use crate::libunicode::{

@@ -1,6 +1,9 @@
 use ::c2rust_asm_casts;
 use ::libc;
 use c2rust_asm_casts::AsmCastTrait;
+
+use crate::cutils::PtrExt;
+
 extern "C" {
     pub type _IO_wide_data;
     pub type _IO_codecvt;
@@ -6880,7 +6883,7 @@ unsafe extern "C" fn js_os_poll(mut ctx: *mut JSContext) -> libc::c_int {
         .wrapping_div(::std::mem::size_of::<__fd_mask>() as libc::c_ulong);
     let fresh26 =
         &mut *rfds.fds_bits.as_mut_ptr().offset(0 as libc::c_int as isize) as *mut __fd_mask;
-    asm!("cld; rep; stosq" : "={cx}" (fresh22), "={di}" (fresh24) : "{ax}"
+    llvm_asm!("cld; rep; stosq" : "={cx}" (fresh22), "={di}" (fresh24) : "{ax}"
      (0 as libc::c_int), "0"
      (c2rust_asm_casts::AsmCast::cast_in(fresh21, fresh25)), "1"
      (c2rust_asm_casts::AsmCast::cast_in(fresh23, fresh26)) : "memory" :
@@ -6897,7 +6900,7 @@ unsafe extern "C" fn js_os_poll(mut ctx: *mut JSContext) -> libc::c_int {
         .wrapping_div(::std::mem::size_of::<__fd_mask>() as libc::c_ulong);
     let fresh32 =
         &mut *wfds.fds_bits.as_mut_ptr().offset(0 as libc::c_int as isize) as *mut __fd_mask;
-    asm!("cld; rep; stosq" : "={cx}" (fresh28), "={di}" (fresh30) : "{ax}"
+    llvm_asm!("cld; rep; stosq" : "={cx}" (fresh28), "={di}" (fresh30) : "{ax}"
      (0 as libc::c_int), "0"
      (c2rust_asm_casts::AsmCast::cast_in(fresh27, fresh31)), "1"
      (c2rust_asm_casts::AsmCast::cast_in(fresh29, fresh32)) : "memory" :

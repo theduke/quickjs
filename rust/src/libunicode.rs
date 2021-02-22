@@ -4,7 +4,7 @@ use std::process::abort;
 
 use crate::cutils::{
     __builtin_va_list, __va_list_tag, cstr_find_char, cstr_len, dbuf_error, dbuf_init2, dbuf_put,
-    dbuf_put_u32, dbuf_realloc, global_realloc, ptr_compare, DynBuf, DynBufReallocFunc,
+    dbuf_put_u32, dbuf_realloc, global_realloc, ptr_compare, DynBuf, DynBufReallocFunc, PtrExt,
 };
 
 const POP_STACK_LEN_MAX: i32 = 4;
@@ -29891,7 +29891,7 @@ pub unsafe extern "C" fn unicode_to_utf8(
         *fresh12 = (c & 0x3f as libc::c_int as libc::c_uint | 0x80 as libc::c_int as libc::c_uint)
             as uint8_t
     }
-    return q.wrapping_offset_from(buf) as libc::c_long as libc::c_int;
+    return (q as *const uint8_t).wrapping_offset_from(buf) as libc::c_long as libc::c_int;
 }
 
 static mut utf8_min_code: [libc::c_uint; 5] = [
