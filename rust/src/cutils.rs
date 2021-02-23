@@ -46,7 +46,14 @@ pub unsafe extern "C" fn cstr_vsnprintf(
 
     let mut slice: &mut [u8] = std::slice::from_raw_parts_mut(buf as *mut u8, buf_size);
     let mut c = std::io::Cursor::new(slice);
-    let bytes_written = format(format_str, args, output::io_write(&mut c));
+
+    #[cfg(not(target_arch = "wasm32"))]
+    let target_fmt = format_str;
+
+    #[cfg(target_arch = "wasm32")]
+    let target_fmt = format_str as *const u8;
+
+    let bytes_written = format(target_fmt, args, output::io_write(&mut c));
     bytes_written
 }
 

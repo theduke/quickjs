@@ -11,7 +11,8 @@ edition = "2018"
 autobins = false
 
 [[bin]]
-name = "slimjs"
+name = "slimjsc"
+path = "src/main.rs"
 
 [lib]
 crate-type = ["staticlib", "rlib", "cdylib"]

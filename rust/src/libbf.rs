@@ -1,4 +1,3 @@
-use crate::quickjs_libc::FILE;
 use std::process::abort;
 
 use crate::cutils::{

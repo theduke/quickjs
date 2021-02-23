@@ -26,4 +26,6 @@ pub mod libbf;
 pub mod libregexp;
 pub mod libunicode;
 pub mod quickjs;
+
+#[cfg(not(target_arch = "wasm32"))]
 pub mod quickjs_libc;
