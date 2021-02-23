@@ -5,7 +5,7 @@ use std::process::abort;
 use crate::cutils::{
     __builtin_va_list, __va_list_tag, cstr_compare, cstr_find_char, cstr_len, dbuf_error,
     dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self, dbuf_put_u16, dbuf_put_u32, dbuf_putc,
-    dbuf_realloc, pstrcpy, ptr_compare, DynBuf, PtrExt,
+    dbuf_realloc, pstrcpy, ptr_compare, DynBuf, PtrExt, BOOL, FALSE, TRUE,
 };
 
 use crate::libunicode::{
@@ -16,42 +16,29 @@ use crate::libunicode::{
 
 use crate::quickjs::{lre_check_stack_overflow, lre_realloc};
 
-pub type size_t = u64;
-pub type __uint8_t = std::os::raw::c_uchar;
-pub type __uint16_t = u16;
-pub type __uint32_t = u32;
-pub type __uint64_t = u64;
 pub type va_list = __builtin_va_list;
-pub type uint8_t = __uint8_t;
-pub type uint16_t = __uint16_t;
-pub type uint32_t = __uint32_t;
-pub type uint64_t = __uint64_t;
-pub type intptr_t = i64;
-pub type uintptr_t = u64;
-pub type BOOL = i32;
-pub type C2RustUnnamed = u32;
-pub const TRUE: C2RustUnnamed = 1;
-pub const FALSE: C2RustUnnamed = 0;
+pub type intptr_t = isize;
+pub type uintptr_t = usize;
 
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct packed_u32 {
-    pub v: uint32_t,
+    pub v: u32,
 }
 
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct packed_u16 {
-    pub v: uint16_t,
+    pub v: u16,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct REParseState {
     pub byte_code: DynBuf,
-    pub buf_ptr: *const uint8_t,
-    pub buf_end: *const uint8_t,
-    pub buf_start: *const uint8_t,
+    pub buf_ptr: *const u8,
+    pub buf_end: *const u8,
+    pub buf_start: *const u8,
     pub re_flags: i32,
     pub is_utf16: BOOL,
     pub ignore_case: BOOL,
@@ -81,7 +68,7 @@ pub const REOP_COUNT: C2RustUnnamed_2 = 29;
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct REOpCode {
-    pub size: uint8_t,
+    pub size: u8,
 }
 pub const REOP_match: C2RustUnnamed_2 = 10;
 pub const REOP_save_end: C2RustUnnamed_2 = 12;
@@ -114,8 +101,8 @@ pub const REOP_lookahead: C2RustUnnamed_2 = 23;
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct REExecContext {
-    pub cbuf: *const uint8_t,
-    pub cbuf_end: *const uint8_t,
+    pub cbuf: *const u8,
+    pub cbuf_end: *const u8,
     pub cbuf_type: i32,
     pub capture_count: i32,
     pub stack_size_max: i32,
@@ -123,10 +110,10 @@ pub struct REExecContext {
     pub ignore_case: BOOL,
     pub is_utf16: BOOL,
     pub opaque: *mut std::ffi::c_void,
-    pub state_size: size_t,
-    pub state_stack: *mut uint8_t,
-    pub state_stack_size: size_t,
-    pub state_stack_len: size_t,
+    pub state_size: usize,
+    pub state_stack: *mut u8,
+    pub state_stack_size: usize,
+    pub state_stack_len: usize,
 }
 pub type StackInt = uintptr_t;
 pub type REExecStateEnum = u32;
@@ -140,10 +127,10 @@ pub const RE_EXEC_STATE_SPLIT: REExecStateEnum = 0;
 pub struct REExecState {
     #[bitfield(name = "type_0", ty = "REExecStateEnum", bits = "0..=7")]
     pub type_0: [u8; 1],
-    pub stack_len: uint8_t,
-    pub count: size_t,
-    pub cptr: *const uint8_t,
-    pub pc: *const uint8_t,
+    pub stack_len: u8,
+    pub count: usize,
+    pub cptr: *const u8,
+    pub pc: *const u8,
     pub buf: [*mut std::ffi::c_void; 0],
 }
 pub const REOP_negative_lookahead: C2RustUnnamed_2 = 24;
@@ -151,16 +138,16 @@ pub type C2RustUnnamed_2 = u32;
 pub const REOP_invalid: C2RustUnnamed_2 = 0;
 pub type C2RustUnnamed_3 = u32;
 #[inline]
-unsafe extern "C" fn get_u32(mut tab: *const uint8_t) -> uint32_t {
+unsafe extern "C" fn get_u32(mut tab: *const u8) -> u32 {
     return (*(tab as *const packed_u32)).v;
 }
 #[inline]
-unsafe extern "C" fn put_u32(mut tab: *mut uint8_t, mut val: uint32_t) {
+unsafe extern "C" fn put_u32(mut tab: *mut u8, mut val: u32) {
     (*(tab as *mut packed_u32)).v = val;
 }
 #[inline]
-unsafe extern "C" fn get_u16(mut tab: *const uint8_t) -> uint32_t {
-    return (*(tab as *const packed_u16)).v as uint32_t;
+unsafe extern "C" fn get_u16(mut tab: *const u8) -> u32 {
+    return (*(tab as *const packed_u16)).v as u32;
 }
 #[inline]
 unsafe extern "C" fn from_hex(mut c: i32) -> i32 {
@@ -176,25 +163,25 @@ unsafe extern "C" fn from_hex(mut c: i32) -> i32 {
 }
 #[inline]
 unsafe extern "C" fn lre_js_is_ident_next(mut c: i32) -> i32 {
-    if (c as uint32_t) < 128 as i32 as u32 {
+    if (c as u32) < 128 as i32 as u32 {
         return (lre_id_continue_table_ascii[(c >> 5 as i32) as usize] >> (c & 31 as i32)
             & 1 as i32 as u32) as i32;
     } else {
-        return (lre_is_id_continue(c as uint32_t) != 0 || c == 0x200c as i32 || c == 0x200d as i32)
+        return (lre_is_id_continue(c as u32) != 0 || c == 0x200c as i32 || c == 0x200d as i32)
             as i32;
     };
 }
 #[inline]
 unsafe extern "C" fn lre_js_is_ident_first(mut c: i32) -> i32 {
-    if (c as uint32_t) < 128 as i32 as u32 {
+    if (c as u32) < 128 as i32 as u32 {
         return (lre_id_start_table_ascii[(c >> 5 as i32) as usize] >> (c & 31 as i32)
             & 1 as i32 as u32) as i32;
     } else {
-        return lre_is_id_start(c as uint32_t);
+        return lre_is_id_start(c as u32);
     };
 }
 #[inline]
-unsafe extern "C" fn cr_add_point(mut cr: *mut CharRange, mut v: uint32_t) -> i32 {
+unsafe extern "C" fn cr_add_point(mut cr: *mut CharRange, mut v: u32) -> i32 {
     if (*cr).len >= (*cr).size {
         if cr_realloc(cr, (*cr).len + 1 as i32) != 0 {
             return -(1 as i32);
@@ -206,12 +193,8 @@ unsafe extern "C" fn cr_add_point(mut cr: *mut CharRange, mut v: uint32_t) -> i3
     return 0 as i32;
 }
 #[inline]
-unsafe extern "C" fn cr_union_interval(
-    mut cr: *mut CharRange,
-    mut c1: uint32_t,
-    mut c2: uint32_t,
-) -> i32 {
-    let mut b_pt: [uint32_t; 2] = [0; 2];
+unsafe extern "C" fn cr_union_interval(mut cr: *mut CharRange, mut c1: u32, mut c2: u32) -> i32 {
+    let mut b_pt: [u32; 2] = [0; 2];
     b_pt[0 as i32 as usize] = c1;
     b_pt[1 as i32 as usize] = c2.wrapping_add(1 as i32 as u32);
     return cr_union1(cr, b_pt.as_mut_ptr(), 2 as i32);
@@ -219,175 +202,175 @@ unsafe extern "C" fn cr_union_interval(
 static mut reopcode_info: [REOpCode; 29] = [
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 3 as i32 as uint8_t,
+            size: 3 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 5 as i32 as uint8_t,
+            size: 5 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 5 as i32 as uint8_t,
+            size: 5 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 5 as i32 as uint8_t,
+            size: 5 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 5 as i32 as uint8_t,
+            size: 5 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 2 as i32 as uint8_t,
+            size: 2 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 2 as i32 as uint8_t,
+            size: 2 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 3 as i32 as uint8_t,
+            size: 3 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 5 as i32 as uint8_t,
+            size: 5 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 5 as i32 as uint8_t,
+            size: 5 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 2 as i32 as uint8_t,
+            size: 2 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 2 as i32 as uint8_t,
+            size: 2 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 3 as i32 as uint8_t,
+            size: 3 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 3 as i32 as uint8_t,
+            size: 3 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 5 as i32 as uint8_t,
+            size: 5 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 5 as i32 as uint8_t,
+            size: 5 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 5 as i32 as uint8_t,
+            size: 5 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 1 as i32 as uint8_t,
+            size: 1 as i32 as u8,
         };
         init
     },
     {
         let mut init = REOpCode {
-            size: 17 as i32 as uint8_t,
+            size: 17 as i32 as u8,
         };
         init
     },
@@ -398,20 +381,20 @@ unsafe extern "C" fn is_digit(mut c: i32) -> i32 {
 }
 /* insert 'len' bytes at position 'pos'. Return < 0 if error. */
 unsafe extern "C" fn dbuf_insert(mut s: *mut DynBuf, mut pos: i32, mut len: i32) -> i32 {
-    if dbuf_realloc(s, (*s).size.wrapping_add(len as u64)) != 0 {
+    if dbuf_realloc(s, (*s).size.wrapping_add(len as usize)) != 0 {
         return -1;
     }
 
     ((*s).buf.offset(pos as isize).offset(len as isize) as *mut u8).copy_from_nonoverlapping(
         (*s).buf.offset(pos as isize) as *const u8,
-        (*s).size.wrapping_sub(pos as u64) as usize,
+        (*s).size.wrapping_sub(pos as usize),
     );
-    (*s).size = ((*s).size as u64).wrapping_add(len as u64) as size_t as size_t;
+    (*s).size = ((*s).size).wrapping_add(len as usize);
     return 0 as i32;
 }
 /* canonicalize with the specific JS regexp rules */
-unsafe extern "C" fn lre_canonicalize(mut c: uint32_t, mut is_utf16: BOOL) -> uint32_t {
-    let mut res: [uint32_t; 3] = [0; 3];
+unsafe extern "C" fn lre_canonicalize(mut c: u32, mut is_utf16: BOOL) -> u32 {
+    let mut res: [u32; 3] = [0; 3];
     let mut len: i32 = 0;
     if is_utf16 != 0 {
         if (c < 128 as i32 as u32) as i32 as i64 != 0 {
@@ -439,34 +422,34 @@ unsafe extern "C" fn lre_canonicalize(mut c: uint32_t, mut is_utf16: BOOL) -> ui
     }
     return c;
 }
-static mut char_range_d: [uint16_t; 3] = [
-    1 as i32 as uint16_t,
-    0x30 as i32 as uint16_t,
-    (0x39 as i32 + 1 as i32) as uint16_t,
+static mut char_range_d: [u16; 3] = [
+    1 as i32 as u16,
+    0x30 as i32 as u16,
+    (0x39 as i32 + 1 as i32) as u16,
 ];
 /* code point ranges for Zs,Zl or Zp property */
-static mut char_range_s: [uint16_t; 21] = [
-    10 as i32 as uint16_t,
-    0x9 as i32 as uint16_t,
-    (0xd as i32 + 1 as i32) as uint16_t,
-    0x20 as i32 as uint16_t,
-    (0x20 as i32 + 1 as i32) as uint16_t,
-    0xa0 as i32 as uint16_t,
-    (0xa0 as i32 + 1 as i32) as uint16_t,
-    0x1680 as i32 as uint16_t,
-    (0x1680 as i32 + 1 as i32) as uint16_t,
-    0x2000 as i32 as uint16_t,
-    (0x200a as i32 + 1 as i32) as uint16_t,
-    0x2028 as i32 as uint16_t,
-    (0x2029 as i32 + 1 as i32) as uint16_t,
-    0x202f as i32 as uint16_t,
-    (0x202f as i32 + 1 as i32) as uint16_t,
-    0x205f as i32 as uint16_t,
-    (0x205f as i32 + 1 as i32) as uint16_t,
-    0x3000 as i32 as uint16_t,
-    (0x3000 as i32 + 1 as i32) as uint16_t,
-    0xfeff as i32 as uint16_t,
-    (0xfeff as i32 + 1 as i32) as uint16_t,
+static mut char_range_s: [u16; 21] = [
+    10 as i32 as u16,
+    0x9 as i32 as u16,
+    (0xd as i32 + 1 as i32) as u16,
+    0x20 as i32 as u16,
+    (0x20 as i32 + 1 as i32) as u16,
+    0xa0 as i32 as u16,
+    (0xa0 as i32 + 1 as i32) as u16,
+    0x1680 as i32 as u16,
+    (0x1680 as i32 + 1 as i32) as u16,
+    0x2000 as i32 as u16,
+    (0x200a as i32 + 1 as i32) as u16,
+    0x2028 as i32 as u16,
+    (0x2029 as i32 + 1 as i32) as u16,
+    0x202f as i32 as u16,
+    (0x202f as i32 + 1 as i32) as u16,
+    0x205f as i32 as u16,
+    (0x205f as i32 + 1 as i32) as u16,
+    0x3000 as i32 as u16,
+    (0x3000 as i32 + 1 as i32) as u16,
+    0xfeff as i32 as u16,
+    (0xfeff as i32 + 1 as i32) as u16,
 ];
 #[no_mangle]
 pub unsafe extern "C" fn lre_is_space(mut c: i32) -> i32 {
@@ -474,8 +457,8 @@ pub unsafe extern "C" fn lre_is_space(mut c: i32) -> i32 {
     let mut n: i32 = 0;
     let mut low: i32 = 0;
     let mut high: i32 = 0;
-    n = (::std::mem::size_of::<[uint16_t; 21]>() as u64)
-        .wrapping_div(::std::mem::size_of::<uint16_t>() as u64)
+    n = (::std::mem::size_of::<[u16; 21]>() as u64)
+        .wrapping_div(::std::mem::size_of::<u16>() as u64)
         .wrapping_sub(1 as i32 as u64)
         .wrapping_div(2 as i32 as u64) as i32;
     i = 0 as i32;
@@ -493,31 +476,31 @@ pub unsafe extern "C" fn lre_is_space(mut c: i32) -> i32 {
     return FALSE as i32;
 }
 #[no_mangle]
-pub static mut lre_id_start_table_ascii: [uint32_t; 4] = [
-    0 as i32 as uint32_t,
-    0x10 as i32 as uint32_t,
+pub static mut lre_id_start_table_ascii: [u32; 4] = [
+    0 as i32 as u32,
+    0x10 as i32 as u32,
     0x87fffffe as u32,
-    0x7fffffe as i32 as uint32_t,
+    0x7fffffe as i32 as u32,
 ];
 #[no_mangle]
-pub static mut lre_id_continue_table_ascii: [uint32_t; 4] = [
-    0 as i32 as uint32_t,
-    0x3ff0010 as i32 as uint32_t,
+pub static mut lre_id_continue_table_ascii: [u32; 4] = [
+    0 as i32 as u32,
+    0x3ff0010 as i32 as u32,
     0x87fffffe as u32,
-    0x7fffffe as i32 as uint32_t,
+    0x7fffffe as i32 as u32,
 ];
-static mut char_range_w: [uint16_t; 9] = [
-    4 as i32 as uint16_t,
-    0x30 as i32 as uint16_t,
-    (0x39 as i32 + 1 as i32) as uint16_t,
-    0x41 as i32 as uint16_t,
-    (0x5a as i32 + 1 as i32) as uint16_t,
-    0x5f as i32 as uint16_t,
-    (0x5f as i32 + 1 as i32) as uint16_t,
-    0x61 as i32 as uint16_t,
-    (0x7a as i32 + 1 as i32) as uint16_t,
+static mut char_range_w: [u16; 9] = [
+    4 as i32 as u16,
+    0x30 as i32 as u16,
+    (0x39 as i32 + 1 as i32) as u16,
+    0x41 as i32 as u16,
+    (0x5a as i32 + 1 as i32) as u16,
+    0x5f as i32 as u16,
+    (0x5f as i32 + 1 as i32) as u16,
+    0x61 as i32 as u16,
+    (0x7a as i32 + 1 as i32) as u16,
 ];
-static mut char_range_table: [*const uint16_t; 3] = unsafe {
+static mut char_range_table: [*const u16; 3] = unsafe {
     [
         char_range_d.as_ptr(),
         char_range_s.as_ptr(),
@@ -527,11 +510,11 @@ static mut char_range_table: [*const uint16_t; 3] = unsafe {
 unsafe extern "C" fn cr_init_char_range(
     mut s: *mut REParseState,
     mut cr: *mut CharRange,
-    mut c: uint32_t,
+    mut c: u32,
 ) -> i32 {
     let mut current_block: u64;
     let mut invert: BOOL = 0;
-    let mut c_pt: *const uint16_t = 0 as *const uint16_t;
+    let mut c_pt: *const u16 = 0 as *const u16;
     let mut len: i32 = 0;
     let mut i: i32 = 0;
     invert = (c & 1 as i32 as u32) as BOOL;
@@ -547,7 +530,7 @@ unsafe extern "C" fn cr_init_char_range(
                 as unsafe extern "C" fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
-                    _: size_t,
+                    _: usize,
                 ) -> *mut std::ffi::c_void,
         ),
     );
@@ -557,7 +540,7 @@ unsafe extern "C" fn cr_init_char_range(
             current_block = 13513818773234778473;
             break;
         }
-        if cr_add_point(cr, *c_pt.offset(i as isize) as uint32_t) != 0 {
+        if cr_add_point(cr, *c_pt.offset(i as isize) as u32) != 0 {
             current_block = 10474390507374119221;
             break;
         }
@@ -588,11 +571,11 @@ unsafe extern "C" fn cr_canonicalize(mut cr: *mut CharRange) -> i32 {
     let mut a: CharRange = CharRange {
         len: 0,
         size: 0,
-        points: 0 as *mut uint32_t,
+        points: 0 as *mut u32,
         mem_opaque: 0 as *mut std::ffi::c_void,
         realloc_func: None,
     };
-    let mut pt: [uint32_t; 2] = [0; 2];
+    let mut pt: [u32; 2] = [0; 2];
     let mut i: i32 = 0;
     let mut ret: i32 = 0;
     cr_init(
@@ -603,12 +586,12 @@ unsafe extern "C" fn cr_canonicalize(mut cr: *mut CharRange) -> i32 {
                 as unsafe extern "C" fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
-                    _: size_t,
+                    _: usize,
                 ) -> *mut std::ffi::c_void,
         ),
     );
-    pt[0 as i32 as usize] = 'a' as i32 as uint32_t;
-    pt[1 as i32 as usize] = ('z' as i32 + 1 as i32) as uint32_t;
+    pt[0 as i32 as usize] = 'a' as i32 as u32;
+    pt[1 as i32 as usize] = ('z' as i32 + 1 as i32) as u32;
     ret = cr_op(
         &mut a,
         (*cr).points,
@@ -624,8 +607,7 @@ unsafe extern "C" fn cr_canonicalize(mut cr: *mut CharRange) -> i32 {
         i = 0 as i32;
         while i < a.len {
             let ref mut fresh2 = *a.points.offset(i as isize);
-            *fresh2 = (*fresh2 as u32).wrapping_add(('A' as i32 - 'a' as i32) as u32) as uint32_t
-                as uint32_t;
+            *fresh2 = (*fresh2 as u32).wrapping_add(('A' as i32 - 'a' as i32) as u32) as u32 as u32;
             i += 1
         }
         /* Note: for simplicity we keep the lower case ranges */
@@ -635,23 +617,19 @@ unsafe extern "C" fn cr_canonicalize(mut cr: *mut CharRange) -> i32 {
     return ret;
 }
 unsafe extern "C" fn re_emit_op(mut s: *mut REParseState, mut op: i32) {
-    dbuf_putc(&mut (*s).byte_code, op as uint8_t);
+    dbuf_putc(&mut (*s).byte_code, op as u8);
 }
 /* return the offset of the u32 value */
-unsafe extern "C" fn re_emit_op_u32(
-    mut s: *mut REParseState,
-    mut op: i32,
-    mut val: uint32_t,
-) -> i32 {
+unsafe extern "C" fn re_emit_op_u32(mut s: *mut REParseState, mut op: i32, mut val: u32) -> i32 {
     let mut pos: i32 = 0;
-    dbuf_putc(&mut (*s).byte_code, op as uint8_t);
+    dbuf_putc(&mut (*s).byte_code, op as u8);
     pos = (*s).byte_code.size as i32;
     dbuf_put_u32(&mut (*s).byte_code, val);
     return pos;
 }
-unsafe extern "C" fn re_emit_goto(mut s: *mut REParseState, mut op: i32, mut val: uint32_t) -> i32 {
+unsafe extern "C" fn re_emit_goto(mut s: *mut REParseState, mut op: i32, mut val: u32) -> i32 {
     let mut pos: i32 = 0;
-    dbuf_putc(&mut (*s).byte_code, op as uint8_t);
+    dbuf_putc(&mut (*s).byte_code, op as u8);
     pos = (*s).byte_code.size as i32;
     dbuf_put_u32(
         &mut (*s).byte_code,
@@ -659,13 +637,13 @@ unsafe extern "C" fn re_emit_goto(mut s: *mut REParseState, mut op: i32, mut val
     );
     return pos;
 }
-unsafe extern "C" fn re_emit_op_u8(mut s: *mut REParseState, mut op: i32, mut val: uint32_t) {
-    dbuf_putc(&mut (*s).byte_code, op as uint8_t);
-    dbuf_putc(&mut (*s).byte_code, val as uint8_t);
+unsafe extern "C" fn re_emit_op_u8(mut s: *mut REParseState, mut op: i32, mut val: u32) {
+    dbuf_putc(&mut (*s).byte_code, op as u8);
+    dbuf_putc(&mut (*s).byte_code, val as u8);
 }
-unsafe extern "C" fn re_emit_op_u16(mut s: *mut REParseState, mut op: i32, mut val: uint32_t) {
-    dbuf_putc(&mut (*s).byte_code, op as uint8_t);
-    dbuf_put_u16(&mut (*s).byte_code, val as uint16_t);
+unsafe extern "C" fn re_emit_op_u16(mut s: *mut REParseState, mut op: i32, mut val: u32) {
+    dbuf_putc(&mut (*s).byte_code, op as u8);
+    dbuf_put_u16(&mut (*s).byte_code, val as u16);
 }
 unsafe extern "C" fn re_parse_error(
     mut s: *mut REParseState,
@@ -690,12 +668,12 @@ unsafe extern "C" fn re_parse_out_of_memory(mut s: *mut REParseState) -> i32 {
 }
 /* If allow_overflow is false, return -1 in case of
 overflow. Otherwise return INT32_MAX. */
-unsafe extern "C" fn parse_digits(mut pp: *mut *const uint8_t, mut allow_overflow: BOOL) -> i32 {
-    let mut p: *const uint8_t = 0 as *const uint8_t;
-    let mut v: uint64_t = 0;
+unsafe extern "C" fn parse_digits(mut pp: *mut *const u8, mut allow_overflow: BOOL) -> i32 {
+    let mut p: *const u8 = 0 as *const u8;
+    let mut v: u64 = 0;
     let mut c: i32 = 0;
     p = *pp;
-    v = 0 as i32 as uint64_t;
+    v = 0 as i32 as u64;
     loop {
         c = *p as i32;
         if c < '0' as i32 || c > '9' as i32 {
@@ -707,7 +685,7 @@ unsafe extern "C" fn parse_digits(mut pp: *mut *const uint8_t, mut allow_overflo
             .wrapping_sub('0' as i32 as u64);
         if v >= 2147483647 as i32 as u64 {
             if allow_overflow != 0 {
-                v = 2147483647 as i32 as uint64_t
+                v = 2147483647 as i32 as u64
             } else {
                 return -(1 as i32);
             }
@@ -719,10 +697,10 @@ unsafe extern "C" fn parse_digits(mut pp: *mut *const uint8_t, mut allow_overflo
 }
 unsafe extern "C" fn re_parse_expect(
     mut s: *mut REParseState,
-    mut pp: *mut *const uint8_t,
+    mut pp: *mut *const u8,
     mut c: i32,
 ) -> i32 {
-    let mut p: *const uint8_t = 0 as *const uint8_t;
+    let mut p: *const u8 = 0 as *const u8;
     p = *pp;
     if *p as i32 != c {
         return re_parse_error(
@@ -746,31 +724,28 @@ Return the unicode char and update *pp if recognized,
 return -1 if malformed escape,
 return -2 otherwise. */
 #[no_mangle]
-pub unsafe extern "C" fn lre_parse_escape(
-    mut pp: *mut *const uint8_t,
-    mut allow_utf16: i32,
-) -> i32 {
-    let mut p: *const uint8_t = 0 as *const uint8_t;
-    let mut c: uint32_t = 0;
+pub unsafe extern "C" fn lre_parse_escape(mut pp: *mut *const u8, mut allow_utf16: i32) -> i32 {
+    let mut p: *const u8 = 0 as *const u8;
+    let mut c: u32 = 0;
     p = *pp;
     let fresh3 = p;
     p = p.offset(1);
-    c = *fresh3 as uint32_t;
+    c = *fresh3 as u32;
     match c {
-        98 => c = '\u{8}' as i32 as uint32_t,
-        102 => c = '\u{c}' as i32 as uint32_t,
-        110 => c = '\n' as i32 as uint32_t,
-        114 => c = '\r' as i32 as uint32_t,
-        116 => c = '\t' as i32 as uint32_t,
-        118 => c = '\u{b}' as i32 as uint32_t,
+        98 => c = '\u{8}' as i32 as u32,
+        102 => c = '\u{c}' as i32 as u32,
+        110 => c = '\n' as i32 as u32,
+        114 => c = '\r' as i32 as u32,
+        116 => c = '\t' as i32 as u32,
+        118 => c = '\u{b}' as i32 as u32,
         120 | 117 => {
             let mut h: i32 = 0;
             let mut n: i32 = 0;
             let mut i: i32 = 0;
-            let mut c1: uint32_t = 0;
+            let mut c1: u32 = 0;
             if *p as i32 == '{' as i32 && allow_utf16 != 0 {
                 p = p.offset(1);
-                c = 0 as i32 as uint32_t;
+                c = 0 as i32 as u32;
                 loop {
                     let fresh4 = p;
                     p = p.offset(1);
@@ -793,7 +768,7 @@ pub unsafe extern "C" fn lre_parse_escape(
                 } else {
                     n = 4 as i32
                 }
-                c = 0 as i32 as uint32_t;
+                c = 0 as i32 as u32;
                 i = 0 as i32;
                 while i < n {
                     let fresh5 = p;
@@ -813,7 +788,7 @@ pub unsafe extern "C" fn lre_parse_escape(
                 {
                     /* convert an escaped surrogate pair into a
                     unicode char */
-                    c1 = 0 as i32 as uint32_t;
+                    c1 = 0 as i32 as u32;
                     i = 0 as i32;
                     while i < 4 as i32 {
                         h = from_hex(*p.offset((2 as i32 + i) as isize) as i32);
@@ -832,7 +807,7 @@ pub unsafe extern "C" fn lre_parse_escape(
             }
         }
         48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 => {
-            c = (c as u32).wrapping_sub('0' as i32 as u32) as uint32_t as uint32_t;
+            c = (c as u32).wrapping_sub('0' as i32 as u32) as u32 as u32;
             if allow_utf16 == 2 as i32 {
                 /* only accept \0 not followed by digit */
                 if c != 0 as i32 as u32 || is_digit(*p as i32) != 0 {
@@ -840,13 +815,13 @@ pub unsafe extern "C" fn lre_parse_escape(
                 }
             } else {
                 /* parse a legacy octal sequence */
-                let mut v: uint32_t = 0;
-                v = (*p as i32 - '0' as i32) as uint32_t;
+                let mut v: u32 = 0;
+                v = (*p as i32 - '0' as i32) as u32;
                 if !(v > 7 as i32 as u32) {
                     c = c << 3 as i32 | v;
                     p = p.offset(1);
                     if !(c >= 32 as i32 as u32) {
-                        v = (*p as i32 - '0' as i32) as uint32_t;
+                        v = (*p as i32 - '0' as i32) as u32;
                         if !(v > 7 as i32 as u32) {
                             c = c << 3 as i32 | v;
                             p = p.offset(1)
@@ -870,11 +845,11 @@ unsafe extern "C" fn is_unicode_char(mut c: i32) -> BOOL {
 unsafe extern "C" fn parse_unicode_property(
     mut s: *mut REParseState,
     mut cr: *mut CharRange,
-    mut pp: *mut *const uint8_t,
+    mut pp: *mut *const u8,
     mut is_inv: BOOL,
 ) -> i32 {
     let mut current_block: u64;
-    let mut p: *const uint8_t = 0 as *const uint8_t;
+    let mut p: *const u8 = 0 as *const u8;
     let mut name: [std::os::raw::c_char; 64] = [0; 64];
     let mut value: [std::os::raw::c_char; 64] = [0; 64];
     let mut q: *mut std::os::raw::c_char = 0 as *mut std::os::raw::c_char;
@@ -973,7 +948,7 @@ unsafe extern "C" fn parse_unicode_property(
                             as unsafe extern "C" fn(
                                 _: *mut std::ffi::c_void,
                                 _: *mut std::ffi::c_void,
-                                _: size_t,
+                                _: usize,
                             )
                                 -> *mut std::ffi::c_void,
                     ),
@@ -1002,7 +977,7 @@ unsafe extern "C" fn parse_unicode_property(
                             as unsafe extern "C" fn(
                                 _: *mut std::ffi::c_void,
                                 _: *mut std::ffi::c_void,
-                                _: size_t,
+                                _: usize,
                             )
                                 -> *mut std::ffi::c_void,
                     ),
@@ -1042,7 +1017,7 @@ unsafe extern "C" fn parse_unicode_property(
                                         as unsafe extern "C" fn(
                                             _: *mut std::ffi::c_void,
                                             _: *mut std::ffi::c_void,
-                                            _: size_t,
+                                            _: usize,
                                         )
                                             -> *mut std::ffi::c_void,
                                 ),
@@ -1095,15 +1070,15 @@ initialized. Otherwise, it is ignored. */
 unsafe extern "C" fn get_class_atom(
     mut s: *mut REParseState,
     mut cr: *mut CharRange,
-    mut pp: *mut *const uint8_t,
+    mut pp: *mut *const u8,
     mut inclass: BOOL,
 ) -> i32 {
     let mut current_block: u64;
-    let mut p: *const uint8_t = 0 as *const uint8_t;
-    let mut c: uint32_t = 0;
+    let mut p: *const u8 = 0 as *const u8;
+    let mut c: u32 = 0;
     let mut ret: i32 = 0;
     p = *pp;
-    c = *p as uint32_t;
+    c = *p as u32;
     match c {
         92 => {
             p = p.offset(1);
@@ -1112,34 +1087,34 @@ unsafe extern "C" fn get_class_atom(
             } else {
                 let fresh10 = p;
                 p = p.offset(1);
-                c = *fresh10 as uint32_t;
+                c = *fresh10 as u32;
                 match c {
                     100 => {
-                        c = CHAR_RANGE_d as i32 as uint32_t;
+                        c = CHAR_RANGE_d as i32 as u32;
                         current_block = 6299577067972458399;
                     }
                     68 => {
-                        c = CHAR_RANGE_D as i32 as uint32_t;
+                        c = CHAR_RANGE_D as i32 as u32;
                         current_block = 6299577067972458399;
                     }
                     115 => {
-                        c = CHAR_RANGE_s as i32 as uint32_t;
+                        c = CHAR_RANGE_s as i32 as u32;
                         current_block = 6299577067972458399;
                     }
                     83 => {
-                        c = CHAR_RANGE_S as i32 as uint32_t;
+                        c = CHAR_RANGE_S as i32 as u32;
                         current_block = 6299577067972458399;
                     }
                     119 => {
-                        c = CHAR_RANGE_w as i32 as uint32_t;
+                        c = CHAR_RANGE_w as i32 as u32;
                         current_block = 6299577067972458399;
                     }
                     87 => {
-                        c = CHAR_RANGE_W as i32 as uint32_t;
+                        c = CHAR_RANGE_W as i32 as u32;
                         current_block = 6299577067972458399;
                     }
                     99 => {
-                        c = *p as uint32_t;
+                        c = *p as u32;
                         if c >= 'a' as i32 as u32 && c <= 'z' as i32 as u32
                             || c >= 'A' as i32 as u32 && c <= 'Z' as i32 as u32
                             || (c >= '0' as i32 as u32 && c <= '9' as i32 as u32
@@ -1156,7 +1131,7 @@ unsafe extern "C" fn get_class_atom(
                         } else {
                             /* otherwise return '\' and 'c' */
                             p = p.offset(-1);
-                            c = '\\' as i32 as uint32_t;
+                            c = '\\' as i32 as u32;
                             current_block = 5159818223158340697;
                         }
                     }
@@ -1171,7 +1146,7 @@ unsafe extern "C" fn get_class_atom(
                             {
                                 return -(1 as i32);
                             }
-                            c = 0x40000000 as i32 as uint32_t;
+                            c = 0x40000000 as i32 as u32;
                             current_block = 5159818223158340697;
                         } else {
                             current_block = 17562902476658757774;
@@ -1191,7 +1166,7 @@ unsafe extern "C" fn get_class_atom(
                                 p = p.offset(-1);
                                 ret = lre_parse_escape(&mut p, (*s).is_utf16 * 2 as i32);
                                 if ret >= 0 as i32 {
-                                    c = ret as uint32_t;
+                                    c = ret as u32;
                                     current_block = 5159818223158340697;
                                 } else if ret == -(2 as i32)
                                     && *p as i32 != '\u{0}' as i32
@@ -1215,7 +1190,7 @@ unsafe extern "C" fn get_class_atom(
                                 if cr_init_char_range(s, cr, c) != 0 {
                                     return -(1 as i32);
                                 }
-                                c = 0x40000000 as i32 as uint32_t;
+                                c = 0x40000000 as i32 as u32;
                                 current_block = 5159818223158340697;
                             }
                             _ => {}
@@ -1253,7 +1228,7 @@ unsafe extern "C" fn get_class_atom(
         /* normal char */
         {
             if c >= 128 as i32 as u32 {
-                c = unicode_from_utf8(p, 6 as i32, &mut p) as uint32_t;
+                c = unicode_from_utf8(p, 6 as i32, &mut p) as u32;
                 if c > 0xffff as i32 as u32 && (*s).is_utf16 == 0 {
                     /* XXX: should handle non BMP-1 code points */
                     return re_parse_error(
@@ -1279,7 +1254,7 @@ unsafe extern "C" fn get_class_atom(
 unsafe extern "C" fn re_emit_range(mut s: *mut REParseState, mut cr: *const CharRange) -> i32 {
     let mut len: i32 = 0;
     let mut i: i32 = 0;
-    let mut high: uint32_t = 0;
+    let mut high: u32 = 0;
     len = ((*cr).len as u32).wrapping_div(2 as i32 as u32) as i32;
     if len >= 65535 as i32 {
         return re_parse_error(
@@ -1290,7 +1265,7 @@ unsafe extern "C" fn re_emit_range(mut s: *mut REParseState, mut cr: *const Char
     if len == 0 as i32 {
         /* not sure it can really happen. Emit a match that is always
         false */
-        re_emit_op_u32(s, REOP_char32 as i32, -(1 as i32) as uint32_t);
+        re_emit_op_u32(s, REOP_char32 as i32, -(1 as i32) as u32);
     } else {
         high = *(*cr).points.offset(((*cr).len - 1 as i32) as isize);
         if high == 4294967295 as u32 {
@@ -1299,23 +1274,20 @@ unsafe extern "C" fn re_emit_range(mut s: *mut REParseState, mut cr: *const Char
         if high <= 0xffff as i32 as u32 {
             /* can use 16 bit ranges with the conversion that 0xffff =
             infinity */
-            re_emit_op_u16(s, REOP_range as i32, len as uint32_t); /* skip '[' */
+            re_emit_op_u16(s, REOP_range as i32, len as u32); /* skip '[' */
             i = 0 as i32;
             while i < (*cr).len {
-                dbuf_put_u16(
-                    &mut (*s).byte_code,
-                    *(*cr).points.offset(i as isize) as uint16_t,
-                );
+                dbuf_put_u16(&mut (*s).byte_code, *(*cr).points.offset(i as isize) as u16);
                 high =
                     (*(*cr).points.offset((i + 1 as i32) as isize)).wrapping_sub(1 as i32 as u32);
                 if high == (4294967295 as u32).wrapping_sub(1 as i32 as u32) {
-                    high = 0xffff as i32 as uint32_t
+                    high = 0xffff as i32 as u32
                 }
-                dbuf_put_u16(&mut (*s).byte_code, high as uint16_t);
+                dbuf_put_u16(&mut (*s).byte_code, high as u16);
                 i += 2 as i32
             }
         } else {
-            re_emit_op_u16(s, REOP_range32 as i32, len as uint32_t);
+            re_emit_op_u16(s, REOP_range32 as i32, len as u32);
             i = 0 as i32;
             while i < (*cr).len {
                 dbuf_put_u32(&mut (*s).byte_code, *(*cr).points.offset(i as isize));
@@ -1329,18 +1301,15 @@ unsafe extern "C" fn re_emit_range(mut s: *mut REParseState, mut cr: *const Char
     }
     return 0 as i32;
 }
-unsafe extern "C" fn re_parse_char_class(
-    mut s: *mut REParseState,
-    mut pp: *mut *const uint8_t,
-) -> i32 {
+unsafe extern "C" fn re_parse_char_class(mut s: *mut REParseState, mut pp: *mut *const u8) -> i32 {
     let mut current_block: u64;
-    let mut p: *const uint8_t = 0 as *const uint8_t;
-    let mut c1: uint32_t = 0;
-    let mut c2: uint32_t = 0;
+    let mut p: *const u8 = 0 as *const u8;
+    let mut c1: u32 = 0;
+    let mut c2: u32 = 0;
     let mut cr_s: CharRange = CharRange {
         len: 0,
         size: 0,
-        points: 0 as *mut uint32_t,
+        points: 0 as *mut u32,
         mem_opaque: 0 as *mut std::ffi::c_void,
         realloc_func: None,
     };
@@ -1348,7 +1317,7 @@ unsafe extern "C" fn re_parse_char_class(
     let mut cr1_s: CharRange = CharRange {
         len: 0,
         size: 0,
-        points: 0 as *mut uint32_t,
+        points: 0 as *mut u32,
         mem_opaque: 0 as *mut std::ffi::c_void,
         realloc_func: None,
     };
@@ -1362,7 +1331,7 @@ unsafe extern "C" fn re_parse_char_class(
                 as unsafe extern "C" fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
-                    _: size_t,
+                    _: usize,
                 ) -> *mut std::ffi::c_void,
         ),
     );
@@ -1378,13 +1347,13 @@ unsafe extern "C" fn re_parse_char_class(
             current_block = 572715077006366937;
             break;
         }
-        c1 = get_class_atom(s, cr1, &mut p, TRUE as i32) as uint32_t;
+        c1 = get_class_atom(s, cr1, &mut p, TRUE as i32) as u32;
         if (c1 as i32) < 0 as i32 {
             current_block = 10339678743498588791;
             break;
         }
         if *p as i32 == '-' as i32 && *p.offset(1 as i32 as isize) as i32 != ']' as i32 {
-            let mut p0: *const uint8_t = p.offset(1 as i32 as isize);
+            let mut p0: *const u8 = p.offset(1 as i32 as isize);
             if c1 >= 0x40000000 as i32 as u32 {
                 if (*s).is_utf16 != 0 {
                     cr_free(cr1);
@@ -1394,7 +1363,7 @@ unsafe extern "C" fn re_parse_char_class(
                     current_block = 3183214240085336568;
                 }
             } else {
-                c2 = get_class_atom(s, cr1, &mut p0, TRUE as i32) as uint32_t;
+                c2 = get_class_atom(s, cr1, &mut p0, TRUE as i32) as u32;
                 if (c2 as i32) < 0 as i32 {
                     current_block = 10339678743498588791;
                     break;
@@ -1499,21 +1468,21 @@ unsafe extern "C" fn re_parse_char_class(
    0 if the character pointer may not be advanced.
    -1 if the code may depend on side effects of its previous execution (backreference)
 */
-unsafe extern "C" fn re_check_advance(mut bc_buf: *const uint8_t, mut bc_buf_len: i32) -> i32 {
+unsafe extern "C" fn re_check_advance(mut bc_buf: *const u8, mut bc_buf_len: i32) -> i32 {
     let mut current_block: u64; /* not known yet */
     let mut pos: i32 = 0;
     let mut opcode: i32 = 0;
     let mut ret: i32 = 0;
     let mut len: i32 = 0;
     let mut i: i32 = 0;
-    let mut val: uint32_t = 0;
-    let mut last: uint32_t = 0;
+    let mut val: u32 = 0;
+    let mut last: u32 = 0;
     let mut has_back_reference: BOOL = 0;
-    let mut capture_bitmap: [uint8_t; 255] = [0; 255];
+    let mut capture_bitmap: [u8; 255] = [0; 255];
     ret = -(2 as i32);
     pos = 0 as i32;
     has_back_reference = FALSE as i32;
-    (capture_bitmap.as_mut_ptr() as *mut u8).write_bytes(0, std::mem::size_of::<[uint8_t; 255]>());
+    (capture_bitmap.as_mut_ptr() as *mut u8).write_bytes(0, std::mem::size_of::<[u8; 255]>());
     while pos < bc_buf_len {
         opcode = *bc_buf.offset(pos as isize) as i32;
         len = reopcode_info[opcode as usize].size as i32;
@@ -1535,26 +1504,26 @@ unsafe extern "C" fn re_check_advance(mut bc_buf: *const uint8_t, mut bc_buf_len
                 current_block = 9520865839495247062;
             }
             11 | 12 => {
-                val = *bc_buf.offset((pos + 1 as i32) as isize) as uint32_t;
+                val = *bc_buf.offset((pos + 1 as i32) as isize) as u32;
                 capture_bitmap[val as usize] =
-                    (capture_bitmap[val as usize] as i32 | 1 as i32) as uint8_t;
+                    (capture_bitmap[val as usize] as i32 | 1 as i32) as u8;
                 current_block = 9520865839495247062;
             }
             13 => {
-                val = *bc_buf.offset((pos + 1 as i32) as isize) as uint32_t;
-                last = *bc_buf.offset((pos + 2 as i32) as isize) as uint32_t;
+                val = *bc_buf.offset((pos + 1 as i32) as isize) as u32;
+                last = *bc_buf.offset((pos + 2 as i32) as isize) as u32;
                 while val < last {
                     let fresh11 = val;
                     val = val.wrapping_add(1);
                     capture_bitmap[fresh11 as usize] =
-                        (capture_bitmap[fresh11 as usize] as i32 | 1 as i32) as uint8_t
+                        (capture_bitmap[fresh11 as usize] as i32 | 1 as i32) as u8
                 }
                 current_block = 9520865839495247062;
             }
             19 | 20 => {
-                val = *bc_buf.offset((pos + 1 as i32) as isize) as uint32_t;
+                val = *bc_buf.offset((pos + 1 as i32) as isize) as u32;
                 capture_bitmap[val as usize] =
-                    (capture_bitmap[val as usize] as i32 | 2 as i32) as uint8_t;
+                    (capture_bitmap[val as usize] as i32 | 2 as i32) as u8;
                 has_back_reference = TRUE as i32;
                 current_block = 9520865839495247062;
             }
@@ -1595,16 +1564,13 @@ unsafe extern "C" fn re_check_advance(mut bc_buf: *const uint8_t, mut bc_buf_len
 }
 /* return -1 if a simple quantifier cannot be used. Otherwise return
 the number of characters in the atom. */
-unsafe extern "C" fn re_is_simple_quantifier(
-    mut bc_buf: *const uint8_t,
-    mut bc_buf_len: i32,
-) -> i32 {
+unsafe extern "C" fn re_is_simple_quantifier(mut bc_buf: *const u8, mut bc_buf_len: i32) -> i32 {
     let mut current_block: u64;
     let mut pos: i32 = 0;
     let mut opcode: i32 = 0;
     let mut len: i32 = 0;
     let mut count: i32 = 0;
-    let mut val: uint32_t = 0;
+    let mut val: u32 = 0;
     count = 0 as i32;
     pos = 0 as i32;
     while pos < bc_buf_len {
@@ -1641,28 +1607,28 @@ unsafe extern "C" fn re_is_simple_quantifier(
 unsafe extern "C" fn re_parse_group_name(
     mut buf: *mut std::os::raw::c_char,
     mut buf_size: i32,
-    mut pp: *mut *const uint8_t,
+    mut pp: *mut *const u8,
     mut is_utf16: BOOL,
 ) -> i32 {
-    let mut p: *const uint8_t = 0 as *const uint8_t;
-    let mut c: uint32_t = 0;
+    let mut p: *const u8 = 0 as *const u8;
+    let mut c: u32 = 0;
     let mut q: *mut std::os::raw::c_char = 0 as *mut std::os::raw::c_char;
     p = *pp;
     q = buf;
     loop {
-        c = *p as uint32_t;
+        c = *p as u32;
         if c == '\\' as i32 as u32 {
             p = p.offset(1);
             if *p as i32 != 'u' as i32 {
                 return -(1 as i32);
             }
-            c = lre_parse_escape(&mut p, is_utf16 * 2 as i32) as uint32_t
+            c = lre_parse_escape(&mut p, is_utf16 * 2 as i32) as u32
         } else {
             if c == '>' as i32 as u32 {
                 break;
             }
             if c >= 128 as i32 as u32 {
-                c = unicode_from_utf8(p, 6 as i32, &mut p) as uint32_t
+                c = unicode_from_utf8(p, 6 as i32, &mut p) as u32
             } else {
                 p = p.offset(1)
             }
@@ -1686,7 +1652,7 @@ unsafe extern "C" fn re_parse_group_name(
             q = q.offset(1);
             *fresh12 = c as std::os::raw::c_char
         } else {
-            q = q.offset(unicode_to_utf8(q as *mut uint8_t, c) as isize)
+            q = q.offset(unicode_to_utf8(q as *mut u8, c) as isize)
         }
     }
     if q == buf {
@@ -1705,7 +1671,7 @@ unsafe extern "C" fn re_parse_captures(
     mut phas_named_captures: *mut i32,
     mut capture_name: *const std::os::raw::c_char,
 ) -> i32 {
-    let mut p: *const uint8_t = 0 as *const uint8_t;
+    let mut p: *const u8 = 0 as *const u8;
     let mut capture_index: i32 = 0;
     let mut name: [std::os::raw::c_char; 128] = [0; 128];
     capture_index = 1 as i32;
@@ -1789,30 +1755,30 @@ unsafe extern "C" fn find_group_name(
 ) -> i32 {
     let mut p: *const std::os::raw::c_char = 0 as *const std::os::raw::c_char;
     let mut buf_end: *const std::os::raw::c_char = 0 as *const std::os::raw::c_char;
-    let mut len: size_t = 0;
-    let mut name_len: size_t = 0;
+    let mut len: usize = 0;
+    let mut name_len: usize = 0;
     let mut capture_index: i32 = 0;
-    name_len = cstr_len(name) as u64;
+    name_len = cstr_len(name) as usize;
     p = (*s).group_names.buf as *mut std::os::raw::c_char;
     buf_end =
         ((*s).group_names.buf as *mut std::os::raw::c_char).offset((*s).group_names.size as isize);
     capture_index = 1 as i32;
     while p < buf_end {
-        len = cstr_len(p) as u64;
+        len = cstr_len(p) as usize;
         if len == name_len
             && ptr_compare(name as *const u8, p as *const u8, name_len as usize) == 0 as i32
         {
             return capture_index;
         }
-        p = p.offset(len.wrapping_add(1 as i32 as u64) as isize);
+        p = p.offset(len.wrapping_add(1) as isize);
         capture_index += 1
     }
     return -(1 as i32);
 }
 unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> i32 {
-    let mut q: *const uint8_t = 0 as *const uint8_t;
+    let mut q: *const u8 = 0 as *const u8;
     let mut current_block: u64;
-    let mut p: *const uint8_t = 0 as *const uint8_t;
+    let mut p: *const u8 = 0 as *const u8;
     let mut c: i32 = 0;
     let mut last_atom_start: i32 = 0;
     let mut quant_min: i32 = 0;
@@ -1825,7 +1791,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
     let mut cr_s: CharRange = CharRange {
         len: 0,
         size: 0,
-        points: 0 as *mut uint32_t,
+        points: 0 as *mut u32,
         mem_opaque: 0 as *mut std::ffi::c_void,
         realloc_func: None,
     };
@@ -1874,7 +1840,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
             } else if is_digit(*p.offset(1 as i32 as isize) as i32) == 0 {
                 current_block = 14272147528220428300;
             } else {
-                let mut p1: *const uint8_t = p.offset(1 as i32 as isize);
+                let mut p1: *const u8 = p.offset(1 as i32 as isize);
                 /* Annex B: error if it is like a repetition count */
                 parse_digits(&mut p1, TRUE as i32);
                 if *p1 as i32 == ',' as i32 {
@@ -1954,7 +1920,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                             /* group name with a trailing zero */
                             dbuf_put(
                                 &mut (*s).group_names,
-                                (*s).u.tmp_buf.as_mut_ptr() as *mut uint8_t,
+                                (*s).u.tmp_buf.as_mut_ptr() as *mut u8,
                                 cstr_len((*s).u.tmp_buf.as_mut_ptr()).wrapping_add(1) as usize,
                             );
                             (*s).has_named_captures = 1 as i32
@@ -1977,11 +1943,8 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                 last_atom_start = (*s).byte_code.size as i32;
                                 last_capture_count = (*s).capture_count
                             }
-                            pos = re_emit_op_u32(
-                                s,
-                                REOP_lookahead as i32 + is_neg,
-                                0 as i32 as uint32_t,
-                            );
+                            pos =
+                                re_emit_op_u32(s, REOP_lookahead as i32 + is_neg, 0 as i32 as u32);
                             (*s).buf_ptr = p;
                             if re_parse_disjunction(s, is_backward_lookahead) != 0 {
                                 return -(1 as i32);
@@ -1997,8 +1960,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                             }
                             put_u32(
                                 (*s).byte_code.buf.offset(pos as isize),
-                                (*s).byte_code.size.wrapping_sub((pos + 4 as i32) as u64)
-                                    as uint32_t,
+                                (*s).byte_code.size.wrapping_sub((pos + 4) as usize) as u32,
                             );
                             current_block_82 = 12070711452894729854;
                         }
@@ -2008,7 +1970,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                 capture_index = 0;
                 p = p.offset(1);
                 /* capture without group name */
-                dbuf_putc(&mut (*s).group_names, 0 as i32 as uint8_t);
+                dbuf_putc(&mut (*s).group_names, 0 as i32 as u8);
                 current_block_82 = 2791873586345300331;
             }
             match current_block_82 {
@@ -2027,7 +1989,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                     re_emit_op_u8(
                         s,
                         REOP_save_start as i32 + is_backward_dir,
-                        capture_index as uint32_t,
+                        capture_index as u32,
                     );
                     (*s).buf_ptr = p;
                     if re_parse_disjunction(s, is_backward_dir) != 0 {
@@ -2037,7 +1999,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                     re_emit_op_u8(
                         s,
                         REOP_save_start as i32 + 1 as i32 - is_backward_dir,
-                        capture_index as uint32_t,
+                        capture_index as u32,
                     );
                     if re_parse_expect(s, &mut p, ')' as i32) != 0 {
                         return -(1 as i32);
@@ -2086,7 +2048,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                             current_block = 6173299948494125894;
                         }
                         17395932908762866334 => {
-                            let mut p1_0: *const uint8_t = 0 as *const uint8_t;
+                            let mut p1_0: *const u8 = 0 as *const u8;
                             let mut dummy_res: i32 = 0;
                             p1_0 = p;
                             if *p1_0.offset(2 as i32 as isize) as i32 != '<' as i32 {
@@ -2213,7 +2175,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                             re_emit_op_u8(
                                 s,
                                 REOP_back_reference as i32 + is_backward_dir,
-                                c as uint32_t,
+                                c as u32,
                             );
                             current_block = 12151070351325546249;
                         }
@@ -2256,7 +2218,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                             current_block = 6173299948494125894;
                         }
                         17395932908762866334 => {
-                            let mut p1_0: *const uint8_t = 0 as *const uint8_t;
+                            let mut p1_0: *const u8 = 0 as *const u8;
                             let mut dummy_res: i32 = 0;
                             p1_0 = p;
                             if *p1_0.offset(2 as i32 as isize) as i32 != '<' as i32 {
@@ -2376,7 +2338,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                             re_emit_op_u8(
                                 s,
                                 REOP_back_reference as i32 + is_backward_dir,
-                                c as uint32_t,
+                                c as u32,
                             );
                             current_block = 12151070351325546249;
                         }
@@ -2419,7 +2381,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                             current_block = 6173299948494125894;
                         }
                         17395932908762866334 => {
-                            let mut p1_0: *const uint8_t = 0 as *const uint8_t;
+                            let mut p1_0: *const u8 = 0 as *const u8;
                             let mut dummy_res: i32 = 0;
                             p1_0 = p;
                             if *p1_0.offset(2 as i32 as isize) as i32 != '<' as i32 {
@@ -2539,7 +2501,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                             re_emit_op_u8(
                                 s,
                                 REOP_back_reference as i32 + is_backward_dir,
-                                c as uint32_t,
+                                c as u32,
                             );
                             current_block = 12151070351325546249;
                         }
@@ -2582,7 +2544,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                             current_block = 6173299948494125894;
                         }
                         17395932908762866334 => {
-                            let mut p1_0: *const uint8_t = 0 as *const uint8_t;
+                            let mut p1_0: *const u8 = 0 as *const u8;
                             let mut dummy_res: i32 = 0;
                             p1_0 = p;
                             if *p1_0.offset(2 as i32 as isize) as i32 != '<' as i32 {
@@ -2702,7 +2664,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                             re_emit_op_u8(
                                 s,
                                 REOP_back_reference as i32 + is_backward_dir,
-                                c as uint32_t,
+                                c as u32,
                             );
                             current_block = 12151070351325546249;
                         }
@@ -2778,12 +2740,12 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                 }
             } else {
                 if (*s).ignore_case != 0 {
-                    c = lre_canonicalize(c as uint32_t, (*s).is_utf16) as i32
+                    c = lre_canonicalize(c as u32, (*s).is_utf16) as i32
                 }
                 if c <= 0xffff as i32 {
-                    re_emit_op_u16(s, REOP_char as i32, c as uint32_t);
+                    re_emit_op_u16(s, REOP_char as i32, c as u32);
                 } else {
-                    re_emit_op_u32(s, REOP_char32 as i32, c as uint32_t);
+                    re_emit_op_u32(s, REOP_char32 as i32, c as u32);
                 }
             }
             if is_backward_dir != 0 {
@@ -2818,7 +2780,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                         current_block = 16210164921736915844;
                     }
                     _ => {
-                        let mut p1_1: *const uint8_t = p;
+                        let mut p1_1: *const u8 = p;
                         /* As an extension (see ES6 annex B), we accept '{' not
                         followed by digits as a normal atom */
                         if is_digit(*p.offset(1 as i32 as isize) as i32) == 0 {
@@ -2902,7 +2864,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                 } else {
                                     len = re_is_simple_quantifier(
                                         (*s).byte_code.buf.offset(last_atom_start as isize),
-                                        (*s).byte_code.size.wrapping_sub(last_atom_start as u64)
+                                        (*s).byte_code.size.wrapping_sub(last_atom_start as usize)
                                             as i32,
                                     );
                                     if len > 0 as i32 {
@@ -2919,29 +2881,29 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                             let fresh20 = pos_0;
                                             pos_0 = pos_0 + 1;
                                             *(*s).byte_code.buf.offset(fresh20 as isize) =
-                                                REOP_simple_greedy_quant as i32 as uint8_t;
+                                                REOP_simple_greedy_quant as i32 as u8;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
                                                 (*s).byte_code
                                                     .size
-                                                    .wrapping_sub(last_atom_start as u64)
-                                                    .wrapping_sub(17 as i32 as u64)
-                                                    as uint32_t,
+                                                    .wrapping_sub(last_atom_start as usize)
+                                                    .wrapping_sub(17)
+                                                    as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                quant_min as uint32_t,
+                                                quant_min as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                quant_max as uint32_t,
+                                                quant_max as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                len as uint32_t,
+                                                len as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             current_block = 3543436503030046430;
@@ -2962,7 +2924,9 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                     } else {
                                         add_zero_advance_check = (re_check_advance(
                                             (*s).byte_code.buf.offset(last_atom_start as isize),
-                                            (*s).byte_code.size.wrapping_sub(last_atom_start as u64)
+                                            (*s).byte_code
+                                                .size
+                                                .wrapping_sub(last_atom_start as usize)
                                                 as i32,
                                         ) == 0 as i32)
                                             as i32;
@@ -2984,7 +2948,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                         len_0 = (*s)
                                             .byte_code
                                             .size
-                                            .wrapping_sub(last_atom_start as u64)
+                                            .wrapping_sub(last_atom_start as usize)
                                             as i32;
                                         if quant_min == 0 as i32 {
                                             /* need to reset the capture in case the atom is
@@ -3001,15 +2965,15 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                     let fresh21 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh21 as isize) =
-                                                        REOP_save_reset as i32 as uint8_t;
+                                                        REOP_save_reset as i32 as u8;
                                                     let fresh22 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh22 as isize) =
-                                                        last_capture_count as uint8_t;
+                                                        last_capture_count as u8;
                                                     let fresh23 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh23 as isize) =
-                                                        ((*s).capture_count - 1 as i32) as uint8_t;
+                                                        ((*s).capture_count - 1 as i32) as u8;
                                                     current_block = 6936584767197543976;
                                                 }
                                             } else {
@@ -3020,7 +2984,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                 _ => {
                                                     if quant_max == 0 as i32 {
                                                         (*s).byte_code.size =
-                                                            last_atom_start as size_t;
+                                                            last_atom_start as usize;
                                                         current_block = 9856786070414082169;
                                                     } else if quant_max == 1 as i32 {
                                                         if dbuf_insert(
@@ -3037,7 +3001,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 .offset(last_atom_start as isize) =
                                                                 (REOP_split_goto_first as i32
                                                                     + greedy)
-                                                                    as uint8_t;
+                                                                    as u8;
                                                             put_u32(
                                                                 (*s).byte_code
                                                                     .buf
@@ -3045,7 +3009,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                         last_atom_start as isize,
                                                                     )
                                                                     .offset(1 as i32 as isize),
-                                                                len_0 as uint32_t,
+                                                                len_0 as u32,
                                                             );
                                                             current_block = 9856786070414082169;
                                                         }
@@ -3064,7 +3028,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 .offset(last_atom_start as isize) =
                                                                 (REOP_split_goto_first as i32
                                                                     + greedy)
-                                                                    as uint8_t;
+                                                                    as u8;
                                                             put_u32(
                                                                 (*s).byte_code
                                                                     .buf
@@ -3075,7 +3039,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 (len_0
                                                                     + 5 as i32
                                                                     + add_zero_advance_check)
-                                                                    as uint32_t,
+                                                                    as u32,
                                                             );
                                                             if add_zero_advance_check != 0 {
                                                                 /* avoid infinite loop by stoping the
@@ -3087,18 +3051,17 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                         + 1 as i32
                                                                         + 4 as i32)
                                                                         as isize,
-                                                                ) = REOP_push_char_pos as i32
-                                                                    as uint8_t;
+                                                                ) = REOP_push_char_pos as i32 as u8;
                                                                 re_emit_goto(
                                                                     s,
                                                                     REOP_bne_char_pos as i32,
-                                                                    last_atom_start as uint32_t,
+                                                                    last_atom_start as u32,
                                                                 );
                                                             } else {
                                                                 re_emit_goto(
                                                                     s,
                                                                     REOP_goto as i32,
-                                                                    last_atom_start as uint32_t,
+                                                                    last_atom_start as u32,
                                                                 );
                                                             }
                                                             current_block = 9856786070414082169;
@@ -3118,12 +3081,12 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             .byte_code
                                                             .buf
                                                             .offset(fresh24 as isize) =
-                                                            REOP_push_i32 as i32 as uint8_t;
+                                                            REOP_push_i32 as i32 as u8;
                                                         put_u32(
                                                             (*s).byte_code
                                                                 .buf
                                                                 .offset(pos_1 as isize),
-                                                            quant_max as uint32_t,
+                                                            quant_max as u32,
                                                         );
                                                         pos_1 += 4 as i32;
                                                         let fresh25 = pos_1;
@@ -3133,18 +3096,17 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             .buf
                                                             .offset(fresh25 as isize) =
                                                             (REOP_split_goto_first as i32 + greedy)
-                                                                as uint8_t;
+                                                                as u8;
                                                         put_u32(
                                                             (*s).byte_code
                                                                 .buf
                                                                 .offset(pos_1 as isize),
-                                                            (len_0 + 5 as i32) as uint32_t,
+                                                            (len_0 + 5 as i32) as u32,
                                                         );
                                                         re_emit_goto(
                                                             s,
                                                             REOP_loop as i32,
-                                                            (last_atom_start + 5 as i32)
-                                                                as uint32_t,
+                                                            (last_atom_start + 5 as i32) as u32,
                                                         );
                                                         re_emit_op(s, REOP_drop as i32);
                                                         current_block = 9856786070414082169;
@@ -3158,7 +3120,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                             re_emit_goto(
                                                 s,
                                                 REOP_split_next_first as i32 - greedy,
-                                                last_atom_start as uint32_t,
+                                                last_atom_start as u32,
                                             );
                                             current_block = 9856786070414082169;
                                         } else {
@@ -3176,19 +3138,19 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                     .byte_code
                                                     .buf
                                                     .offset(last_atom_start as isize) =
-                                                    REOP_push_i32 as i32 as uint8_t;
+                                                    REOP_push_i32 as i32 as u8;
                                                 put_u32(
                                                     (*s).byte_code
                                                         .buf
                                                         .offset(last_atom_start as isize)
                                                         .offset(1 as i32 as isize),
-                                                    quant_min as uint32_t,
+                                                    quant_min as u32,
                                                 );
                                                 last_atom_start += 5 as i32;
                                                 re_emit_goto(
                                                     s,
                                                     REOP_loop as i32,
-                                                    last_atom_start as uint32_t,
+                                                    last_atom_start as u32,
                                                 );
                                                 re_emit_op(s, REOP_drop as i32);
                                                 current_block = 5684771287319053842;
@@ -3206,7 +3168,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             (len_0
                                                                 + 5 as i32
                                                                 + add_zero_advance_check)
-                                                                as uint32_t,
+                                                                as u32,
                                                         );
                                                         if add_zero_advance_check != 0 {
                                                             re_emit_op(
@@ -3217,44 +3179,44 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                         /* copy the atom */
                                                         dbuf_put_self(
                                                             &mut (*s).byte_code,
-                                                            last_atom_start as size_t,
-                                                            len_0 as size_t,
+                                                            last_atom_start as usize,
+                                                            len_0 as usize,
                                                         );
                                                         if add_zero_advance_check != 0 {
                                                             re_emit_goto(
                                                                 s,
                                                                 REOP_bne_char_pos as i32,
-                                                                pos_1 as uint32_t,
+                                                                pos_1 as u32,
                                                             );
                                                         } else {
                                                             re_emit_goto(
                                                                 s,
                                                                 REOP_goto as i32,
-                                                                pos_1 as uint32_t,
+                                                                pos_1 as u32,
                                                             );
                                                         }
                                                     } else if quant_max > quant_min {
                                                         re_emit_op_u32(
                                                             s,
                                                             REOP_push_i32 as i32,
-                                                            (quant_max - quant_min) as uint32_t,
+                                                            (quant_max - quant_min) as u32,
                                                         );
                                                         pos_1 = (*s).byte_code.size as i32;
                                                         re_emit_op_u32(
                                                             s,
                                                             REOP_split_goto_first as i32 + greedy,
-                                                            (len_0 + 5 as i32) as uint32_t,
+                                                            (len_0 + 5 as i32) as u32,
                                                         );
                                                         /* copy the atom */
                                                         dbuf_put_self(
                                                             &mut (*s).byte_code,
-                                                            last_atom_start as size_t,
-                                                            len_0 as size_t,
+                                                            last_atom_start as usize,
+                                                            len_0 as usize,
                                                         );
                                                         re_emit_goto(
                                                             s,
                                                             REOP_loop as i32,
-                                                            pos_1 as uint32_t,
+                                                            pos_1 as u32,
                                                         );
                                                         re_emit_op(s, REOP_drop as i32);
                                                     }
@@ -3303,7 +3265,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                         current_block = 16210164921736915844;
                     }
                     _ => {
-                        let mut p1_1: *const uint8_t = p;
+                        let mut p1_1: *const u8 = p;
                         if is_digit(*p.offset(1 as i32 as isize) as i32) == 0 {
                             if (*s).is_utf16 != 0 {
                                 current_block = 6640267502916221715;
@@ -3382,7 +3344,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                 } else {
                                     len = re_is_simple_quantifier(
                                         (*s).byte_code.buf.offset(last_atom_start as isize),
-                                        (*s).byte_code.size.wrapping_sub(last_atom_start as u64)
+                                        (*s).byte_code.size.wrapping_sub(last_atom_start as usize)
                                             as i32,
                                     );
                                     if len > 0 as i32 {
@@ -3399,29 +3361,29 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                             let fresh20 = pos_0;
                                             pos_0 = pos_0 + 1;
                                             *(*s).byte_code.buf.offset(fresh20 as isize) =
-                                                REOP_simple_greedy_quant as i32 as uint8_t;
+                                                REOP_simple_greedy_quant as i32 as u8;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
                                                 (*s).byte_code
                                                     .size
-                                                    .wrapping_sub(last_atom_start as u64)
-                                                    .wrapping_sub(17 as i32 as u64)
-                                                    as uint32_t,
+                                                    .wrapping_sub(last_atom_start as usize)
+                                                    .wrapping_sub(17)
+                                                    as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                quant_min as uint32_t,
+                                                quant_min as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                quant_max as uint32_t,
+                                                quant_max as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                len as uint32_t,
+                                                len as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             current_block = 3543436503030046430;
@@ -3442,7 +3404,9 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                     } else {
                                         add_zero_advance_check = (re_check_advance(
                                             (*s).byte_code.buf.offset(last_atom_start as isize),
-                                            (*s).byte_code.size.wrapping_sub(last_atom_start as u64)
+                                            (*s).byte_code
+                                                .size
+                                                .wrapping_sub(last_atom_start as usize)
                                                 as i32,
                                         ) == 0 as i32)
                                             as i32;
@@ -3464,7 +3428,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                         len_0 = (*s)
                                             .byte_code
                                             .size
-                                            .wrapping_sub(last_atom_start as u64)
+                                            .wrapping_sub(last_atom_start as usize)
                                             as i32;
                                         if quant_min == 0 as i32 {
                                             if last_capture_count != (*s).capture_count {
@@ -3479,15 +3443,15 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                     let fresh21 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh21 as isize) =
-                                                        REOP_save_reset as i32 as uint8_t;
+                                                        REOP_save_reset as i32 as u8;
                                                     let fresh22 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh22 as isize) =
-                                                        last_capture_count as uint8_t;
+                                                        last_capture_count as u8;
                                                     let fresh23 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh23 as isize) =
-                                                        ((*s).capture_count - 1 as i32) as uint8_t;
+                                                        ((*s).capture_count - 1 as i32) as u8;
                                                     current_block = 6936584767197543976;
                                                 }
                                             } else {
@@ -3498,7 +3462,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                 _ => {
                                                     if quant_max == 0 as i32 {
                                                         (*s).byte_code.size =
-                                                            last_atom_start as size_t;
+                                                            last_atom_start as usize;
                                                         current_block = 9856786070414082169;
                                                     } else if quant_max == 1 as i32 {
                                                         if dbuf_insert(
@@ -3515,7 +3479,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 .offset(last_atom_start as isize) =
                                                                 (REOP_split_goto_first as i32
                                                                     + greedy)
-                                                                    as uint8_t;
+                                                                    as u8;
                                                             put_u32(
                                                                 (*s).byte_code
                                                                     .buf
@@ -3523,7 +3487,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                         last_atom_start as isize,
                                                                     )
                                                                     .offset(1 as i32 as isize),
-                                                                len_0 as uint32_t,
+                                                                len_0 as u32,
                                                             );
                                                             current_block = 9856786070414082169;
                                                         }
@@ -3542,7 +3506,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 .offset(last_atom_start as isize) =
                                                                 (REOP_split_goto_first as i32
                                                                     + greedy)
-                                                                    as uint8_t;
+                                                                    as u8;
                                                             put_u32(
                                                                 (*s).byte_code
                                                                     .buf
@@ -3553,7 +3517,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 (len_0
                                                                     + 5 as i32
                                                                     + add_zero_advance_check)
-                                                                    as uint32_t,
+                                                                    as u32,
                                                             );
                                                             if add_zero_advance_check != 0 {
                                                                 *(*s).byte_code.buf.offset(
@@ -3561,18 +3525,17 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                         + 1 as i32
                                                                         + 4 as i32)
                                                                         as isize,
-                                                                ) = REOP_push_char_pos as i32
-                                                                    as uint8_t;
+                                                                ) = REOP_push_char_pos as i32 as u8;
                                                                 re_emit_goto(
                                                                     s,
                                                                     REOP_bne_char_pos as i32,
-                                                                    last_atom_start as uint32_t,
+                                                                    last_atom_start as u32,
                                                                 );
                                                             } else {
                                                                 re_emit_goto(
                                                                     s,
                                                                     REOP_goto as i32,
-                                                                    last_atom_start as uint32_t,
+                                                                    last_atom_start as u32,
                                                                 );
                                                             }
                                                             current_block = 9856786070414082169;
@@ -3592,12 +3555,12 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             .byte_code
                                                             .buf
                                                             .offset(fresh24 as isize) =
-                                                            REOP_push_i32 as i32 as uint8_t;
+                                                            REOP_push_i32 as i32 as u8;
                                                         put_u32(
                                                             (*s).byte_code
                                                                 .buf
                                                                 .offset(pos_1 as isize),
-                                                            quant_max as uint32_t,
+                                                            quant_max as u32,
                                                         );
                                                         pos_1 += 4 as i32;
                                                         let fresh25 = pos_1;
@@ -3607,18 +3570,17 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             .buf
                                                             .offset(fresh25 as isize) =
                                                             (REOP_split_goto_first as i32 + greedy)
-                                                                as uint8_t;
+                                                                as u8;
                                                         put_u32(
                                                             (*s).byte_code
                                                                 .buf
                                                                 .offset(pos_1 as isize),
-                                                            (len_0 + 5 as i32) as uint32_t,
+                                                            (len_0 + 5 as i32) as u32,
                                                         );
                                                         re_emit_goto(
                                                             s,
                                                             REOP_loop as i32,
-                                                            (last_atom_start + 5 as i32)
-                                                                as uint32_t,
+                                                            (last_atom_start + 5 as i32) as u32,
                                                         );
                                                         re_emit_op(s, REOP_drop as i32);
                                                         current_block = 9856786070414082169;
@@ -3632,7 +3594,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                             re_emit_goto(
                                                 s,
                                                 REOP_split_next_first as i32 - greedy,
-                                                last_atom_start as uint32_t,
+                                                last_atom_start as u32,
                                             );
                                             current_block = 9856786070414082169;
                                         } else {
@@ -3650,19 +3612,19 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                     .byte_code
                                                     .buf
                                                     .offset(last_atom_start as isize) =
-                                                    REOP_push_i32 as i32 as uint8_t;
+                                                    REOP_push_i32 as i32 as u8;
                                                 put_u32(
                                                     (*s).byte_code
                                                         .buf
                                                         .offset(last_atom_start as isize)
                                                         .offset(1 as i32 as isize),
-                                                    quant_min as uint32_t,
+                                                    quant_min as u32,
                                                 );
                                                 last_atom_start += 5 as i32;
                                                 re_emit_goto(
                                                     s,
                                                     REOP_loop as i32,
-                                                    last_atom_start as uint32_t,
+                                                    last_atom_start as u32,
                                                 );
                                                 re_emit_op(s, REOP_drop as i32);
                                                 current_block = 5684771287319053842;
@@ -3678,7 +3640,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             (len_0
                                                                 + 5 as i32
                                                                 + add_zero_advance_check)
-                                                                as uint32_t,
+                                                                as u32,
                                                         );
                                                         if add_zero_advance_check != 0 {
                                                             re_emit_op(
@@ -3688,43 +3650,43 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                         }
                                                         dbuf_put_self(
                                                             &mut (*s).byte_code,
-                                                            last_atom_start as size_t,
-                                                            len_0 as size_t,
+                                                            last_atom_start as usize,
+                                                            len_0 as usize,
                                                         );
                                                         if add_zero_advance_check != 0 {
                                                             re_emit_goto(
                                                                 s,
                                                                 REOP_bne_char_pos as i32,
-                                                                pos_1 as uint32_t,
+                                                                pos_1 as u32,
                                                             );
                                                         } else {
                                                             re_emit_goto(
                                                                 s,
                                                                 REOP_goto as i32,
-                                                                pos_1 as uint32_t,
+                                                                pos_1 as u32,
                                                             );
                                                         }
                                                     } else if quant_max > quant_min {
                                                         re_emit_op_u32(
                                                             s,
                                                             REOP_push_i32 as i32,
-                                                            (quant_max - quant_min) as uint32_t,
+                                                            (quant_max - quant_min) as u32,
                                                         );
                                                         pos_1 = (*s).byte_code.size as i32;
                                                         re_emit_op_u32(
                                                             s,
                                                             REOP_split_goto_first as i32 + greedy,
-                                                            (len_0 + 5 as i32) as uint32_t,
+                                                            (len_0 + 5 as i32) as u32,
                                                         );
                                                         dbuf_put_self(
                                                             &mut (*s).byte_code,
-                                                            last_atom_start as size_t,
-                                                            len_0 as size_t,
+                                                            last_atom_start as usize,
+                                                            len_0 as usize,
                                                         );
                                                         re_emit_goto(
                                                             s,
                                                             REOP_loop as i32,
-                                                            pos_1 as uint32_t,
+                                                            pos_1 as u32,
                                                         );
                                                         re_emit_op(s, REOP_drop as i32);
                                                     }
@@ -3773,7 +3735,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                         current_block = 16210164921736915844;
                     }
                     _ => {
-                        let mut p1_1: *const uint8_t = p;
+                        let mut p1_1: *const u8 = p;
                         if is_digit(*p.offset(1 as i32 as isize) as i32) == 0 {
                             if (*s).is_utf16 != 0 {
                                 current_block = 6640267502916221715;
@@ -3852,7 +3814,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                 } else {
                                     len = re_is_simple_quantifier(
                                         (*s).byte_code.buf.offset(last_atom_start as isize),
-                                        (*s).byte_code.size.wrapping_sub(last_atom_start as u64)
+                                        (*s).byte_code.size.wrapping_sub(last_atom_start as usize)
                                             as i32,
                                     );
                                     if len > 0 as i32 {
@@ -3869,29 +3831,29 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                             let fresh20 = pos_0;
                                             pos_0 = pos_0 + 1;
                                             *(*s).byte_code.buf.offset(fresh20 as isize) =
-                                                REOP_simple_greedy_quant as i32 as uint8_t;
+                                                REOP_simple_greedy_quant as i32 as u8;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
                                                 (*s).byte_code
                                                     .size
-                                                    .wrapping_sub(last_atom_start as u64)
-                                                    .wrapping_sub(17 as i32 as u64)
-                                                    as uint32_t,
+                                                    .wrapping_sub(last_atom_start as usize)
+                                                    .wrapping_sub(17)
+                                                    as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                quant_min as uint32_t,
+                                                quant_min as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                quant_max as uint32_t,
+                                                quant_max as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                len as uint32_t,
+                                                len as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             current_block = 3543436503030046430;
@@ -3912,7 +3874,9 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                     } else {
                                         add_zero_advance_check = (re_check_advance(
                                             (*s).byte_code.buf.offset(last_atom_start as isize),
-                                            (*s).byte_code.size.wrapping_sub(last_atom_start as u64)
+                                            (*s).byte_code
+                                                .size
+                                                .wrapping_sub(last_atom_start as usize)
                                                 as i32,
                                         ) == 0 as i32)
                                             as i32;
@@ -3934,7 +3898,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                         len_0 = (*s)
                                             .byte_code
                                             .size
-                                            .wrapping_sub(last_atom_start as u64)
+                                            .wrapping_sub(last_atom_start as usize)
                                             as i32;
                                         if quant_min == 0 as i32 {
                                             if last_capture_count != (*s).capture_count {
@@ -3949,15 +3913,15 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                     let fresh21 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh21 as isize) =
-                                                        REOP_save_reset as i32 as uint8_t;
+                                                        REOP_save_reset as i32 as u8;
                                                     let fresh22 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh22 as isize) =
-                                                        last_capture_count as uint8_t;
+                                                        last_capture_count as u8;
                                                     let fresh23 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh23 as isize) =
-                                                        ((*s).capture_count - 1 as i32) as uint8_t;
+                                                        ((*s).capture_count - 1 as i32) as u8;
                                                     current_block = 6936584767197543976;
                                                 }
                                             } else {
@@ -3968,7 +3932,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                 _ => {
                                                     if quant_max == 0 as i32 {
                                                         (*s).byte_code.size =
-                                                            last_atom_start as size_t;
+                                                            last_atom_start as usize;
                                                         current_block = 9856786070414082169;
                                                     } else if quant_max == 1 as i32 {
                                                         if dbuf_insert(
@@ -3985,7 +3949,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 .offset(last_atom_start as isize) =
                                                                 (REOP_split_goto_first as i32
                                                                     + greedy)
-                                                                    as uint8_t;
+                                                                    as u8;
                                                             put_u32(
                                                                 (*s).byte_code
                                                                     .buf
@@ -3993,7 +3957,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                         last_atom_start as isize,
                                                                     )
                                                                     .offset(1 as i32 as isize),
-                                                                len_0 as uint32_t,
+                                                                len_0 as u32,
                                                             );
                                                             current_block = 9856786070414082169;
                                                         }
@@ -4012,7 +3976,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 .offset(last_atom_start as isize) =
                                                                 (REOP_split_goto_first as i32
                                                                     + greedy)
-                                                                    as uint8_t;
+                                                                    as u8;
                                                             put_u32(
                                                                 (*s).byte_code
                                                                     .buf
@@ -4023,7 +3987,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 (len_0
                                                                     + 5 as i32
                                                                     + add_zero_advance_check)
-                                                                    as uint32_t,
+                                                                    as u32,
                                                             );
                                                             if add_zero_advance_check != 0 {
                                                                 *(*s).byte_code.buf.offset(
@@ -4031,18 +3995,17 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                         + 1 as i32
                                                                         + 4 as i32)
                                                                         as isize,
-                                                                ) = REOP_push_char_pos as i32
-                                                                    as uint8_t;
+                                                                ) = REOP_push_char_pos as i32 as u8;
                                                                 re_emit_goto(
                                                                     s,
                                                                     REOP_bne_char_pos as i32,
-                                                                    last_atom_start as uint32_t,
+                                                                    last_atom_start as u32,
                                                                 );
                                                             } else {
                                                                 re_emit_goto(
                                                                     s,
                                                                     REOP_goto as i32,
-                                                                    last_atom_start as uint32_t,
+                                                                    last_atom_start as u32,
                                                                 );
                                                             }
                                                             current_block = 9856786070414082169;
@@ -4062,12 +4025,12 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             .byte_code
                                                             .buf
                                                             .offset(fresh24 as isize) =
-                                                            REOP_push_i32 as i32 as uint8_t;
+                                                            REOP_push_i32 as i32 as u8;
                                                         put_u32(
                                                             (*s).byte_code
                                                                 .buf
                                                                 .offset(pos_1 as isize),
-                                                            quant_max as uint32_t,
+                                                            quant_max as u32,
                                                         );
                                                         pos_1 += 4 as i32;
                                                         let fresh25 = pos_1;
@@ -4077,18 +4040,17 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             .buf
                                                             .offset(fresh25 as isize) =
                                                             (REOP_split_goto_first as i32 + greedy)
-                                                                as uint8_t;
+                                                                as u8;
                                                         put_u32(
                                                             (*s).byte_code
                                                                 .buf
                                                                 .offset(pos_1 as isize),
-                                                            (len_0 + 5 as i32) as uint32_t,
+                                                            (len_0 + 5 as i32) as u32,
                                                         );
                                                         re_emit_goto(
                                                             s,
                                                             REOP_loop as i32,
-                                                            (last_atom_start + 5 as i32)
-                                                                as uint32_t,
+                                                            (last_atom_start + 5 as i32) as u32,
                                                         );
                                                         re_emit_op(s, REOP_drop as i32);
                                                         current_block = 9856786070414082169;
@@ -4102,7 +4064,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                             re_emit_goto(
                                                 s,
                                                 REOP_split_next_first as i32 - greedy,
-                                                last_atom_start as uint32_t,
+                                                last_atom_start as u32,
                                             );
                                             current_block = 9856786070414082169;
                                         } else {
@@ -4120,19 +4082,19 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                     .byte_code
                                                     .buf
                                                     .offset(last_atom_start as isize) =
-                                                    REOP_push_i32 as i32 as uint8_t;
+                                                    REOP_push_i32 as i32 as u8;
                                                 put_u32(
                                                     (*s).byte_code
                                                         .buf
                                                         .offset(last_atom_start as isize)
                                                         .offset(1 as i32 as isize),
-                                                    quant_min as uint32_t,
+                                                    quant_min as u32,
                                                 );
                                                 last_atom_start += 5 as i32;
                                                 re_emit_goto(
                                                     s,
                                                     REOP_loop as i32,
-                                                    last_atom_start as uint32_t,
+                                                    last_atom_start as u32,
                                                 );
                                                 re_emit_op(s, REOP_drop as i32);
                                                 current_block = 5684771287319053842;
@@ -4148,7 +4110,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             (len_0
                                                                 + 5 as i32
                                                                 + add_zero_advance_check)
-                                                                as uint32_t,
+                                                                as u32,
                                                         );
                                                         if add_zero_advance_check != 0 {
                                                             re_emit_op(
@@ -4158,43 +4120,43 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                         }
                                                         dbuf_put_self(
                                                             &mut (*s).byte_code,
-                                                            last_atom_start as size_t,
-                                                            len_0 as size_t,
+                                                            last_atom_start as usize,
+                                                            len_0 as usize,
                                                         );
                                                         if add_zero_advance_check != 0 {
                                                             re_emit_goto(
                                                                 s,
                                                                 REOP_bne_char_pos as i32,
-                                                                pos_1 as uint32_t,
+                                                                pos_1 as u32,
                                                             );
                                                         } else {
                                                             re_emit_goto(
                                                                 s,
                                                                 REOP_goto as i32,
-                                                                pos_1 as uint32_t,
+                                                                pos_1 as u32,
                                                             );
                                                         }
                                                     } else if quant_max > quant_min {
                                                         re_emit_op_u32(
                                                             s,
                                                             REOP_push_i32 as i32,
-                                                            (quant_max - quant_min) as uint32_t,
+                                                            (quant_max - quant_min) as u32,
                                                         );
                                                         pos_1 = (*s).byte_code.size as i32;
                                                         re_emit_op_u32(
                                                             s,
                                                             REOP_split_goto_first as i32 + greedy,
-                                                            (len_0 + 5 as i32) as uint32_t,
+                                                            (len_0 + 5 as i32) as u32,
                                                         );
                                                         dbuf_put_self(
                                                             &mut (*s).byte_code,
-                                                            last_atom_start as size_t,
-                                                            len_0 as size_t,
+                                                            last_atom_start as usize,
+                                                            len_0 as usize,
                                                         );
                                                         re_emit_goto(
                                                             s,
                                                             REOP_loop as i32,
-                                                            pos_1 as uint32_t,
+                                                            pos_1 as u32,
                                                         );
                                                         re_emit_op(s, REOP_drop as i32);
                                                     }
@@ -4243,7 +4205,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                         current_block = 16210164921736915844;
                     }
                     _ => {
-                        let mut p1_1: *const uint8_t = p;
+                        let mut p1_1: *const u8 = p;
                         if is_digit(*p.offset(1 as i32 as isize) as i32) == 0 {
                             if (*s).is_utf16 != 0 {
                                 current_block = 6640267502916221715;
@@ -4322,7 +4284,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                 } else {
                                     len = re_is_simple_quantifier(
                                         (*s).byte_code.buf.offset(last_atom_start as isize),
-                                        (*s).byte_code.size.wrapping_sub(last_atom_start as u64)
+                                        (*s).byte_code.size.wrapping_sub(last_atom_start as usize)
                                             as i32,
                                     );
                                     if len > 0 as i32 {
@@ -4339,29 +4301,29 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                             let fresh20 = pos_0;
                                             pos_0 = pos_0 + 1;
                                             *(*s).byte_code.buf.offset(fresh20 as isize) =
-                                                REOP_simple_greedy_quant as i32 as uint8_t;
+                                                REOP_simple_greedy_quant as i32 as u8;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
                                                 (*s).byte_code
                                                     .size
-                                                    .wrapping_sub(last_atom_start as u64)
-                                                    .wrapping_sub(17 as i32 as u64)
-                                                    as uint32_t,
+                                                    .wrapping_sub(last_atom_start as usize)
+                                                    .wrapping_sub(17)
+                                                    as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                quant_min as uint32_t,
+                                                quant_min as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                quant_max as uint32_t,
+                                                quant_max as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             put_u32(
                                                 &mut *(*s).byte_code.buf.offset(pos_0 as isize),
-                                                len as uint32_t,
+                                                len as u32,
                                             );
                                             pos_0 += 4 as i32;
                                             current_block = 3543436503030046430;
@@ -4382,7 +4344,9 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                     } else {
                                         add_zero_advance_check = (re_check_advance(
                                             (*s).byte_code.buf.offset(last_atom_start as isize),
-                                            (*s).byte_code.size.wrapping_sub(last_atom_start as u64)
+                                            (*s).byte_code
+                                                .size
+                                                .wrapping_sub(last_atom_start as usize)
                                                 as i32,
                                         ) == 0 as i32)
                                             as i32;
@@ -4404,7 +4368,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                         len_0 = (*s)
                                             .byte_code
                                             .size
-                                            .wrapping_sub(last_atom_start as u64)
+                                            .wrapping_sub(last_atom_start as usize)
                                             as i32;
                                         if quant_min == 0 as i32 {
                                             if last_capture_count != (*s).capture_count {
@@ -4419,15 +4383,15 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                     let fresh21 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh21 as isize) =
-                                                        REOP_save_reset as i32 as uint8_t;
+                                                        REOP_save_reset as i32 as u8;
                                                     let fresh22 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh22 as isize) =
-                                                        last_capture_count as uint8_t;
+                                                        last_capture_count as u8;
                                                     let fresh23 = last_atom_start;
                                                     last_atom_start = last_atom_start + 1;
                                                     *(*s).byte_code.buf.offset(fresh23 as isize) =
-                                                        ((*s).capture_count - 1 as i32) as uint8_t;
+                                                        ((*s).capture_count - 1 as i32) as u8;
                                                     current_block = 6936584767197543976;
                                                 }
                                             } else {
@@ -4438,7 +4402,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                 _ => {
                                                     if quant_max == 0 as i32 {
                                                         (*s).byte_code.size =
-                                                            last_atom_start as size_t;
+                                                            last_atom_start as usize;
                                                         current_block = 9856786070414082169;
                                                     } else if quant_max == 1 as i32 {
                                                         if dbuf_insert(
@@ -4455,7 +4419,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 .offset(last_atom_start as isize) =
                                                                 (REOP_split_goto_first as i32
                                                                     + greedy)
-                                                                    as uint8_t;
+                                                                    as u8;
                                                             put_u32(
                                                                 (*s).byte_code
                                                                     .buf
@@ -4463,7 +4427,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                         last_atom_start as isize,
                                                                     )
                                                                     .offset(1 as i32 as isize),
-                                                                len_0 as uint32_t,
+                                                                len_0 as u32,
                                                             );
                                                             current_block = 9856786070414082169;
                                                         }
@@ -4482,7 +4446,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 .offset(last_atom_start as isize) =
                                                                 (REOP_split_goto_first as i32
                                                                     + greedy)
-                                                                    as uint8_t;
+                                                                    as u8;
                                                             put_u32(
                                                                 (*s).byte_code
                                                                     .buf
@@ -4493,7 +4457,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                 (len_0
                                                                     + 5 as i32
                                                                     + add_zero_advance_check)
-                                                                    as uint32_t,
+                                                                    as u32,
                                                             );
                                                             if add_zero_advance_check != 0 {
                                                                 *(*s).byte_code.buf.offset(
@@ -4501,18 +4465,17 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                                         + 1 as i32
                                                                         + 4 as i32)
                                                                         as isize,
-                                                                ) = REOP_push_char_pos as i32
-                                                                    as uint8_t;
+                                                                ) = REOP_push_char_pos as i32 as u8;
                                                                 re_emit_goto(
                                                                     s,
                                                                     REOP_bne_char_pos as i32,
-                                                                    last_atom_start as uint32_t,
+                                                                    last_atom_start as u32,
                                                                 );
                                                             } else {
                                                                 re_emit_goto(
                                                                     s,
                                                                     REOP_goto as i32,
-                                                                    last_atom_start as uint32_t,
+                                                                    last_atom_start as u32,
                                                                 );
                                                             }
                                                             current_block = 9856786070414082169;
@@ -4532,12 +4495,12 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             .byte_code
                                                             .buf
                                                             .offset(fresh24 as isize) =
-                                                            REOP_push_i32 as i32 as uint8_t;
+                                                            REOP_push_i32 as i32 as u8;
                                                         put_u32(
                                                             (*s).byte_code
                                                                 .buf
                                                                 .offset(pos_1 as isize),
-                                                            quant_max as uint32_t,
+                                                            quant_max as u32,
                                                         );
                                                         pos_1 += 4 as i32;
                                                         let fresh25 = pos_1;
@@ -4547,18 +4510,17 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             .buf
                                                             .offset(fresh25 as isize) =
                                                             (REOP_split_goto_first as i32 + greedy)
-                                                                as uint8_t;
+                                                                as u8;
                                                         put_u32(
                                                             (*s).byte_code
                                                                 .buf
                                                                 .offset(pos_1 as isize),
-                                                            (len_0 + 5 as i32) as uint32_t,
+                                                            (len_0 + 5 as i32) as u32,
                                                         );
                                                         re_emit_goto(
                                                             s,
                                                             REOP_loop as i32,
-                                                            (last_atom_start + 5 as i32)
-                                                                as uint32_t,
+                                                            (last_atom_start + 5 as i32) as u32,
                                                         );
                                                         re_emit_op(s, REOP_drop as i32);
                                                         current_block = 9856786070414082169;
@@ -4572,7 +4534,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                             re_emit_goto(
                                                 s,
                                                 REOP_split_next_first as i32 - greedy,
-                                                last_atom_start as uint32_t,
+                                                last_atom_start as u32,
                                             );
                                             current_block = 9856786070414082169;
                                         } else {
@@ -4590,19 +4552,19 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                     .byte_code
                                                     .buf
                                                     .offset(last_atom_start as isize) =
-                                                    REOP_push_i32 as i32 as uint8_t;
+                                                    REOP_push_i32 as i32 as u8;
                                                 put_u32(
                                                     (*s).byte_code
                                                         .buf
                                                         .offset(last_atom_start as isize)
                                                         .offset(1 as i32 as isize),
-                                                    quant_min as uint32_t,
+                                                    quant_min as u32,
                                                 );
                                                 last_atom_start += 5 as i32;
                                                 re_emit_goto(
                                                     s,
                                                     REOP_loop as i32,
-                                                    last_atom_start as uint32_t,
+                                                    last_atom_start as u32,
                                                 );
                                                 re_emit_op(s, REOP_drop as i32);
                                                 current_block = 5684771287319053842;
@@ -4618,7 +4580,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                             (len_0
                                                                 + 5 as i32
                                                                 + add_zero_advance_check)
-                                                                as uint32_t,
+                                                                as u32,
                                                         );
                                                         if add_zero_advance_check != 0 {
                                                             re_emit_op(
@@ -4628,43 +4590,43 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
                                                         }
                                                         dbuf_put_self(
                                                             &mut (*s).byte_code,
-                                                            last_atom_start as size_t,
-                                                            len_0 as size_t,
+                                                            last_atom_start as usize,
+                                                            len_0 as usize,
                                                         );
                                                         if add_zero_advance_check != 0 {
                                                             re_emit_goto(
                                                                 s,
                                                                 REOP_bne_char_pos as i32,
-                                                                pos_1 as uint32_t,
+                                                                pos_1 as u32,
                                                             );
                                                         } else {
                                                             re_emit_goto(
                                                                 s,
                                                                 REOP_goto as i32,
-                                                                pos_1 as uint32_t,
+                                                                pos_1 as u32,
                                                             );
                                                         }
                                                     } else if quant_max > quant_min {
                                                         re_emit_op_u32(
                                                             s,
                                                             REOP_push_i32 as i32,
-                                                            (quant_max - quant_min) as uint32_t,
+                                                            (quant_max - quant_min) as u32,
                                                         );
                                                         pos_1 = (*s).byte_code.size as i32;
                                                         re_emit_op_u32(
                                                             s,
                                                             REOP_split_goto_first as i32 + greedy,
-                                                            (len_0 + 5 as i32) as uint32_t,
+                                                            (len_0 + 5 as i32) as u32,
                                                         );
                                                         dbuf_put_self(
                                                             &mut (*s).byte_code,
-                                                            last_atom_start as size_t,
-                                                            len_0 as size_t,
+                                                            last_atom_start as usize,
+                                                            len_0 as usize,
                                                         );
                                                         re_emit_goto(
                                                             s,
                                                             REOP_loop as i32,
-                                                            pos_1 as uint32_t,
+                                                            pos_1 as u32,
                                                         );
                                                         re_emit_op(s, REOP_drop as i32);
                                                     }
@@ -4701,12 +4663,12 @@ unsafe extern "C" fn re_parse_alternative(
     mut s: *mut REParseState,
     mut is_backward_dir: BOOL,
 ) -> i32 {
-    let mut p: *const uint8_t = 0 as *const uint8_t;
+    let mut p: *const u8 = 0 as *const u8;
     let mut ret: i32 = 0;
-    let mut start: size_t = 0;
-    let mut term_start: size_t = 0;
-    let mut end: size_t = 0;
-    let mut term_size: size_t = 0;
+    let mut start: usize = 0;
+    let mut term_start: usize = 0;
+    let mut end: usize = 0;
+    let mut term_size: usize = 0;
     start = (*s).byte_code.size;
     loop {
         p = (*s).buf_ptr;
@@ -4753,7 +4715,7 @@ unsafe extern "C" fn re_parse_disjunction(
     let mut start: i32 = 0;
     let mut len: i32 = 0;
     let mut pos: i32 = 0;
-    if lre_check_stack_overflow((*s).opaque, 0 as i32 as size_t) != 0 {
+    if lre_check_stack_overflow((*s).opaque, 0 as i32 as usize) != 0 {
         return re_parse_error(
             s,
             b"stack overflow\x00" as *const u8 as *const std::os::raw::c_char,
@@ -4765,37 +4727,37 @@ unsafe extern "C" fn re_parse_disjunction(
     }
     while *(*s).buf_ptr as i32 == '|' as i32 {
         (*s).buf_ptr = (*s).buf_ptr.offset(1);
-        len = (*s).byte_code.size.wrapping_sub(start as u64) as i32;
+        len = (*s).byte_code.size.wrapping_sub(start as usize) as i32;
         /* insert a split before the first alternative */
         if dbuf_insert(&mut (*s).byte_code, start, 5 as i32) != 0 {
             return re_parse_out_of_memory(s);
         }
-        *(*s).byte_code.buf.offset(start as isize) = REOP_split_next_first as i32 as uint8_t;
+        *(*s).byte_code.buf.offset(start as isize) = REOP_split_next_first as i32 as u8;
         put_u32(
             (*s).byte_code
                 .buf
                 .offset(start as isize)
                 .offset(1 as i32 as isize),
-            (len + 5 as i32) as uint32_t,
+            (len + 5 as i32) as u32,
         );
-        pos = re_emit_op_u32(s, REOP_goto as i32, 0 as i32 as uint32_t);
+        pos = re_emit_op_u32(s, REOP_goto as i32, 0 as i32 as u32);
         if re_parse_alternative(s, is_backward_dir) != 0 {
             return -(1 as i32);
         }
         /* patch the goto */
-        len = (*s).byte_code.size.wrapping_sub((pos + 4 as i32) as u64) as i32;
-        put_u32((*s).byte_code.buf.offset(pos as isize), len as uint32_t);
+        len = (*s).byte_code.size.wrapping_sub((pos as usize + 4)) as i32;
+        put_u32((*s).byte_code.buf.offset(pos as isize), len as u32);
     }
     return 0 as i32;
 }
 /* the control flow is recursive so the analysis can be linear */
-unsafe extern "C" fn compute_stack_size(mut bc_buf: *const uint8_t, mut bc_buf_len: i32) -> i32 {
+unsafe extern "C" fn compute_stack_size(mut bc_buf: *const u8, mut bc_buf_len: i32) -> i32 {
     let mut stack_size: i32 = 0;
     let mut stack_size_max: i32 = 0;
     let mut pos: i32 = 0;
     let mut opcode: i32 = 0;
     let mut len: i32 = 0;
-    let mut val: uint32_t = 0;
+    let mut val: u32 = 0;
     stack_size = 0 as i32;
     stack_size_max = 0 as i32;
     bc_buf = bc_buf.offset(7 as i32 as isize);
@@ -4853,22 +4815,22 @@ pub unsafe extern "C" fn lre_compile(
     mut error_msg: *mut std::os::raw::c_char,
     mut error_msg_size: i32,
     mut buf: *const std::os::raw::c_char,
-    mut buf_len: size_t,
+    mut buf_len: usize,
     mut re_flags: i32,
     mut opaque: *mut std::ffi::c_void,
-) -> *mut uint8_t {
+) -> *mut u8 {
     let mut s_s: REParseState = REParseState {
         byte_code: DynBuf {
-            buf: 0 as *mut uint8_t,
+            buf: 0 as *mut u8,
             size: 0,
             allocated_size: 0,
             error: 0,
             realloc_func: None,
             opaque: 0 as *mut std::ffi::c_void,
         },
-        buf_ptr: 0 as *const uint8_t,
-        buf_end: 0 as *const uint8_t,
-        buf_start: 0 as *const uint8_t,
+        buf_ptr: 0 as *const u8,
+        buf_end: 0 as *const u8,
+        buf_start: 0 as *const u8,
         re_flags: 0,
         is_utf16: 0,
         ignore_case: 0,
@@ -4878,7 +4840,7 @@ pub unsafe extern "C" fn lre_compile(
         has_named_captures: 0,
         opaque: 0 as *mut std::ffi::c_void,
         group_names: DynBuf {
-            buf: 0 as *mut uint8_t,
+            buf: 0 as *mut u8,
             size: 0,
             allocated_size: 0,
             error: 0,
@@ -4896,7 +4858,7 @@ pub unsafe extern "C" fn lre_compile(
     (s as *mut u8).write_bytes(0, std::mem::size_of::<REParseState>());
 
     (*s).opaque = opaque;
-    (*s).buf_ptr = buf as *const uint8_t;
+    (*s).buf_ptr = buf as *const u8;
     (*s).buf_end = (*s).buf_ptr.offset(buf_len as isize);
     (*s).buf_start = (*s).buf_ptr;
     (*s).re_flags = re_flags;
@@ -4915,7 +4877,7 @@ pub unsafe extern "C" fn lre_compile(
                 as unsafe extern "C" fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
-                    _: size_t,
+                    _: usize,
                 ) -> *mut std::ffi::c_void,
         ),
     );
@@ -4927,14 +4889,14 @@ pub unsafe extern "C" fn lre_compile(
                 as unsafe extern "C" fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
-                    _: size_t,
+                    _: usize,
                 ) -> *mut std::ffi::c_void,
         ),
     );
-    dbuf_putc(&mut (*s).byte_code, re_flags as uint8_t);
-    dbuf_putc(&mut (*s).byte_code, 0 as i32 as uint8_t);
-    dbuf_putc(&mut (*s).byte_code, 0 as i32 as uint8_t);
-    dbuf_put_u32(&mut (*s).byte_code, 0 as i32 as uint32_t);
+    dbuf_putc(&mut (*s).byte_code, re_flags as u8);
+    dbuf_putc(&mut (*s).byte_code, 0 as i32 as u8);
+    dbuf_putc(&mut (*s).byte_code, 0 as i32 as u8);
+    dbuf_put_u32(&mut (*s).byte_code, 0 as i32 as u32);
     if is_sticky == 0 {
         /* iterate thru all positions (about the same as .*?( ... ) )
         .  We do it without an explicit loop so that lock step
@@ -4943,18 +4905,18 @@ pub unsafe extern "C" fn lre_compile(
         re_emit_op_u32(
             s,
             REOP_split_goto_first as i32,
-            (1 as i32 + 5 as i32) as uint32_t,
+            (1 as i32 + 5 as i32) as u32,
         );
         re_emit_op(s, REOP_any as i32);
         re_emit_op_u32(
             s,
             REOP_goto as i32,
-            -(5 as i32 + 1 as i32 + 5 as i32) as uint32_t,
+            -(5 as i32 + 1 as i32 + 5 as i32) as u32,
         );
     }
-    re_emit_op_u8(s, REOP_save_start as i32, 0 as i32 as uint32_t);
+    re_emit_op_u8(s, REOP_save_start as i32, 0 as i32 as u32);
     if !(re_parse_disjunction(s, FALSE as i32) != 0) {
-        re_emit_op_u8(s, REOP_save_end as i32, 0 as i32 as uint32_t);
+        re_emit_op_u8(s, REOP_save_end as i32, 0 as i32 as u32);
         re_emit_op(s, REOP_match as i32);
         if *(*s).buf_ptr as i32 != '\u{0}' as i32 {
             re_parse_error(
@@ -4972,21 +4934,21 @@ pub unsafe extern "C" fn lre_compile(
                         as *const std::os::raw::c_char,
                 );
             } else {
-                *(*s).byte_code.buf.offset(1 as i32 as isize) = (*s).capture_count as uint8_t;
-                *(*s).byte_code.buf.offset(2 as i32 as isize) = stack_size as uint8_t;
+                *(*s).byte_code.buf.offset(1 as i32 as isize) = (*s).capture_count as u8;
+                *(*s).byte_code.buf.offset(2 as i32 as isize) = stack_size as u8;
                 put_u32(
                     (*s).byte_code.buf.offset(3 as i32 as isize),
-                    (*s).byte_code.size.wrapping_sub(7 as i32 as u64) as uint32_t,
+                    (*s).byte_code.size.wrapping_sub(7) as u32,
                 );
                 /* add the named groups if needed */
-                if (*s).group_names.size > ((*s).capture_count - 1 as i32) as u64 {
+                if (*s).group_names.size > ((*s).capture_count - 1) as usize {
                     dbuf_put(
                         &mut (*s).byte_code,
                         (*s).group_names.buf,
                         (*s).group_names.size as usize,
                     );
                     let ref mut fresh26 = *(*s).byte_code.buf.offset(0 as i32 as isize);
-                    *fresh26 = (*fresh26 as i32 | (1 as i32) << 7 as i32) as uint8_t
+                    *fresh26 = (*fresh26 as i32 | (1 as i32) << 7 as i32) as u8
                 }
                 dbuf_free(&mut (*s).group_names);
                 *error_msg.offset(0 as i32 as isize) = '\u{0}' as i32 as std::os::raw::c_char;
@@ -4999,15 +4961,15 @@ pub unsafe extern "C" fn lre_compile(
     dbuf_free(&mut (*s).group_names);
     pstrcpy(error_msg, error_msg_size, (*s).u.error_msg.as_mut_ptr());
     *plen = 0 as i32;
-    return 0 as *mut uint8_t;
+    return 0 as *mut u8;
 }
-unsafe extern "C" fn is_line_terminator(mut c: uint32_t) -> BOOL {
+unsafe extern "C" fn is_line_terminator(mut c: u32) -> BOOL {
     return (c == '\n' as i32 as u32
         || c == '\r' as i32 as u32
         || c == 0x2028 as i32 as u32
         || c == 0x2029 as i32 as u32) as i32;
 }
-unsafe extern "C" fn is_word_char(mut c: uint32_t) -> BOOL {
+unsafe extern "C" fn is_word_char(mut c: u32) -> BOOL {
     return (c >= '0' as i32 as u32 && c <= '9' as i32 as u32
         || c >= 'a' as i32 as u32 && c <= 'z' as i32 as u32
         || c >= 'A' as i32 as u32 && c <= 'Z' as i32 as u32
@@ -5015,36 +4977,31 @@ unsafe extern "C" fn is_word_char(mut c: uint32_t) -> BOOL {
 }
 unsafe extern "C" fn push_state(
     mut s: *mut REExecContext,
-    mut capture: *mut *mut uint8_t,
+    mut capture: *mut *mut u8,
     mut stack: *mut StackInt,
-    mut stack_len: size_t,
-    mut pc: *const uint8_t,
-    mut cptr: *const uint8_t,
+    mut stack_len: usize,
+    mut pc: *const u8,
+    mut cptr: *const u8,
     mut type_0: REExecStateEnum,
-    mut count: size_t,
+    mut count: usize,
 ) -> i32 {
     let mut rs: *mut REExecState = 0 as *mut REExecState;
-    let mut new_stack: *mut uint8_t = 0 as *mut uint8_t;
-    let mut new_size: size_t = 0;
-    let mut i: size_t = 0;
-    let mut n: size_t = 0;
+    let mut new_stack: *mut u8 = 0 as *mut u8;
+    let mut new_size: usize = 0;
+    let mut i: usize = 0;
+    let mut n: usize = 0;
     let mut stack_buf: *mut StackInt = 0 as *mut StackInt;
-    if ((*s).state_stack_len.wrapping_add(1 as i32 as u64) > (*s).state_stack_size) as i32 as i64
-        != 0
-    {
+    if ((*s).state_stack_len.wrapping_add(1) > (*s).state_stack_size) as i32 as i64 != 0 {
         /* reallocate the stack */
-        new_size = (*s)
-            .state_stack_size
-            .wrapping_mul(3 as i32 as u64)
-            .wrapping_div(2 as i32 as u64);
-        if new_size < 8 as i32 as u64 {
-            new_size = 8 as i32 as size_t
+        new_size = (*s).state_stack_size.wrapping_mul(3).wrapping_div(2);
+        if new_size < 8 {
+            new_size = 8
         }
         new_stack = lre_realloc(
             (*s).opaque,
             (*s).state_stack as *mut std::ffi::c_void,
             new_size.wrapping_mul((*s).state_size),
-        ) as *mut uint8_t;
+        ) as *mut u8;
         if new_stack.is_null() {
             return -(1 as i32);
         }
@@ -5058,18 +5015,18 @@ unsafe extern "C" fn push_state(
     (*s).state_stack_len = (*s).state_stack_len.wrapping_add(1);
     (*rs).set_type_0(type_0);
     (*rs).count = count;
-    (*rs).stack_len = stack_len as uint8_t;
+    (*rs).stack_len = stack_len as u8;
     (*rs).cptr = cptr;
     (*rs).pc = pc;
-    n = (2 as i32 * (*s).capture_count) as size_t;
-    i = 0 as i32 as size_t;
+    n = (2 as i32 * (*s).capture_count) as usize;
+    i = 0 as i32 as usize;
     while i < n {
         let ref mut fresh27 = *(*rs).buf.as_mut_ptr().offset(i as isize);
         *fresh27 = *capture.offset(i as isize) as *mut std::ffi::c_void;
         i = i.wrapping_add(1)
     }
     stack_buf = (*rs).buf.as_mut_ptr().offset(n as isize) as *mut StackInt;
-    i = 0 as i32 as size_t;
+    i = 0 as i32 as usize;
     while i < stack_len {
         *stack_buf.offset(i as isize) = *stack.offset(i as isize);
         i = i.wrapping_add(1)
@@ -5079,11 +5036,11 @@ unsafe extern "C" fn push_state(
 /* return 1 if match, 0 if not match or -1 if error. */
 unsafe extern "C" fn lre_exec_backtrack(
     mut s: *mut REExecContext,
-    mut capture: *mut *mut uint8_t,
+    mut capture: *mut *mut u8,
     mut stack: *mut StackInt,
     mut stack_len: i32,
-    mut pc: *const uint8_t,
-    mut cptr: *const uint8_t,
+    mut pc: *const u8,
+    mut cptr: *const u8,
     mut no_recurse: BOOL,
 ) -> intptr_t {
     let mut rs: *mut REExecState = 0 as *mut REExecState;
@@ -5091,9 +5048,9 @@ unsafe extern "C" fn lre_exec_backtrack(
     let mut opcode: i32 = 0;
     let mut ret: i32 = 0;
     let mut cbuf_type: i32 = 0;
-    let mut val: uint32_t = 0;
-    let mut c: uint32_t = 0;
-    let mut cbuf_end: *const uint8_t = 0 as *const uint8_t;
+    let mut val: u32 = 0;
+    let mut c: u32 = 0;
+    let mut cbuf_end: *const u8 = 0 as *const u8;
     cbuf_type = (*s).cbuf_type;
     cbuf_end = (*s).cbuf_end;
     's_27: loop {
@@ -5121,7 +5078,7 @@ unsafe extern "C" fn lre_exec_backtrack(
                 current_block = 9535040653783544971;
             }
             8 | 9 => {
-                let mut pc1: *const uint8_t = 0 as *const uint8_t;
+                let mut pc1: *const u8 = 0 as *const u8;
                 val = get_u32(pc);
                 pc = pc.offset(4 as i32 as isize);
                 if opcode == REOP_split_next_first as i32 {
@@ -5134,11 +5091,11 @@ unsafe extern "C" fn lre_exec_backtrack(
                     s,
                     capture,
                     stack,
-                    stack_len as size_t,
+                    stack_len as usize,
                     pc1,
                     cptr,
                     RE_EXEC_STATE_SPLIT,
-                    0 as i32 as size_t,
+                    0 as i32 as usize,
                 );
                 if ret < 0 as i32 {
                     return -(1 as i32) as intptr_t;
@@ -5152,12 +5109,12 @@ unsafe extern "C" fn lre_exec_backtrack(
                     s,
                     capture,
                     stack,
-                    stack_len as size_t,
+                    stack_len as usize,
                     pc.offset(val as i32 as isize),
                     cptr,
                     (RE_EXEC_STATE_LOOKAHEAD as i32 + opcode - REOP_lookahead as i32)
                         as REExecStateEnum,
-                    0 as i32 as size_t,
+                    0 as i32 as usize,
                 );
                 if ret < 0 as i32 {
                     return -(1 as i32) as intptr_t;
@@ -5177,17 +5134,16 @@ unsafe extern "C" fn lre_exec_backtrack(
                     current_block = 14487425527653873875;
                 } else {
                     if cbuf_type == 0 as i32 {
-                        c = *cptr.offset(-(1 as i32) as isize) as uint32_t
+                        c = *cptr.offset(-(1 as i32) as isize) as u32
                     } else {
-                        let mut __c1_0: uint32_t = 0;
-                        c = *(cptr as *mut uint16_t).offset(-(1 as i32) as isize) as uint32_t;
+                        let mut __c1_0: u32 = 0;
+                        c = *(cptr as *mut u16).offset(-(1 as i32) as isize) as u32;
                         if c >= 0xdc00 as i32 as u32
                             && c < 0xe000 as i32 as u32
                             && cbuf_type == 2 as i32
                             && cptr.offset(-(4 as i32 as isize)) >= (*s).cbuf
                         {
-                            __c1_0 =
-                                *(cptr as *mut uint16_t).offset(-(2 as i32) as isize) as uint32_t;
+                            __c1_0 = *(cptr as *mut u16).offset(-(2 as i32) as isize) as u32;
                             if __c1_0 >= 0xd800 as i32 as u32 && __c1_0 < 0xdc00 as i32 as u32 {
                                 c = ((__c1_0 & 0x3ff as i32 as u32) << 10 as i32
                                     | c & 0x3ff as i32 as u32)
@@ -5209,16 +5165,16 @@ unsafe extern "C" fn lre_exec_backtrack(
                     current_block = 14487425527653873875;
                 } else {
                     if cbuf_type == 0 as i32 {
-                        c = *cptr.offset(0 as i32 as isize) as uint32_t
+                        c = *cptr.offset(0 as i32 as isize) as u32
                     } else {
-                        let mut __c1_1: uint32_t = 0;
-                        c = *(cptr as *mut uint16_t).offset(0 as i32 as isize) as uint32_t;
+                        let mut __c1_1: u32 = 0;
+                        c = *(cptr as *mut u16).offset(0 as i32 as isize) as u32;
                         if c >= 0xd800 as i32 as u32
                             && c < 0xdc00 as i32 as u32
                             && cbuf_type == 2 as i32
                             && cptr.offset(2 as i32 as isize) < cbuf_end
                         {
-                            __c1_1 = *(cptr as *mut uint16_t).offset(1 as i32 as isize) as uint32_t;
+                            __c1_1 = *(cptr as *mut u16).offset(1 as i32 as isize) as u32;
                             if __c1_1 >= 0xdc00 as i32 as u32 && __c1_1 < 0xe000 as i32 as u32 {
                                 c = ((c & 0x3ff as i32 as u32) << 10 as i32
                                     | __c1_1 & 0x3ff as i32 as u32)
@@ -5239,17 +5195,17 @@ unsafe extern "C" fn lre_exec_backtrack(
                     if cbuf_type == 0 as i32 {
                         let fresh30 = cptr;
                         cptr = cptr.offset(1);
-                        c = *fresh30 as uint32_t
+                        c = *fresh30 as u32
                     } else {
-                        let mut __c1_2: uint32_t = 0;
-                        c = *(cptr as *mut uint16_t) as uint32_t;
+                        let mut __c1_2: u32 = 0;
+                        c = *(cptr as *mut u16) as u32;
                         cptr = cptr.offset(2 as i32 as isize);
                         if c >= 0xd800 as i32 as u32
                             && c < 0xdc00 as i32 as u32
                             && cbuf_type == 2 as i32
                             && cptr < cbuf_end
                         {
-                            __c1_2 = *(cptr as *mut uint16_t) as uint32_t;
+                            __c1_2 = *(cptr as *mut u16) as u32;
                             if __c1_2 >= 0xdc00 as i32 as u32 && __c1_2 < 0xe000 as i32 as u32 {
                                 c = ((c & 0x3ff as i32 as u32) << 10 as i32
                                     | __c1_2 & 0x3ff as i32 as u32)
@@ -5271,17 +5227,17 @@ unsafe extern "C" fn lre_exec_backtrack(
                     if cbuf_type == 0 as i32 {
                         let fresh31 = cptr;
                         cptr = cptr.offset(1);
-                        c = *fresh31 as uint32_t
+                        c = *fresh31 as u32
                     } else {
-                        let mut __c1_3: uint32_t = 0;
-                        c = *(cptr as *mut uint16_t) as uint32_t;
+                        let mut __c1_3: u32 = 0;
+                        c = *(cptr as *mut u16) as u32;
                         cptr = cptr.offset(2 as i32 as isize);
                         if c >= 0xd800 as i32 as u32
                             && c < 0xdc00 as i32 as u32
                             && cbuf_type == 2 as i32
                             && cptr < cbuf_end
                         {
-                            __c1_3 = *(cptr as *mut uint16_t) as uint32_t;
+                            __c1_3 = *(cptr as *mut u16) as u32;
                             if __c1_3 >= 0xdc00 as i32 as u32 && __c1_3 < 0xe000 as i32 as u32 {
                                 c = ((c & 0x3ff as i32 as u32) << 10 as i32
                                     | __c1_3 & 0x3ff as i32 as u32)
@@ -5296,7 +5252,7 @@ unsafe extern "C" fn lre_exec_backtrack(
             11 | 12 => {
                 let fresh32 = pc;
                 pc = pc.offset(1);
-                val = *fresh32 as uint32_t;
+                val = *fresh32 as u32;
                 if val < (*s).capture_count as u32 {
                 } else {
                     assert!(val < (*s).capture_count as u32);
@@ -5307,13 +5263,13 @@ unsafe extern "C" fn lre_exec_backtrack(
                         .wrapping_add(opcode as u32)
                         .wrapping_sub(REOP_save_start as i32 as u32) as isize,
                 );
-                *fresh33 = cptr as *mut uint8_t;
+                *fresh33 = cptr as *mut u8;
                 continue;
             }
             13 => {
-                let mut val2: uint32_t = 0;
-                val = *pc.offset(0 as i32 as isize) as uint32_t;
-                val2 = *pc.offset(1 as i32 as isize) as uint32_t;
+                let mut val2: u32 = 0;
+                val = *pc.offset(0 as i32 as isize) as u32;
+                val2 = *pc.offset(1 as i32 as isize) as u32;
                 pc = pc.offset(2 as i32 as isize);
                 if val2 < (*s).capture_count as u32 {
                 } else {
@@ -5322,13 +5278,13 @@ unsafe extern "C" fn lre_exec_backtrack(
                 while val <= val2 {
                     let ref mut fresh34 =
                         *capture.offset((2 as i32 as u32).wrapping_mul(val) as isize);
-                    *fresh34 = 0 as *mut uint8_t;
+                    *fresh34 = 0 as *mut u8;
                     let ref mut fresh35 = *capture.offset(
                         (2 as i32 as u32)
                             .wrapping_mul(val)
                             .wrapping_add(1 as i32 as u32) as isize,
                     );
-                    *fresh35 = 0 as *mut uint8_t;
+                    *fresh35 = 0 as *mut u8;
                     val = val.wrapping_add(1)
                 }
                 continue;
@@ -5350,8 +5306,8 @@ unsafe extern "C" fn lre_exec_backtrack(
                 pc = pc.offset(4 as i32 as isize);
                 let ref mut fresh37 = *stack.offset((stack_len - 1 as i32) as isize);
                 *fresh37 = (*fresh37).wrapping_sub(1);
-                if *fresh37 != 0 as i32 as u64 {
-                    pc = pc.offset(val as i32 as isize)
+                if *fresh37 != 0 {
+                    pc = pc.offset(val as isize)
                 }
                 continue;
             }
@@ -5378,17 +5334,16 @@ unsafe extern "C" fn lre_exec_backtrack(
                     v1 = FALSE as i32
                 } else {
                     if cbuf_type == 0 as i32 {
-                        c = *cptr.offset(-(1 as i32) as isize) as uint32_t
+                        c = *cptr.offset(-(1 as i32) as isize) as u32
                     } else {
-                        let mut __c1_4: uint32_t = 0;
-                        c = *(cptr as *mut uint16_t).offset(-(1 as i32) as isize) as uint32_t;
+                        let mut __c1_4: u32 = 0;
+                        c = *(cptr as *mut u16).offset(-(1 as i32) as isize) as u32;
                         if c >= 0xdc00 as i32 as u32
                             && c < 0xe000 as i32 as u32
                             && cbuf_type == 2 as i32
                             && cptr.offset(-(4 as i32 as isize)) >= (*s).cbuf
                         {
-                            __c1_4 =
-                                *(cptr as *mut uint16_t).offset(-(2 as i32) as isize) as uint32_t;
+                            __c1_4 = *(cptr as *mut u16).offset(-(2 as i32) as isize) as u32;
                             if __c1_4 >= 0xd800 as i32 as u32 && __c1_4 < 0xdc00 as i32 as u32 {
                                 c = ((__c1_4 & 0x3ff as i32 as u32) << 10 as i32
                                     | c & 0x3ff as i32 as u32)
@@ -5403,16 +5358,16 @@ unsafe extern "C" fn lre_exec_backtrack(
                     v2 = FALSE as i32
                 } else {
                     if cbuf_type == 0 as i32 {
-                        c = *cptr.offset(0 as i32 as isize) as uint32_t
+                        c = *cptr.offset(0 as i32 as isize) as u32
                     } else {
-                        let mut __c1_5: uint32_t = 0; /* n must be >= 1 */
-                        c = *(cptr as *mut uint16_t).offset(0 as i32 as isize) as uint32_t;
+                        let mut __c1_5: u32 = 0; /* n must be >= 1 */
+                        c = *(cptr as *mut u16).offset(0 as i32 as isize) as u32;
                         if c >= 0xd800 as i32 as u32
                             && c < 0xdc00 as i32 as u32
                             && cbuf_type == 2 as i32
                             && cptr.offset(2 as i32 as isize) < cbuf_end
                         {
-                            __c1_5 = *(cptr as *mut uint16_t).offset(1 as i32 as isize) as uint32_t;
+                            __c1_5 = *(cptr as *mut u16).offset(1 as i32 as isize) as u32;
                             if __c1_5 >= 0xdc00 as i32 as u32 && __c1_5 < 0xe000 as i32 as u32 {
                                 c = ((c & 0x3ff as i32 as u32) << 10 as i32
                                     | __c1_5 & 0x3ff as i32 as u32)
@@ -5428,14 +5383,14 @@ unsafe extern "C" fn lre_exec_backtrack(
                 current_block = 14487425527653873875;
             }
             19 | 20 => {
-                let mut cptr1: *const uint8_t = 0 as *const uint8_t;
-                let mut cptr1_end: *const uint8_t = 0 as *const uint8_t;
-                let mut cptr1_start: *const uint8_t = 0 as *const uint8_t;
-                let mut c1: uint32_t = 0;
-                let mut c2: uint32_t = 0;
+                let mut cptr1: *const u8 = 0 as *const u8;
+                let mut cptr1_end: *const u8 = 0 as *const u8;
+                let mut cptr1_start: *const u8 = 0 as *const u8;
+                let mut c1: u32 = 0;
+                let mut c2: u32 = 0;
                 let fresh39 = pc;
                 pc = pc.offset(1);
-                val = *fresh39 as uint32_t;
+                val = *fresh39 as u32;
                 if val >= (*s).capture_count as u32 {
                     current_block = 14487425527653873875;
                 } else {
@@ -5460,17 +5415,17 @@ unsafe extern "C" fn lre_exec_backtrack(
                             if cbuf_type == 0 as i32 {
                                 let fresh40 = cptr1;
                                 cptr1 = cptr1.offset(1);
-                                c1 = *fresh40 as uint32_t
+                                c1 = *fresh40 as u32
                             } else {
-                                let mut __c1_6: uint32_t = 0;
-                                c1 = *(cptr1 as *mut uint16_t) as uint32_t;
+                                let mut __c1_6: u32 = 0;
+                                c1 = *(cptr1 as *mut u16) as u32;
                                 cptr1 = cptr1.offset(2 as i32 as isize);
                                 if c1 >= 0xd800 as i32 as u32
                                     && c1 < 0xdc00 as i32 as u32
                                     && cbuf_type == 2 as i32
                                     && cptr1 < cptr1_end
                                 {
-                                    __c1_6 = *(cptr1 as *mut uint16_t) as uint32_t;
+                                    __c1_6 = *(cptr1 as *mut u16) as u32;
                                     if __c1_6 >= 0xdc00 as i32 as u32
                                         && __c1_6 < 0xe000 as i32 as u32
                                     {
@@ -5484,17 +5439,17 @@ unsafe extern "C" fn lre_exec_backtrack(
                             if cbuf_type == 0 as i32 {
                                 let fresh41 = cptr;
                                 cptr = cptr.offset(1);
-                                c2 = *fresh41 as uint32_t
+                                c2 = *fresh41 as u32
                             } else {
-                                let mut __c1_7: uint32_t = 0;
-                                c2 = *(cptr as *mut uint16_t) as uint32_t;
+                                let mut __c1_7: u32 = 0;
+                                c2 = *(cptr as *mut u16) as u32;
                                 cptr = cptr.offset(2 as i32 as isize);
                                 if c2 >= 0xd800 as i32 as u32
                                     && c2 < 0xdc00 as i32 as u32
                                     && cbuf_type == 2 as i32
                                     && cptr < cbuf_end
                                 {
-                                    __c1_7 = *(cptr as *mut uint16_t) as uint32_t;
+                                    __c1_7 = *(cptr as *mut u16) as u32;
                                     if __c1_7 >= 0xdc00 as i32 as u32
                                         && __c1_7 < 0xe000 as i32 as u32
                                     {
@@ -5524,19 +5479,18 @@ unsafe extern "C" fn lre_exec_backtrack(
                             }
                             if cbuf_type == 0 as i32 {
                                 cptr1 = cptr1.offset(-1);
-                                c1 = *cptr1.offset(0 as i32 as isize) as uint32_t
+                                c1 = *cptr1.offset(0 as i32 as isize) as u32
                             } else {
-                                let mut __c1_8: uint32_t = 0;
+                                let mut __c1_8: u32 = 0;
                                 cptr1 = cptr1.offset(-(2 as i32 as isize));
-                                c1 =
-                                    *(cptr1 as *mut uint16_t).offset(0 as i32 as isize) as uint32_t;
+                                c1 = *(cptr1 as *mut u16).offset(0 as i32 as isize) as u32;
                                 if c1 >= 0xdc00 as i32 as u32
                                     && c1 < 0xe000 as i32 as u32
                                     && cbuf_type == 2 as i32
                                     && cptr1 > cptr1_start
                                 {
-                                    __c1_8 = *(cptr1 as *mut uint16_t).offset(-(1 as i32) as isize)
-                                        as uint32_t;
+                                    __c1_8 =
+                                        *(cptr1 as *mut u16).offset(-(1 as i32) as isize) as u32;
                                     if __c1_8 >= 0xd800 as i32 as u32
                                         && __c1_8 < 0xdc00 as i32 as u32
                                     {
@@ -5549,18 +5503,18 @@ unsafe extern "C" fn lre_exec_backtrack(
                             }
                             if cbuf_type == 0 as i32 {
                                 cptr = cptr.offset(-1);
-                                c2 = *cptr.offset(0 as i32 as isize) as uint32_t
+                                c2 = *cptr.offset(0 as i32 as isize) as u32
                             } else {
-                                let mut __c1_9: uint32_t = 0;
+                                let mut __c1_9: u32 = 0;
                                 cptr = cptr.offset(-(2 as i32 as isize));
-                                c2 = *(cptr as *mut uint16_t).offset(0 as i32 as isize) as uint32_t;
+                                c2 = *(cptr as *mut u16).offset(0 as i32 as isize) as u32;
                                 if c2 >= 0xdc00 as i32 as u32
                                     && c2 < 0xe000 as i32 as u32
                                     && cbuf_type == 2 as i32
                                     && cptr > (*s).cbuf
                                 {
-                                    __c1_9 = *(cptr as *mut uint16_t).offset(-(1 as i32) as isize)
-                                        as uint32_t;
+                                    __c1_9 =
+                                        *(cptr as *mut u16).offset(-(1 as i32) as isize) as u32;
                                     if __c1_9 >= 0xd800 as i32 as u32
                                         && __c1_9 < 0xdc00 as i32 as u32
                                     {
@@ -5585,11 +5539,11 @@ unsafe extern "C" fn lre_exec_backtrack(
             }
             21 => {
                 let mut n: i32 = 0;
-                let mut low: uint32_t = 0;
-                let mut high: uint32_t = 0;
-                let mut idx_min: uint32_t = 0;
-                let mut idx_max: uint32_t = 0;
-                let mut idx: uint32_t = 0;
+                let mut low: u32 = 0;
+                let mut high: u32 = 0;
+                let mut idx_min: u32 = 0;
+                let mut idx_max: u32 = 0;
+                let mut idx: u32 = 0;
                 n = get_u16(pc) as i32;
                 pc = pc.offset(2 as i32 as isize);
                 if cptr >= cbuf_end {
@@ -5598,17 +5552,17 @@ unsafe extern "C" fn lre_exec_backtrack(
                     if cbuf_type == 0 as i32 {
                         let fresh42 = cptr;
                         cptr = cptr.offset(1);
-                        c = *fresh42 as uint32_t
+                        c = *fresh42 as u32
                     } else {
-                        let mut __c1_10: uint32_t = 0;
-                        c = *(cptr as *mut uint16_t) as uint32_t;
+                        let mut __c1_10: u32 = 0;
+                        c = *(cptr as *mut u16) as u32;
                         cptr = cptr.offset(2 as i32 as isize);
                         if c >= 0xd800 as i32 as u32
                             && c < 0xdc00 as i32 as u32
                             && cbuf_type == 2 as i32
                             && cptr < cbuf_end
                         {
-                            __c1_10 = *(cptr as *mut uint16_t) as uint32_t;
+                            __c1_10 = *(cptr as *mut u16) as u32;
                             if __c1_10 >= 0xdc00 as i32 as u32 && __c1_10 < 0xe000 as i32 as u32 {
                                 c = ((c & 0x3ff as i32 as u32) << 10 as i32
                                     | __c1_10 & 0x3ff as i32 as u32)
@@ -5620,12 +5574,12 @@ unsafe extern "C" fn lre_exec_backtrack(
                     if (*s).ignore_case != 0 {
                         c = lre_canonicalize(c, (*s).is_utf16)
                     }
-                    idx_min = 0 as i32 as uint32_t;
+                    idx_min = 0 as i32 as u32;
                     low = get_u16(pc.offset((0 as i32 * 4 as i32) as isize));
                     if c < low {
                         current_block = 14487425527653873875;
                     } else {
-                        idx_max = (n - 1 as i32) as uint32_t;
+                        idx_max = (n - 1 as i32) as u32;
                         high = get_u16(
                             pc.offset(idx_max.wrapping_mul(4 as i32 as u32) as isize)
                                 .offset(2 as i32 as isize),
@@ -5673,11 +5627,11 @@ unsafe extern "C" fn lre_exec_backtrack(
             }
             22 => {
                 let mut n_0: i32 = 0;
-                let mut low_0: uint32_t = 0;
-                let mut high_0: uint32_t = 0;
-                let mut idx_min_0: uint32_t = 0;
-                let mut idx_max_0: uint32_t = 0;
-                let mut idx_0: uint32_t = 0;
+                let mut low_0: u32 = 0;
+                let mut high_0: u32 = 0;
+                let mut idx_min_0: u32 = 0;
+                let mut idx_max_0: u32 = 0;
+                let mut idx_0: u32 = 0;
                 n_0 = get_u16(pc) as i32;
                 pc = pc.offset(2 as i32 as isize);
                 if cptr >= cbuf_end {
@@ -5686,17 +5640,17 @@ unsafe extern "C" fn lre_exec_backtrack(
                     if cbuf_type == 0 as i32 {
                         let fresh43 = cptr;
                         cptr = cptr.offset(1);
-                        c = *fresh43 as uint32_t
+                        c = *fresh43 as u32
                     } else {
-                        let mut __c1_11: uint32_t = 0;
-                        c = *(cptr as *mut uint16_t) as uint32_t;
+                        let mut __c1_11: u32 = 0;
+                        c = *(cptr as *mut u16) as u32;
                         cptr = cptr.offset(2 as i32 as isize);
                         if c >= 0xd800 as i32 as u32
                             && c < 0xdc00 as i32 as u32
                             && cbuf_type == 2 as i32
                             && cptr < cbuf_end
                         {
-                            __c1_11 = *(cptr as *mut uint16_t) as uint32_t;
+                            __c1_11 = *(cptr as *mut u16) as u32;
                             if __c1_11 >= 0xdc00 as i32 as u32 && __c1_11 < 0xe000 as i32 as u32 {
                                 c = ((c & 0x3ff as i32 as u32) << 10 as i32
                                     | __c1_11 & 0x3ff as i32 as u32)
@@ -5708,12 +5662,12 @@ unsafe extern "C" fn lre_exec_backtrack(
                     if (*s).ignore_case != 0 {
                         c = lre_canonicalize(c, (*s).is_utf16)
                     }
-                    idx_min_0 = 0 as i32 as uint32_t;
+                    idx_min_0 = 0 as i32 as u32;
                     low_0 = get_u32(pc.offset((0 as i32 * 8 as i32) as isize));
                     if c < low_0 {
                         current_block = 14487425527653873875;
                     } else {
-                        idx_max_0 = (n_0 - 1 as i32) as uint32_t;
+                        idx_max_0 = (n_0 - 1 as i32) as u32;
                         high_0 = get_u32(
                             pc.offset(idx_max_0.wrapping_mul(8 as i32 as u32) as isize)
                                 .offset(4 as i32 as isize),
@@ -5767,13 +5721,12 @@ unsafe extern "C" fn lre_exec_backtrack(
                     } else {
                         cptr = cptr.offset(-(2 as i32 as isize));
                         if cbuf_type == 2 as i32 {
-                            c = *(cptr as *mut uint16_t).offset(0 as i32 as isize) as uint32_t;
+                            c = *(cptr as *mut u16).offset(0 as i32 as isize) as u32;
                             if c >= 0xdc00 as i32 as u32
                                 && c < 0xe000 as i32 as u32
                                 && cptr > (*s).cbuf
                             {
-                                c = *(cptr as *mut uint16_t).offset(-(1 as i32) as isize)
-                                    as uint32_t;
+                                c = *(cptr as *mut u16).offset(-(1 as i32) as isize) as u32;
                                 if c >= 0xd800 as i32 as u32 && c < 0xdc00 as i32 as u32 {
                                     cptr = cptr.offset(-(2 as i32 as isize))
                                 }
@@ -5784,48 +5737,48 @@ unsafe extern "C" fn lre_exec_backtrack(
                 }
             }
             28 => {
-                let mut next_pos: uint32_t = 0;
-                let mut quant_min: uint32_t = 0;
-                let mut quant_max: uint32_t = 0;
-                let mut q: size_t = 0;
+                let mut next_pos: u32 = 0;
+                let mut quant_min: u32 = 0;
+                let mut quant_max: u32 = 0;
+                let mut q: usize = 0;
                 let mut res: intptr_t = 0;
-                let mut pc1_0: *const uint8_t = 0 as *const uint8_t;
+                let mut pc1_0: *const u8 = 0 as *const u8;
                 next_pos = get_u32(pc);
                 quant_min = get_u32(pc.offset(4 as i32 as isize));
                 quant_max = get_u32(pc.offset(8 as i32 as isize));
                 pc = pc.offset(16 as i32 as isize);
                 pc1_0 = pc;
                 pc = pc.offset(next_pos as i32 as isize);
-                q = 0 as i32 as size_t;
+                q = 0 as i32 as usize;
                 loop {
                     res =
                         lre_exec_backtrack(s, capture, stack, stack_len, pc1_0, cptr, TRUE as i32);
-                    if res == -(1 as i32) as i64 {
+                    if res == -1 {
                         return res;
                     }
                     if res == 0 {
                         break;
                     }
-                    cptr = res as *mut uint8_t;
+                    cptr = res as *mut u8;
                     q = q.wrapping_add(1);
-                    if q >= quant_max as u64 && quant_max != 2147483647 as i32 as u32 {
+                    if q >= quant_max as usize && quant_max != 2147483647 {
                         break;
                     }
                 }
-                if q < quant_min as u64 {
+                if q < quant_min as usize {
                     current_block = 14487425527653873875;
                 } else {
-                    if q > quant_min as u64 {
+                    if q > quant_min as usize {
                         /* will examine all matches down to quant_min */
                         ret = push_state(
                             s,
                             capture,
                             stack,
-                            stack_len as size_t,
+                            stack_len as usize,
                             pc1_0.offset(-(16 as i32 as isize)),
                             cptr,
                             RE_EXEC_STATE_GREEDY_QUANT,
-                            q.wrapping_sub(quant_min as u64),
+                            q.wrapping_sub(quant_min as usize),
                         );
                         if ret < 0 as i32 {
                             return -(1 as i32) as intptr_t;
@@ -5846,17 +5799,17 @@ unsafe extern "C" fn lre_exec_backtrack(
                     if cbuf_type == 0 as i32 {
                         let fresh29 = cptr;
                         cptr = cptr.offset(1);
-                        c = *fresh29 as uint32_t
+                        c = *fresh29 as u32
                     } else {
-                        let mut __c1: uint32_t = 0;
-                        c = *(cptr as *mut uint16_t) as uint32_t;
+                        let mut __c1: u32 = 0;
+                        c = *(cptr as *mut u16) as u32;
                         cptr = cptr.offset(2 as i32 as isize);
                         if c >= 0xd800 as i32 as u32
                             && c < 0xdc00 as i32 as u32
                             && cbuf_type == 2 as i32
                             && cptr < cbuf_end
                         {
-                            __c1 = *(cptr as *mut uint16_t) as uint32_t;
+                            __c1 = *(cptr as *mut u16) as u32;
                             if __c1 >= 0xdc00 as i32 as u32 && __c1 < 0xe000 as i32 as u32 {
                                 c = ((c & 0x3ff as i32 as u32) << 10 as i32
                                     | __c1 & 0x3ff as i32 as u32)
@@ -5887,12 +5840,12 @@ unsafe extern "C" fn lre_exec_backtrack(
         }
         let mut current_block_49: u64;
         loop {
-            if (*s).state_stack_len == 0 as i32 as u64 {
+            if (*s).state_stack_len == 0 {
                 return ret as intptr_t;
             }
             rs = (*s).state_stack.offset(
                 (*s).state_stack_len
-                    .wrapping_sub(1 as i32 as u64)
+                    .wrapping_sub(1)
                     .wrapping_mul((*s).state_size) as isize,
             ) as *mut REExecState;
             if (*rs).type_0() as i32 == RE_EXEC_STATE_SPLIT as i32 {
@@ -5903,12 +5856,12 @@ unsafe extern "C" fn lre_exec_backtrack(
                 }
             } else if (*rs).type_0() as i32 == RE_EXEC_STATE_GREEDY_QUANT as i32 {
                 if ret == 0 {
-                    let mut char_count: uint32_t = 0;
-                    let mut i: uint32_t = 0;
+                    let mut char_count: u32 = 0;
+                    let mut i: u32 = 0;
 
                     (capture as *mut u8).copy_from(
                         (*rs).buf.as_mut_ptr() as *const u8,
-                        (std::mem::size_of::<*mut uint8_t>())
+                        (std::mem::size_of::<*mut u8>())
                             .wrapping_mul(2)
                             .wrapping_mul((*s).capture_count as usize),
                     );
@@ -5925,20 +5878,19 @@ unsafe extern "C" fn lre_exec_backtrack(
                     cptr = (*rs).cptr;
                     /* go backward */
                     char_count = get_u32(pc.offset(12 as i32 as isize));
-                    i = 0 as i32 as uint32_t;
+                    i = 0 as i32 as u32;
                     while i < char_count {
                         if cbuf_type == 0 as i32 {
                             cptr = cptr.offset(-1)
                         } else {
                             cptr = cptr.offset(-(2 as i32 as isize));
                             if cbuf_type == 2 as i32 {
-                                c = *(cptr as *mut uint16_t).offset(0 as i32 as isize) as uint32_t;
+                                c = *(cptr as *mut u16).offset(0 as i32 as isize) as u32;
                                 if c >= 0xdc00 as i32 as u32
                                     && c < 0xe000 as i32 as u32
                                     && cptr > (*s).cbuf
                                 {
-                                    c = *(cptr as *mut uint16_t).offset(-(1 as i32) as isize)
-                                        as uint32_t;
+                                    c = *(cptr as *mut u16).offset(-(1 as i32) as isize) as u32;
                                     if c >= 0xd800 as i32 as u32 && c < 0xdc00 as i32 as u32 {
                                         cptr = cptr.offset(-(2 as i32 as isize))
                                     }
@@ -5952,7 +5904,7 @@ unsafe extern "C" fn lre_exec_backtrack(
                         .offset(get_u32(pc) as i32 as isize);
                     (*rs).cptr = cptr;
                     (*rs).count = (*rs).count.wrapping_sub(1);
-                    if (*rs).count == 0 as i32 as u64 {
+                    if (*rs).count == 0 {
                         (*s).state_stack_len = (*s).state_stack_len.wrapping_sub(1)
                     }
                     break;
@@ -5982,7 +5934,7 @@ unsafe extern "C" fn lre_exec_backtrack(
                 2041432150095197404 => {
                     (capture as *mut u8).copy_from(
                         (*rs).buf.as_mut_ptr() as *const u8,
-                        (std::mem::size_of::<*mut uint8_t>())
+                        (std::mem::size_of::<*mut u8>())
                             .wrapping_mul(2)
                             .wrapping_mul((*s).capture_count as usize),
                     );
@@ -6010,17 +5962,17 @@ starting position of the match and must be such as 0 <= cindex <=
 clen. */
 #[no_mangle]
 pub unsafe extern "C" fn lre_exec(
-    mut capture: *mut *mut uint8_t,
-    mut bc_buf: *const uint8_t,
-    mut cbuf: *const uint8_t,
+    mut capture: *mut *mut u8,
+    mut bc_buf: *const u8,
+    mut cbuf: *const u8,
     mut cindex: i32,
     mut clen: i32,
     mut cbuf_type: i32,
     mut opaque: *mut std::ffi::c_void,
 ) -> i32 {
     let mut s_s: REExecContext = REExecContext {
-        cbuf: 0 as *const uint8_t,
-        cbuf_end: 0 as *const uint8_t,
+        cbuf: 0 as *const u8,
+        cbuf_end: 0 as *const u8,
         cbuf_type: 0,
         capture_count: 0,
         stack_size_max: 0,
@@ -6029,7 +5981,7 @@ pub unsafe extern "C" fn lre_exec(
         is_utf16: 0,
         opaque: 0 as *mut std::ffi::c_void,
         state_size: 0,
-        state_stack: 0 as *mut uint8_t,
+        state_stack: 0 as *mut u8,
         state_stack_size: 0,
         state_stack_len: 0,
     };
@@ -6052,22 +6004,22 @@ pub unsafe extern "C" fn lre_exec(
         (*s).cbuf_type = 2 as i32
     }
     (*s).opaque = opaque;
-    (*s).state_size = (::std::mem::size_of::<REExecState>() as u64)
+    (*s).state_size = (::std::mem::size_of::<REExecState>())
         .wrapping_add(
-            ((*s).capture_count as u64)
-                .wrapping_mul(::std::mem::size_of::<*mut uint8_t>() as u64)
-                .wrapping_mul(2 as i32 as u64),
+            ((*s).capture_count as usize)
+                .wrapping_mul(::std::mem::size_of::<*mut u8>())
+                .wrapping_mul(2),
         )
         .wrapping_add(
-            ((*s).stack_size_max as u64).wrapping_mul(::std::mem::size_of::<StackInt>() as u64),
+            ((*s).stack_size_max as usize).wrapping_mul(::std::mem::size_of::<StackInt>()),
         );
-    (*s).state_stack = 0 as *mut uint8_t;
-    (*s).state_stack_len = 0 as i32 as size_t;
-    (*s).state_stack_size = 0 as i32 as size_t;
+    (*s).state_stack = 0 as *mut u8;
+    (*s).state_stack_len = 0 as i32 as usize;
+    (*s).state_stack_size = 0 as i32 as usize;
     i = 0 as i32;
     while i < (*s).capture_count * 2 as i32 {
         let ref mut fresh44 = *capture.offset(i as isize);
-        *fresh44 = 0 as *mut uint8_t;
+        *fresh44 = 0 as *mut u8;
         i += 1
     }
     alloca_size =
@@ -6086,25 +6038,23 @@ pub unsafe extern "C" fn lre_exec(
     lre_realloc(
         (*s).opaque,
         (*s).state_stack as *mut std::ffi::c_void,
-        0 as i32 as size_t,
+        0 as i32 as usize,
     );
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn lre_get_capture_count(mut bc_buf: *const uint8_t) -> i32 {
+pub unsafe extern "C" fn lre_get_capture_count(mut bc_buf: *const u8) -> i32 {
     return *bc_buf.offset(1 as i32 as isize) as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn lre_get_flags(mut bc_buf: *const uint8_t) -> i32 {
+pub unsafe extern "C" fn lre_get_flags(mut bc_buf: *const u8) -> i32 {
     return *bc_buf.offset(0 as i32 as isize) as i32;
 }
 /* Return NULL if no group names. Otherwise, return a pointer to
 'capture_count - 1' zero terminated UTF-8 strings. */
 #[no_mangle]
-pub unsafe extern "C" fn lre_get_groupnames(
-    mut bc_buf: *const uint8_t,
-) -> *const std::os::raw::c_char {
-    let mut re_bytecode_len: uint32_t = 0;
+pub unsafe extern "C" fn lre_get_groupnames(mut bc_buf: *const u8) -> *const std::os::raw::c_char {
+    let mut re_bytecode_len: u32 = 0;
     if lre_get_flags(bc_buf) & (1 as i32) << 7 as i32 == 0 as i32 {
         return 0 as *const std::os::raw::c_char;
     }

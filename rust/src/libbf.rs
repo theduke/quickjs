@@ -3,36 +3,13 @@ use std::process::abort;
 
 use crate::cutils::{
     dbuf_error, dbuf_init2, dbuf_printf, dbuf_put, dbuf_putc, dbuf_putstr, dbuf_set_error, DynBuf,
-    DynBufReallocFunc,
+    DynBufReallocFunc, BOOL, FALSE, TRUE,
 };
 
-pub type size_t = u64;
-pub type __int8_t = std::os::raw::c_char;
-pub type __uint8_t = std::os::raw::c_uchar;
-pub type __uint16_t = u16;
-pub type __uint32_t = u32;
-pub type __int64_t = i64;
-pub type __uint64_t = u64;
-pub type __off_t = i64;
-pub type __off64_t = i64;
-pub type int8_t = __int8_t;
-pub type int64_t = __int64_t;
-
-pub type _IO_lock_t = ();
-pub type uint8_t = __uint8_t;
-pub type uint16_t = __uint16_t;
-pub type uint32_t = __uint32_t;
-pub type uint64_t = __uint64_t;
-pub type intptr_t = i64;
-pub type BOOL = i32;
-pub type C2RustUnnamed = u32;
-pub const TRUE: C2RustUnnamed = 1;
-pub const FALSE: C2RustUnnamed = 0;
-
-pub type uint128_t = u128;
-pub type slimb_t = int64_t;
-pub type limb_t = uint64_t;
-pub type dlimb_t = uint128_t;
+pub type intptr_t = isize;
+pub type slimb_t = i64;
+pub type limb_t = u64;
+pub type dlimb_t = u128;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -76,7 +53,7 @@ pub struct BFConstCache {
 pub type bf_realloc_func_t = unsafe extern "C" fn(
     _: *mut std::ffi::c_void,
     _: *mut std::ffi::c_void,
-    _: size_t,
+    _: usize,
 ) -> *mut std::ffi::c_void;
 
 #[repr(C)]
@@ -98,7 +75,7 @@ pub const BF_RNDU: bf_rnd_t = 3;
 pub const BF_RNDD: bf_rnd_t = 2;
 pub const BF_RNDZ: bf_rnd_t = 1;
 pub const BF_RNDN: bf_rnd_t = 0;
-pub type bf_flags_t = uint32_t;
+pub type bf_flags_t = u32;
 
 const LIMB_LOG2_BITS: u64 = 6;
 const LIMB_BITS: u64 = 1 << LIMB_LOG2_BITS;
@@ -139,7 +116,7 @@ const NTT_PROOT_2EXP: u64 = 39;
 #[derive(Copy, Clone)]
 pub union Float64Union {
     pub d: f64,
-    pub u: uint64_t,
+    pub u: u64,
 }
 pub type bf_op2_func_t = unsafe extern "C" fn(
     _: *mut bf_t,
@@ -154,8 +131,8 @@ pub type mp_size_t = intptr_t;
 #[derive(Copy, Clone)]
 pub struct FastDivData {
     pub m1: limb_t,
-    pub shift1: int8_t,
-    pub shift2: int8_t,
+    pub shift1: i8,
+    pub shift2: i8,
 }
 /* ZivFunc should compute the result 'r' with faithful rounding at
 precision 'prec'. For efficiency purposes, the final bf_round()
@@ -164,11 +141,11 @@ pub type ZivFunc =
     unsafe extern "C" fn(_: *mut bf_t, _: *const bf_t, _: limb_t, _: *mut std::ffi::c_void) -> i32;
 
 #[inline]
-unsafe extern "C" fn clz64(mut a: uint64_t) -> i32 {
+unsafe extern "C" fn clz64(mut a: u64) -> i32 {
     return (a as u64).leading_zeros() as i32;
 }
 #[inline]
-unsafe extern "C" fn ctz64(mut a: uint64_t) -> i32 {
+unsafe extern "C" fn ctz64(mut a: u64) -> i32 {
     return (a as u64).trailing_zeros() as i32;
 }
 
@@ -206,28 +183,25 @@ unsafe extern "C" fn bf_min(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
 pub unsafe extern "C" fn bf_realloc(
     mut s: *mut bf_context_t,
     mut ptr: *mut std::ffi::c_void,
-    mut size: size_t,
+    mut size: usize,
 ) -> *mut std::ffi::c_void {
     return (*s).realloc_func.expect("non-null function pointer")((*s).realloc_opaque, ptr, size);
 }
 #[inline]
-unsafe extern "C" fn bf_malloc(
-    mut s: *mut bf_context_t,
-    mut size: size_t,
-) -> *mut std::ffi::c_void {
+unsafe extern "C" fn bf_malloc(mut s: *mut bf_context_t, mut size: usize) -> *mut std::ffi::c_void {
     return bf_realloc(s, 0 as *mut std::ffi::c_void, size);
 }
 #[inline]
 pub unsafe extern "C" fn bf_free(mut s: *mut bf_context_t, mut ptr: *mut std::ffi::c_void) {
     if !ptr.is_null() {
-        bf_realloc(s, ptr, 0 as i32 as size_t);
+        bf_realloc(s, ptr, 0);
     };
 }
 #[inline]
 pub unsafe extern "C" fn bf_delete(mut r: *mut bf_t) {
     let mut s: *mut bf_context_t = (*r).ctx;
     if !s.is_null() && !(*r).tab.is_null() {
-        bf_realloc(s, (*r).tab as *mut std::ffi::c_void, 0 as i32 as size_t);
+        bf_realloc(s, (*r).tab as *mut std::ffi::c_void, 0);
     };
 }
 #[inline]
@@ -236,26 +210,26 @@ pub unsafe extern "C" fn bf_neg(mut r: *mut bf_t) {
 }
 #[inline]
 pub unsafe extern "C" fn bf_is_finite(mut a: *const bf_t) -> i32 {
-    return ((*a).expn < 9223372036854775807 as i64 - 1 as i32 as i64) as i32;
+    return ((*a).expn < 9223372036854775807 - 1) as i32;
 }
 
 #[inline]
 pub unsafe extern "C" fn bf_is_zero(mut a: *const bf_t) -> i32 {
-    return ((*a).expn == -(9223372036854775807 as i64) - 1 as i32 as i64) as i32;
+    return ((*a).expn == -(9223372036854775807) - 1) as i32;
 }
 
 #[inline]
 pub unsafe extern "C" fn bf_is_nan(mut a: *const bf_t) -> i32 {
-    return ((*a).expn == 9223372036854775807 as i64) as i32;
+    return ((*a).expn == 9223372036854775807) as i32;
 }
 #[inline]
 pub unsafe extern "C" fn bf_cmp_eq(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
-    return (bf_cmp(a, b) == 0 as i32) as i32;
+    return (bf_cmp(a, b) == 0) as i32;
 }
 
 #[inline]
 pub unsafe extern "C" fn bf_cmp_le(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
-    return (bf_cmp(a, b) <= 0 as i32) as i32;
+    return (bf_cmp(a, b) <= 0) as i32;
 }
 
 #[inline]
@@ -269,22 +243,22 @@ pub unsafe extern "C" fn bfdec_init(mut s: *mut bf_context_t, mut r: *mut bfdec_
 
 #[inline]
 pub unsafe extern "C" fn bfdec_cmp_le(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
-    return (bfdec_cmp(a, b) <= 0 as i32) as i32;
+    return (bfdec_cmp(a, b) <= 0) as i32;
 }
 
 #[inline]
 pub unsafe extern "C" fn bfdec_cmp_eq(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
-    return (bfdec_cmp(a, b) == 0 as i32) as i32;
+    return (bfdec_cmp(a, b) == 0) as i32;
 }
 
 #[inline]
 pub unsafe extern "C" fn bfdec_cmp_lt(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
-    return (bfdec_cmp(a, b) < 0 as i32) as i32;
+    return (bfdec_cmp(a, b) < 0) as i32;
 }
 
 #[inline]
 pub unsafe extern "C" fn bfdec_neg(mut r: *mut bfdec_t) {
-    (*r).sign ^= 1 as i32;
+    (*r).sign ^= 1;
 }
 #[inline]
 pub unsafe extern "C" fn bfdec_delete(mut r: *mut bfdec_t) {
@@ -292,7 +266,7 @@ pub unsafe extern "C" fn bfdec_delete(mut r: *mut bfdec_t) {
 }
 #[inline]
 pub unsafe extern "C" fn bfdec_is_nan(mut a: *const bfdec_t) -> i32 {
-    return ((*a).expn == 9223372036854775807 as i64) as i32;
+    return ((*a).expn == 9223372036854775807) as i32;
 }
 #[inline]
 pub unsafe extern "C" fn bfdec_set_nan(mut r: *mut bfdec_t) {
@@ -422,7 +396,7 @@ pub unsafe extern "C" fn bf_resize(mut r: *mut bf_t, mut len: limb_t) -> i32 {
         tab = bf_realloc(
             (*r).ctx,
             (*r).tab as *mut std::ffi::c_void,
-            len.wrapping_mul(::std::mem::size_of::<limb_t>() as u64),
+            std::mem::size_of::<limb_t>().wrapping_mul(len as usize),
         ) as *mut limb_t;
         if tab.is_null() && len != 0 as i32 as u64 {
             return -(1 as i32);
@@ -430,11 +404,11 @@ pub unsafe extern "C" fn bf_resize(mut r: *mut bf_t, mut len: limb_t) -> i32 {
         (*r).tab = tab;
         (*r).len = len
     }
-    return 0 as i32;
+    0
 }
 /* return 0 or BF_ST_MEM_ERROR */
 #[no_mangle]
-pub unsafe extern "C" fn bf_set_ui(mut r: *mut bf_t, mut a: uint64_t) -> i32 {
+pub unsafe extern "C" fn bf_set_ui(mut r: *mut bf_t, mut a: u64) -> i32 {
     (*r).sign = 0 as i32;
     if a == 0 as i32 as u64 {
         (*r).expn = -(9223372036854775807 as i64) - 1 as i32 as i64;
@@ -455,13 +429,13 @@ pub unsafe extern "C" fn bf_set_ui(mut r: *mut bf_t, mut a: uint64_t) -> i32 {
 }
 /* return 0 or BF_ST_MEM_ERROR */
 #[no_mangle]
-pub unsafe extern "C" fn bf_set_si(mut r: *mut bf_t, mut a: int64_t) -> i32 {
+pub unsafe extern "C" fn bf_set_si(mut r: *mut bf_t, mut a: i64) -> i32 {
     let mut ret: i32 = 0; /* cannot fail */
     if a < 0 as i32 as i64 {
-        ret = bf_set_ui(r, -a as uint64_t); /* cannot fail */
+        ret = bf_set_ui(r, -a as u64); /* cannot fail */
         (*r).sign = 1 as i32
     } else {
-        ret = bf_set_ui(r, a as uint64_t)
+        ret = bf_set_ui(r, a as u64)
     } /* cannot fail */
     return ret;
 }
@@ -1489,12 +1463,12 @@ pub unsafe extern "C" fn mp_add(
     return k;
 }
 #[no_mangle]
-pub unsafe extern "C" fn mp_add_ui(mut tab: *mut limb_t, mut b: limb_t, mut n: size_t) -> limb_t {
-    let mut i: size_t = 0;
+pub unsafe extern "C" fn mp_add_ui(mut tab: *mut limb_t, mut b: limb_t, mut n: u64) -> limb_t {
+    let mut i: u64 = 0;
     let mut k: limb_t = 0;
     let mut a: limb_t = 0;
     k = b;
-    i = 0 as i32 as size_t;
+    i = 0 as i32 as u64;
     while i < n {
         if k == 0 as i32 as u64 {
             break;
@@ -1515,13 +1489,11 @@ pub unsafe extern "C" fn mp_sub(
     mut carry: limb_t,
 ) -> limb_t {
     let mut i: i32 = 0;
-    let mut k: limb_t = 0;
+    let mut k: limb_t = carry;
     let mut a: limb_t = 0;
     let mut v: limb_t = 0;
     let mut k1: limb_t = 0;
-    k = carry;
-    i = 0 as i32;
-    while (i as i64) < n {
+    while (i as mp_size_t) < n {
         v = *op1.offset(i as isize);
         a = v.wrapping_sub(*op2.offset(i as isize));
         k1 = (a > v) as i32 as limb_t;
@@ -1546,7 +1518,7 @@ unsafe extern "C" fn mp_neg(
     let mut k1: limb_t = 0;
     k = carry;
     i = 0 as i32;
-    while (i as i64) < n {
+    while (i as mp_size_t) < n {
         v = 0 as i32 as limb_t;
         a = v.wrapping_sub(*op2.offset(i as isize));
         k1 = (a > v) as i32 as limb_t;
@@ -1598,8 +1570,8 @@ unsafe extern "C" fn mp_shr(
         assert!(shift >= 1 && (shift as u64) < LIMB_BITS);
     }
     l = high;
-    i = n - 1 as i32 as i64;
-    while i >= 0 as i32 as i64 {
+    i = n - 1;
+    while i >= 0 {
         a = *tab.offset(i as isize);
         *tab_r.offset(i as isize) = a >> shift | l << ((1 as i32) << 6 as i32) - shift;
         l = a;
@@ -1955,32 +1927,27 @@ pub unsafe extern "C" fn mp_recip(
         /* XXX: could avoid allocation */
         tabu = bf_malloc(
             s,
-            (::std::mem::size_of::<limb_t>() as u64).wrapping_mul(
-                (2 as i32 as u64)
-                    .wrapping_mul(n)
-                    .wrapping_add(1 as i32 as u64),
-            ),
+            (::std::mem::size_of::<limb_t>())
+                .wrapping_mul(2usize.wrapping_mul(n as usize).wrapping_add(1)),
         ) as *mut limb_t;
         tabt = bf_malloc(
             s,
-            (::std::mem::size_of::<limb_t>() as u64).wrapping_mul(n.wrapping_add(2 as i32 as u64)),
+            (::std::mem::size_of::<limb_t>()).wrapping_mul(n.wrapping_add(2) as usize),
         ) as *mut limb_t;
         if tabt.is_null() || tabu.is_null() {
             current_block = 14207563356106830746;
         } else {
             i = 0 as i32 as mp_size_t;
-            while (i as u64) < (2 as i32 as u64).wrapping_mul(n) {
-                *tabu.offset(i as isize) = 0 as i32 as limb_t;
+            while (i as limb_t) < n.wrapping_mul(2) {
+                *tabu.offset(i as isize) = 0;
                 i += 1
             }
-            *tabu.offset((2 as i32 as u64).wrapping_mul(n) as isize) = 1 as i32 as limb_t;
+            *tabu.offset(n.wrapping_mul(2) as isize) = 1;
             if mp_divnorm(
                 s,
                 tabt,
                 tabu,
-                (2 as i32 as u64)
-                    .wrapping_mul(n)
-                    .wrapping_add(1 as i32 as u64),
+                2u64.wrapping_mul(n as u64).wrapping_add(1),
                 taba,
                 n,
             ) != 0
@@ -2013,15 +1980,16 @@ pub unsafe extern "C" fn mp_recip(
         */
         tabt = bf_malloc(
             s,
-            (::std::mem::size_of::<limb_t>() as u64)
-                .wrapping_mul(n.wrapping_add(h as u64).wrapping_add(1 as i32 as u64)),
+            std::mem::size_of::<limb_t>()
+                .wrapping_mul(n.wrapping_add(h as u64).wrapping_add(1) as usize),
         ) as *mut limb_t;
         tabu = bf_malloc(
             s,
-            (::std::mem::size_of::<limb_t>() as u64).wrapping_mul(
-                n.wrapping_add((2 as i32 as i64 * h) as u64)
-                    .wrapping_sub(l as u64)
-                    .wrapping_add(2 as i32 as u64),
+            (std::mem::size_of::<limb_t>()).wrapping_mul(
+                (n as usize)
+                    .wrapping_add((2 * h as usize))
+                    .wrapping_sub(l as usize)
+                    .wrapping_add(2),
             ),
         ) as *mut limb_t;
         if tabt.is_null() || tabu.is_null() {
@@ -2030,13 +1998,13 @@ pub unsafe extern "C" fn mp_recip(
             tabxh = tabr.offset(l as isize);
             if mp_recip(s, tabxh, taba.offset(l as isize), h as limb_t) != 0 {
                 current_block = 14207563356106830746;
-            } else if mp_mul(s, tabt, taba, n, tabxh, (h + 1 as i32 as i64) as limb_t) != 0 {
+            } else if mp_mul(s, tabt, taba, n, tabxh, (h + 1) as limb_t) != 0 {
                 current_block = 14207563356106830746;
             } else {
                 while *tabt.offset(n.wrapping_add(h as u64) as isize) != 0 as i32 as u64 {
-                    mp_sub_ui(tabxh, 1 as i32 as limb_t, h + 1 as i32 as i64);
-                    c = mp_sub(tabt, tabt, taba, n as mp_size_t, 0 as i32 as limb_t);
-                    mp_sub_ui(tabt.offset(n as isize), c, h + 1 as i32 as i64);
+                    mp_sub_ui(tabxh, 1, h + 1);
+                    c = mp_sub(tabt, tabt, taba, n as mp_size_t, 0);
+                    mp_sub_ui(tabt.offset(n as isize), c, h + 1);
                 }
                 /* T = B^(n+h) - T */
                 mp_neg(
@@ -2055,13 +2023,13 @@ pub unsafe extern "C" fn mp_recip(
                         .wrapping_add(1 as i32 as u64)
                         .wrapping_sub(l as u64),
                     tabxh,
-                    (h + 1 as i32 as i64) as limb_t,
+                    (h + 1) as limb_t,
                 ) != 0
                 {
                     current_block = 14207563356106830746;
                 } else {
                     /* n + 2*h - l + 2 limbs */
-                    k = 2 as i32 as i64 * h - l;
+                    k = 2 * h - l;
                     i = 0 as i32 as mp_size_t;
                     while i < l {
                         *tabr.offset(i as isize) = *tabu.offset((i + k) as isize);
@@ -2070,7 +2038,7 @@ pub unsafe extern "C" fn mp_recip(
                     mp_add(
                         tabr.offset(l as isize),
                         tabr.offset(l as isize),
-                        tabu.offset((2 as i32 as i64 * h) as isize),
+                        tabu.offset((2 * h) as isize),
                         h as limb_t,
                         0 as i32 as limb_t,
                     );
@@ -2101,18 +2069,18 @@ unsafe extern "C" fn mp_cmp(
     mut n: mp_size_t,
 ) -> i32 {
     let mut i: mp_size_t = 0;
-    i = n - 1 as i32 as i64;
-    while i >= 0 as i32 as i64 {
+    i = n - 1;
+    while i >= 0 {
         if *taba.offset(i as isize) != *tabb.offset(i as isize) {
             if *taba.offset(i as isize) < *tabb.offset(i as isize) {
-                return -(1 as i32);
+                return -1;
             } else {
-                return 1 as i32;
+                return 1;
             }
         }
         i -= 1
     }
-    return 0 as i32;
+    0
 }
 //#define DEBUG_DIVNORM_LARGE
 //#define DEBUG_DIVNORM_LARGE2
@@ -2142,13 +2110,13 @@ unsafe extern "C" fn mp_divnorm_large(
     }
     tabb_inv = bf_malloc(
         s,
-        (::std::mem::size_of::<limb_t>() as u64).wrapping_mul(n.wrapping_add(1 as i32 as u64)),
+        (::std::mem::size_of::<limb_t>()).wrapping_mul(n.wrapping_add(1) as usize),
     ) as *mut limb_t;
     tabt = bf_malloc(
         s,
-        (::std::mem::size_of::<limb_t>() as u64)
-            .wrapping_mul(2 as i32 as u64)
-            .wrapping_mul(n.wrapping_add(1 as i32 as u64)),
+        (::std::mem::size_of::<limb_t>())
+            .wrapping_mul(2)
+            .wrapping_mul(n.wrapping_add(1) as usize),
     ) as *mut limb_t;
     if !(tabb_inv.is_null() || tabt.is_null()) {
         if n >= nb {
@@ -2225,20 +2193,12 @@ unsafe extern "C" fn mp_divnorm_large(
                     /* R=A-B*Q */
                     tabt = bf_malloc(
                         s,
-                        (::std::mem::size_of::<limb_t>() as u64)
-                            .wrapping_mul(na.wrapping_add(1 as i32 as u64)),
+                        (::std::mem::size_of::<limb_t>()).wrapping_mul(na.wrapping_add(1) as usize),
                     ) as *mut limb_t;
                     if !tabt.is_null() {
-                        if !(mp_mul(s, tabt, tabq, nq.wrapping_add(1 as i32 as u64), tabb, nb) != 0)
-                        {
+                        if !(mp_mul(s, tabt, tabq, nq.wrapping_add(1), tabb, nb) != 0) {
                             /* we add one more limb for the result */
-                            mp_sub(
-                                taba,
-                                taba,
-                                tabt,
-                                nb.wrapping_add(1 as i32 as u64) as mp_size_t,
-                                0 as i32 as limb_t,
-                            );
+                            mp_sub(taba, taba, tabt, nb.wrapping_add(1) as mp_size_t, 0);
                             bf_free(s, tabt as *mut std::ffi::c_void);
                             /* the approximated quotient is smaller than than the exact one,
                             hence we may have to increment it */
@@ -2433,7 +2393,7 @@ unsafe extern "C" fn bf_tdivremu(
     mut b: *const bf_t,
 ) {
     if bf_cmpu(a, b) < 0 as i32 {
-        bf_set_ui(q, 0 as i32 as uint64_t);
+        bf_set_ui(q, 0 as i32 as u64);
         bf_set(r, a);
     } else {
         bf_div(
@@ -2526,8 +2486,7 @@ unsafe extern "C" fn __bf_div(
     na = n.wrapping_add(nb);
     taba = bf_malloc(
         s,
-        na.wrapping_add(1 as i32 as u64)
-            .wrapping_mul(::std::mem::size_of::<limb_t>() as u64),
+        (na.wrapping_add(1) as usize).wrapping_mul(::std::mem::size_of::<limb_t>()),
     ) as *mut limb_t;
     if !taba.is_null() {
         d = na.wrapping_sub((*a).len) as slimb_t;
@@ -2674,7 +2633,7 @@ pub unsafe extern "C" fn bf_divrem(
                     ret = bf_add_si(
                         q,
                         q,
-                        1 as i32 as int64_t,
+                        1 as i32 as i64,
                         ((1 as i32 as limb_t) << ((1 as i32) << 6 as i32) - 2 as i32)
                             .wrapping_sub(2 as i32 as u64)
                             .wrapping_add(1 as i32 as u64),
@@ -2768,199 +2727,199 @@ pub unsafe extern "C" fn bf_remquo(
     bf_delete(q);
     return ret;
 }
-static mut sqrt_table: [uint16_t; 192] = [
-    128 as i32 as uint16_t,
-    128 as i32 as uint16_t,
-    129 as i32 as uint16_t,
-    130 as i32 as uint16_t,
-    131 as i32 as uint16_t,
-    132 as i32 as uint16_t,
-    133 as i32 as uint16_t,
-    134 as i32 as uint16_t,
-    135 as i32 as uint16_t,
-    136 as i32 as uint16_t,
-    137 as i32 as uint16_t,
-    138 as i32 as uint16_t,
-    139 as i32 as uint16_t,
-    140 as i32 as uint16_t,
-    141 as i32 as uint16_t,
-    142 as i32 as uint16_t,
-    143 as i32 as uint16_t,
-    144 as i32 as uint16_t,
-    144 as i32 as uint16_t,
-    145 as i32 as uint16_t,
-    146 as i32 as uint16_t,
-    147 as i32 as uint16_t,
-    148 as i32 as uint16_t,
-    149 as i32 as uint16_t,
-    150 as i32 as uint16_t,
-    150 as i32 as uint16_t,
-    151 as i32 as uint16_t,
-    152 as i32 as uint16_t,
-    153 as i32 as uint16_t,
-    154 as i32 as uint16_t,
-    155 as i32 as uint16_t,
-    155 as i32 as uint16_t,
-    156 as i32 as uint16_t,
-    157 as i32 as uint16_t,
-    158 as i32 as uint16_t,
-    159 as i32 as uint16_t,
-    160 as i32 as uint16_t,
-    160 as i32 as uint16_t,
-    161 as i32 as uint16_t,
-    162 as i32 as uint16_t,
-    163 as i32 as uint16_t,
-    163 as i32 as uint16_t,
-    164 as i32 as uint16_t,
-    165 as i32 as uint16_t,
-    166 as i32 as uint16_t,
-    167 as i32 as uint16_t,
-    167 as i32 as uint16_t,
-    168 as i32 as uint16_t,
-    169 as i32 as uint16_t,
-    170 as i32 as uint16_t,
-    170 as i32 as uint16_t,
-    171 as i32 as uint16_t,
-    172 as i32 as uint16_t,
-    173 as i32 as uint16_t,
-    173 as i32 as uint16_t,
-    174 as i32 as uint16_t,
-    175 as i32 as uint16_t,
-    176 as i32 as uint16_t,
-    176 as i32 as uint16_t,
-    177 as i32 as uint16_t,
-    178 as i32 as uint16_t,
-    178 as i32 as uint16_t,
-    179 as i32 as uint16_t,
-    180 as i32 as uint16_t,
-    181 as i32 as uint16_t,
-    181 as i32 as uint16_t,
-    182 as i32 as uint16_t,
-    183 as i32 as uint16_t,
-    183 as i32 as uint16_t,
-    184 as i32 as uint16_t,
-    185 as i32 as uint16_t,
-    185 as i32 as uint16_t,
-    186 as i32 as uint16_t,
-    187 as i32 as uint16_t,
-    187 as i32 as uint16_t,
-    188 as i32 as uint16_t,
-    189 as i32 as uint16_t,
-    189 as i32 as uint16_t,
-    190 as i32 as uint16_t,
-    191 as i32 as uint16_t,
-    192 as i32 as uint16_t,
-    192 as i32 as uint16_t,
-    193 as i32 as uint16_t,
-    193 as i32 as uint16_t,
-    194 as i32 as uint16_t,
-    195 as i32 as uint16_t,
-    195 as i32 as uint16_t,
-    196 as i32 as uint16_t,
-    197 as i32 as uint16_t,
-    197 as i32 as uint16_t,
-    198 as i32 as uint16_t,
-    199 as i32 as uint16_t,
-    199 as i32 as uint16_t,
-    200 as i32 as uint16_t,
-    201 as i32 as uint16_t,
-    201 as i32 as uint16_t,
-    202 as i32 as uint16_t,
-    203 as i32 as uint16_t,
-    203 as i32 as uint16_t,
-    204 as i32 as uint16_t,
-    204 as i32 as uint16_t,
-    205 as i32 as uint16_t,
-    206 as i32 as uint16_t,
-    206 as i32 as uint16_t,
-    207 as i32 as uint16_t,
-    208 as i32 as uint16_t,
-    208 as i32 as uint16_t,
-    209 as i32 as uint16_t,
-    209 as i32 as uint16_t,
-    210 as i32 as uint16_t,
-    211 as i32 as uint16_t,
-    211 as i32 as uint16_t,
-    212 as i32 as uint16_t,
-    212 as i32 as uint16_t,
-    213 as i32 as uint16_t,
-    214 as i32 as uint16_t,
-    214 as i32 as uint16_t,
-    215 as i32 as uint16_t,
-    215 as i32 as uint16_t,
-    216 as i32 as uint16_t,
-    217 as i32 as uint16_t,
-    217 as i32 as uint16_t,
-    218 as i32 as uint16_t,
-    218 as i32 as uint16_t,
-    219 as i32 as uint16_t,
-    219 as i32 as uint16_t,
-    220 as i32 as uint16_t,
-    221 as i32 as uint16_t,
-    221 as i32 as uint16_t,
-    222 as i32 as uint16_t,
-    222 as i32 as uint16_t,
-    223 as i32 as uint16_t,
-    224 as i32 as uint16_t,
-    224 as i32 as uint16_t,
-    225 as i32 as uint16_t,
-    225 as i32 as uint16_t,
-    226 as i32 as uint16_t,
-    226 as i32 as uint16_t,
-    227 as i32 as uint16_t,
-    227 as i32 as uint16_t,
-    228 as i32 as uint16_t,
-    229 as i32 as uint16_t,
-    229 as i32 as uint16_t,
-    230 as i32 as uint16_t,
-    230 as i32 as uint16_t,
-    231 as i32 as uint16_t,
-    231 as i32 as uint16_t,
-    232 as i32 as uint16_t,
-    232 as i32 as uint16_t,
-    233 as i32 as uint16_t,
-    234 as i32 as uint16_t,
-    234 as i32 as uint16_t,
-    235 as i32 as uint16_t,
-    235 as i32 as uint16_t,
-    236 as i32 as uint16_t,
-    236 as i32 as uint16_t,
-    237 as i32 as uint16_t,
-    237 as i32 as uint16_t,
-    238 as i32 as uint16_t,
-    238 as i32 as uint16_t,
-    239 as i32 as uint16_t,
-    240 as i32 as uint16_t,
-    240 as i32 as uint16_t,
-    241 as i32 as uint16_t,
-    241 as i32 as uint16_t,
-    242 as i32 as uint16_t,
-    242 as i32 as uint16_t,
-    243 as i32 as uint16_t,
-    243 as i32 as uint16_t,
-    244 as i32 as uint16_t,
-    244 as i32 as uint16_t,
-    245 as i32 as uint16_t,
-    245 as i32 as uint16_t,
-    246 as i32 as uint16_t,
-    246 as i32 as uint16_t,
-    247 as i32 as uint16_t,
-    247 as i32 as uint16_t,
-    248 as i32 as uint16_t,
-    248 as i32 as uint16_t,
-    249 as i32 as uint16_t,
-    249 as i32 as uint16_t,
-    250 as i32 as uint16_t,
-    250 as i32 as uint16_t,
-    251 as i32 as uint16_t,
-    251 as i32 as uint16_t,
-    252 as i32 as uint16_t,
-    252 as i32 as uint16_t,
-    253 as i32 as uint16_t,
-    253 as i32 as uint16_t,
-    254 as i32 as uint16_t,
-    254 as i32 as uint16_t,
-    255 as i32 as uint16_t,
+static mut sqrt_table: [u16; 192] = [
+    128 as i32 as u16,
+    128 as i32 as u16,
+    129 as i32 as u16,
+    130 as i32 as u16,
+    131 as i32 as u16,
+    132 as i32 as u16,
+    133 as i32 as u16,
+    134 as i32 as u16,
+    135 as i32 as u16,
+    136 as i32 as u16,
+    137 as i32 as u16,
+    138 as i32 as u16,
+    139 as i32 as u16,
+    140 as i32 as u16,
+    141 as i32 as u16,
+    142 as i32 as u16,
+    143 as i32 as u16,
+    144 as i32 as u16,
+    144 as i32 as u16,
+    145 as i32 as u16,
+    146 as i32 as u16,
+    147 as i32 as u16,
+    148 as i32 as u16,
+    149 as i32 as u16,
+    150 as i32 as u16,
+    150 as i32 as u16,
+    151 as i32 as u16,
+    152 as i32 as u16,
+    153 as i32 as u16,
+    154 as i32 as u16,
+    155 as i32 as u16,
+    155 as i32 as u16,
+    156 as i32 as u16,
+    157 as i32 as u16,
+    158 as i32 as u16,
+    159 as i32 as u16,
+    160 as i32 as u16,
+    160 as i32 as u16,
+    161 as i32 as u16,
+    162 as i32 as u16,
+    163 as i32 as u16,
+    163 as i32 as u16,
+    164 as i32 as u16,
+    165 as i32 as u16,
+    166 as i32 as u16,
+    167 as i32 as u16,
+    167 as i32 as u16,
+    168 as i32 as u16,
+    169 as i32 as u16,
+    170 as i32 as u16,
+    170 as i32 as u16,
+    171 as i32 as u16,
+    172 as i32 as u16,
+    173 as i32 as u16,
+    173 as i32 as u16,
+    174 as i32 as u16,
+    175 as i32 as u16,
+    176 as i32 as u16,
+    176 as i32 as u16,
+    177 as i32 as u16,
+    178 as i32 as u16,
+    178 as i32 as u16,
+    179 as i32 as u16,
+    180 as i32 as u16,
+    181 as i32 as u16,
+    181 as i32 as u16,
+    182 as i32 as u16,
+    183 as i32 as u16,
+    183 as i32 as u16,
+    184 as i32 as u16,
+    185 as i32 as u16,
+    185 as i32 as u16,
+    186 as i32 as u16,
+    187 as i32 as u16,
+    187 as i32 as u16,
+    188 as i32 as u16,
+    189 as i32 as u16,
+    189 as i32 as u16,
+    190 as i32 as u16,
+    191 as i32 as u16,
+    192 as i32 as u16,
+    192 as i32 as u16,
+    193 as i32 as u16,
+    193 as i32 as u16,
+    194 as i32 as u16,
+    195 as i32 as u16,
+    195 as i32 as u16,
+    196 as i32 as u16,
+    197 as i32 as u16,
+    197 as i32 as u16,
+    198 as i32 as u16,
+    199 as i32 as u16,
+    199 as i32 as u16,
+    200 as i32 as u16,
+    201 as i32 as u16,
+    201 as i32 as u16,
+    202 as i32 as u16,
+    203 as i32 as u16,
+    203 as i32 as u16,
+    204 as i32 as u16,
+    204 as i32 as u16,
+    205 as i32 as u16,
+    206 as i32 as u16,
+    206 as i32 as u16,
+    207 as i32 as u16,
+    208 as i32 as u16,
+    208 as i32 as u16,
+    209 as i32 as u16,
+    209 as i32 as u16,
+    210 as i32 as u16,
+    211 as i32 as u16,
+    211 as i32 as u16,
+    212 as i32 as u16,
+    212 as i32 as u16,
+    213 as i32 as u16,
+    214 as i32 as u16,
+    214 as i32 as u16,
+    215 as i32 as u16,
+    215 as i32 as u16,
+    216 as i32 as u16,
+    217 as i32 as u16,
+    217 as i32 as u16,
+    218 as i32 as u16,
+    218 as i32 as u16,
+    219 as i32 as u16,
+    219 as i32 as u16,
+    220 as i32 as u16,
+    221 as i32 as u16,
+    221 as i32 as u16,
+    222 as i32 as u16,
+    222 as i32 as u16,
+    223 as i32 as u16,
+    224 as i32 as u16,
+    224 as i32 as u16,
+    225 as i32 as u16,
+    225 as i32 as u16,
+    226 as i32 as u16,
+    226 as i32 as u16,
+    227 as i32 as u16,
+    227 as i32 as u16,
+    228 as i32 as u16,
+    229 as i32 as u16,
+    229 as i32 as u16,
+    230 as i32 as u16,
+    230 as i32 as u16,
+    231 as i32 as u16,
+    231 as i32 as u16,
+    232 as i32 as u16,
+    232 as i32 as u16,
+    233 as i32 as u16,
+    234 as i32 as u16,
+    234 as i32 as u16,
+    235 as i32 as u16,
+    235 as i32 as u16,
+    236 as i32 as u16,
+    236 as i32 as u16,
+    237 as i32 as u16,
+    237 as i32 as u16,
+    238 as i32 as u16,
+    238 as i32 as u16,
+    239 as i32 as u16,
+    240 as i32 as u16,
+    240 as i32 as u16,
+    241 as i32 as u16,
+    241 as i32 as u16,
+    242 as i32 as u16,
+    242 as i32 as u16,
+    243 as i32 as u16,
+    243 as i32 as u16,
+    244 as i32 as u16,
+    244 as i32 as u16,
+    245 as i32 as u16,
+    245 as i32 as u16,
+    246 as i32 as u16,
+    246 as i32 as u16,
+    247 as i32 as u16,
+    247 as i32 as u16,
+    248 as i32 as u16,
+    248 as i32 as u16,
+    249 as i32 as u16,
+    249 as i32 as u16,
+    250 as i32 as u16,
+    250 as i32 as u16,
+    251 as i32 as u16,
+    251 as i32 as u16,
+    252 as i32 as u16,
+    252 as i32 as u16,
+    253 as i32 as u16,
+    253 as i32 as u16,
+    254 as i32 as u16,
+    254 as i32 as u16,
+    255 as i32 as u16,
 ];
 /* a >= 2^(LIMB_BITS - 2).  Return (s, r) with s=floor(sqrt(a)) and
 r=a-s^2. 0 <= r <= 2 * s */
@@ -3211,7 +3170,7 @@ pub unsafe extern "C" fn mp_sqrtrem(
     } else {
         tmp_buf = bf_malloc(
             s,
-            (::std::mem::size_of::<limb_t>() as u64).wrapping_mul(n2 as u64),
+            (::std::mem::size_of::<limb_t>()).wrapping_mul(n2 as usize),
         ) as *mut limb_t;
         if tmp_buf.is_null() {
             return -(1 as i32);
@@ -3248,7 +3207,7 @@ pub unsafe extern "C" fn bf_sqrtrem(
             7300594896447034620 => {}
             _ => {
                 if !rem1.is_null() {
-                    bf_set_ui(rem1, 0 as i32 as uint64_t);
+                    bf_set_ui(rem1, 0 as i32 as u64);
                 }
                 ret = 0 as i32;
                 current_block_30 = 1836292691772056875;
@@ -3315,7 +3274,7 @@ pub unsafe extern "C" fn bf_sqrtrem(
         7300594896447034620 => {
             bf_set_nan(r);
             if !rem1.is_null() {
-                bf_set_ui(rem1, 0 as i32 as uint64_t);
+                bf_set_ui(rem1, 0 as i32 as u64);
             }
             ret = (1 as i32) << 0 as i32
         }
@@ -3373,9 +3332,9 @@ pub unsafe extern "C" fn bf_sqrt(
         } else {
             a1 = bf_malloc(
                 s,
-                (::std::mem::size_of::<limb_t>() as u64)
-                    .wrapping_mul(2 as i32 as u64)
-                    .wrapping_mul(n as u64),
+                (::std::mem::size_of::<limb_t>())
+                    .wrapping_mul(2)
+                    .wrapping_mul(n as usize),
             ) as *mut limb_t;
             if a1.is_null() {
                 current_block = 3531709610370321912;
@@ -3391,7 +3350,7 @@ pub unsafe extern "C" fn bf_sqrt(
                     (n1 as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
                 );
                 if (*a).expn & 1 as i32 as i64 != 0 {
-                    res = mp_shr(a1, a1, 2 as i32 as i64 * n, 1 as i32, 0 as i32 as limb_t)
+                    res = mp_shr(a1, a1, 2 * n as isize, 1, 0)
                 } else {
                     res = 0 as i32 as limb_t
                 }
@@ -3400,7 +3359,7 @@ pub unsafe extern "C" fn bf_sqrt(
                     current_block = 3531709610370321912;
                 } else {
                     if res == 0 {
-                        res = mp_scan_nz(a1, n + 1 as i32 as i64)
+                        res = mp_scan_nz(a1, n as isize + 1)
                     }
                     bf_free(s, a1 as *mut std::ffi::c_void);
                     if res == 0 {
@@ -3542,7 +3501,7 @@ pub unsafe extern "C" fn bf_div(
 pub unsafe extern "C" fn bf_mul_ui(
     mut r: *mut bf_t,
     mut a: *const bf_t,
-    mut b1: uint64_t,
+    mut b1: u64,
     mut prec: limb_t,
     mut flags: bf_flags_t,
 ) -> i32 {
@@ -3564,7 +3523,7 @@ pub unsafe extern "C" fn bf_mul_ui(
 pub unsafe extern "C" fn bf_mul_si(
     mut r: *mut bf_t,
     mut a: *const bf_t,
-    mut b1: int64_t,
+    mut b1: i64,
     mut prec: limb_t,
     mut flags: bf_flags_t,
 ) -> i32 {
@@ -3586,7 +3545,7 @@ pub unsafe extern "C" fn bf_mul_si(
 pub unsafe extern "C" fn bf_add_si(
     mut r: *mut bf_t,
     mut a: *const bf_t,
-    mut b1: int64_t,
+    mut b1: i64,
     mut prec: limb_t,
     mut flags: bf_flags_t,
 ) -> i32 {
@@ -3619,7 +3578,7 @@ unsafe extern "C" fn bf_pow_ui(
         assert!(r as *const bf_t != a);
     }
     if b == 0 as i32 as u64 {
-        return bf_set_ui(r, 1 as i32 as uint64_t);
+        return bf_set_ui(r, 1 as i32 as u64);
     }
     ret = bf_set(r, a);
     n_bits = ((1 as i32) << 6 as i32) - clz(b);
@@ -3733,7 +3692,7 @@ unsafe extern "C" fn bf_logic_op(
         if bf_add_si(
             a,
             a1,
-            1 as i32 as int64_t,
+            1 as i32 as i64,
             ((1 as i32 as limb_t) << ((1 as i32) << 6 as i32) - 2 as i32)
                 .wrapping_sub(2 as i32 as u64)
                 .wrapping_add(1 as i32 as u64),
@@ -3757,7 +3716,7 @@ unsafe extern "C" fn bf_logic_op(
                 if bf_add_si(
                     b,
                     b1,
-                    1 as i32 as int64_t,
+                    1 as i32 as i64,
                     ((1 as i32 as limb_t) << ((1 as i32) << 6 as i32) - 2 as i32)
                         .wrapping_sub(2 as i32 as u64)
                         .wrapping_add(1 as i32 as u64),
@@ -3836,7 +3795,7 @@ unsafe extern "C" fn bf_logic_op(
                             if bf_add_si(
                                 r,
                                 r,
-                                -(1 as i32) as int64_t,
+                                -(1 as i32) as i64,
                                 ((1 as i32 as limb_t) << ((1 as i32) << 6 as i32) - 2 as i32)
                                     .wrapping_sub(2 as i32 as u64)
                                     .wrapping_add(1 as i32 as u64),
@@ -3914,10 +3873,10 @@ pub unsafe extern "C" fn bf_get_float64(
     let mut u: Float64Union = Float64Union { d: 0. };
     let mut e: i32 = 0;
     let mut ret: i32 = 0;
-    let mut m: uint64_t = 0;
+    let mut m: u64 = 0;
     ret = 0 as i32;
     if (*a).expn == 9223372036854775807 as i64 {
-        u.u = 0x7ff8000000000000 as i64 as uint64_t
+        u.u = 0x7ff8000000000000 as i64 as u64
     /* quiet nan */
     } else {
         let mut b_s: bf_t = bf_t {
@@ -3939,10 +3898,10 @@ pub unsafe extern "C" fn bf_get_float64(
         }
         if (*b).expn == 9223372036854775807 as i64 - 1 as i32 as i64 {
             e = ((1 as i32) << 11 as i32) - 1 as i32;
-            m = 0 as i32 as uint64_t
+            m = 0 as i32 as u64
         } else if (*b).expn == -(9223372036854775807 as i64) - 1 as i32 as i64 {
             e = 0 as i32;
-            m = 0 as i32 as uint64_t
+            m = 0 as i32 as u64
         } else {
             e = ((*b).expn + 1023 as i32 as i64 - 1 as i32 as i64) as i32;
             m = *(*b).tab.offset(0 as i32 as isize);
@@ -3954,7 +3913,7 @@ pub unsafe extern "C" fn bf_get_float64(
                 m = m << 1 as i32 >> 12 as i32
             }
         }
-        u.u = m | (e as uint64_t) << 52 as i32 | ((*b).sign as uint64_t) << 63 as i32;
+        u.u = m | (e as u64) << 52 as i32 | ((*b).sign as u64) << 63 as i32;
         bf_delete(b);
     }
     *pres = u.d;
@@ -3964,14 +3923,14 @@ pub unsafe extern "C" fn bf_get_float64(
 pub unsafe extern "C" fn bf_set_float64(mut a: *mut bf_t, mut d: f64) -> i32 {
     let mut current_block: u64;
     let mut u: Float64Union = Float64Union { d: 0. };
-    let mut m: uint64_t = 0;
+    let mut m: u64 = 0;
     let mut shift: i32 = 0;
     let mut e: i32 = 0;
     let mut sgn: i32 = 0;
     u.d = d;
     sgn = (u.u >> 63 as i32) as i32;
     e = (u.u >> 52 as i32 & (((1 as i32) << 11 as i32) - 1 as i32) as u64) as i32;
-    m = u.u & ((1 as i32 as uint64_t) << 52 as i32).wrapping_sub(1 as i32 as u64);
+    m = u.u & ((1 as i32 as u64) << 52 as i32).wrapping_sub(1 as i32 as u64);
     if e == ((1 as i32) << 11 as i32) - 1 as i32 {
         if m != 0 as i32 as u64 {
             bf_set_nan(a);
@@ -3992,7 +3951,7 @@ pub unsafe extern "C" fn bf_set_float64(mut a: *mut bf_t, mut d: f64) -> i32 {
                 current_block = 15442955482004205486;
             }
         } else {
-            m = m << 11 as i32 | (1 as i32 as uint64_t) << 63 as i32;
+            m = m << 11 as i32 | (1 as i32 as u64) << 63 as i32;
             current_block = 15442955482004205486;
         }
         match current_block {
@@ -4019,25 +3978,25 @@ pub unsafe extern "C" fn bf_get_int32(
     mut a: *const bf_t,
     mut flags: i32,
 ) -> i32 {
-    let mut v: uint32_t = 0;
+    let mut v: u32 = 0;
     let mut ret: i32 = 0;
     if (*a).expn >= 9223372036854775807 as i64 - 1 as i32 as i64 {
         ret = (1 as i32) << 0 as i32;
         if flags & (1 as i32) << 0 as i32 != 0 {
-            v = 0 as i32 as uint32_t
+            v = 0 as i32 as u32
         } else if (*a).expn == 9223372036854775807 as i64 - 1 as i32 as i64 {
-            v = (2147483647 as i32 as uint32_t).wrapping_add((*a).sign as u32)
+            v = (2147483647 as i32 as u32).wrapping_add((*a).sign as u32)
         } else {
-            v = 2147483647 as i32 as uint32_t
+            v = 2147483647 as i32 as u32
         }
     } else if (*a).expn <= 0 as i32 as i64 {
-        v = 0 as i32 as uint32_t;
+        v = 0 as i32 as u32;
         ret = 0 as i32
     } else if (*a).expn <= 31 as i32 as i64 {
         v = (*(*a)
             .tab
             .offset((*a).len.wrapping_sub(1 as i32 as u64) as isize)
-            >> ((1 as i32) << 6 as i32) as i64 - (*a).expn) as uint32_t;
+            >> ((1 as i32) << 6 as i32) as i64 - (*a).expn) as u32;
         if (*a).sign != 0 {
             v = v.wrapping_neg()
         }
@@ -4045,7 +4004,7 @@ pub unsafe extern "C" fn bf_get_int32(
     } else if flags & (1 as i32) << 0 as i32 == 0 {
         ret = (1 as i32) << 0 as i32;
         if (*a).sign != 0 {
-            v = (2147483647 as i32 as uint32_t).wrapping_add(1 as i32 as u32);
+            v = (2147483647 as i32 as u32).wrapping_add(1 as i32 as u32);
             if (*a).expn == 32 as i32 as i64
                 && *(*a)
                     .tab
@@ -4056,7 +4015,7 @@ pub unsafe extern "C" fn bf_get_int32(
                 ret = 0 as i32
             }
         } else {
-            v = 2147483647 as i32 as uint32_t
+            v = 2147483647 as i32 as u32
         }
     } else {
         v = get_bits(
@@ -4065,7 +4024,7 @@ pub unsafe extern "C" fn bf_get_int32(
             (*a).len
                 .wrapping_mul(((1 as i32) << 6 as i32) as u64)
                 .wrapping_sub((*a).expn as u64) as slimb_t,
-        ) as uint32_t;
+        ) as u32;
         if (*a).sign != 0 {
             v = v.wrapping_neg()
         }
@@ -4078,23 +4037,23 @@ pub unsafe extern "C" fn bf_get_int32(
 is an overflow and 0 otherwise. */
 #[no_mangle]
 pub unsafe extern "C" fn bf_get_int64(
-    mut pres: *mut int64_t,
+    mut pres: *mut i64,
     mut a: *const bf_t,
     mut flags: i32,
 ) -> i32 {
-    let mut v: uint64_t = 0;
+    let mut v: u64 = 0;
     let mut ret: i32 = 0;
     if (*a).expn >= 9223372036854775807 as i64 - 1 as i32 as i64 {
         ret = (1 as i32) << 0 as i32;
         if flags & (1 as i32) << 0 as i32 != 0 {
-            v = 0 as i32 as uint64_t
+            v = 0 as i32 as u64
         } else if (*a).expn == 9223372036854775807 as i64 - 1 as i32 as i64 {
-            v = (9223372036854775807 as i64 as uint64_t).wrapping_add((*a).sign as u64)
+            v = (9223372036854775807 as i64 as u64).wrapping_add((*a).sign as u64)
         } else {
-            v = 9223372036854775807 as i64 as uint64_t
+            v = 9223372036854775807 as i64 as u64
         }
     } else if (*a).expn <= 0 as i32 as i64 {
-        v = 0 as i32 as uint64_t;
+        v = 0 as i32 as u64;
         ret = 0 as i32
     } else if (*a).expn <= 63 as i32 as i64 {
         v = *(*a)
@@ -4108,8 +4067,8 @@ pub unsafe extern "C" fn bf_get_int64(
     } else if flags & (1 as i32) << 0 as i32 == 0 {
         ret = (1 as i32) << 0 as i32;
         if (*a).sign != 0 {
-            let mut v1: uint64_t = 0;
-            v = (9223372036854775807 as i64 as uint64_t).wrapping_add(1 as i32 as u64);
+            let mut v1: u64 = 0;
+            v = (9223372036854775807 as i64 as u64).wrapping_add(1 as i32 as u64);
             if (*a).expn == 64 as i32 as i64 {
                 v1 = *(*a)
                     .tab
@@ -4119,7 +4078,7 @@ pub unsafe extern "C" fn bf_get_int64(
                 }
             }
         } else {
-            v = 9223372036854775807 as i64 as uint64_t
+            v = 9223372036854775807 as i64 as u64
         }
     } else {
         let mut bit_pos: slimb_t = (*a)
@@ -4132,24 +4091,24 @@ pub unsafe extern "C" fn bf_get_int64(
         }
         ret = 0 as i32
     }
-    *pres = v as int64_t;
+    *pres = v as i64;
     return ret;
 }
 /* The rounding mode is always BF_RNDZ. Return BF_ST_INVALID_OP if there
 is an overflow and 0 otherwise. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_get_uint64(mut pres: *mut uint64_t, mut a: *const bf_t) -> i32 {
-    let mut v: uint64_t = 0;
+pub unsafe extern "C" fn bf_get_uint64(mut pres: *mut u64, mut a: *const bf_t) -> i32 {
+    let mut v: u64 = 0;
     let mut ret: i32 = 0;
     let mut current_block_10: u64;
     if (*a).expn == 9223372036854775807 as i64 {
         current_block_10 = 8344853031916340450;
     } else if (*a).expn <= 0 as i32 as i64 {
-        v = 0 as i32 as uint64_t;
+        v = 0 as i32 as u64;
         ret = 0 as i32;
         current_block_10 = 17407779659766490442;
     } else if (*a).sign != 0 {
-        v = 0 as i32 as uint64_t;
+        v = 0 as i32 as u64;
         ret = (1 as i32) << 0 as i32;
         current_block_10 = 17407779659766490442;
     } else if (*a).expn <= 64 as i32 as i64 {
@@ -4173,42 +4132,42 @@ pub unsafe extern "C" fn bf_get_uint64(mut pres: *mut uint64_t, mut a: *const bf
     return ret;
 }
 /* base conversion from radix */
-static mut digits_per_limb_table: [uint8_t; 35] = [
-    64 as i32 as uint8_t,
-    40 as i32 as uint8_t,
-    32 as i32 as uint8_t,
-    27 as i32 as uint8_t,
-    24 as i32 as uint8_t,
-    22 as i32 as uint8_t,
-    21 as i32 as uint8_t,
-    20 as i32 as uint8_t,
-    19 as i32 as uint8_t,
-    18 as i32 as uint8_t,
-    17 as i32 as uint8_t,
-    17 as i32 as uint8_t,
-    16 as i32 as uint8_t,
-    16 as i32 as uint8_t,
-    16 as i32 as uint8_t,
-    15 as i32 as uint8_t,
-    15 as i32 as uint8_t,
-    15 as i32 as uint8_t,
-    14 as i32 as uint8_t,
-    14 as i32 as uint8_t,
-    14 as i32 as uint8_t,
-    14 as i32 as uint8_t,
-    13 as i32 as uint8_t,
-    13 as i32 as uint8_t,
-    13 as i32 as uint8_t,
-    13 as i32 as uint8_t,
-    13 as i32 as uint8_t,
-    13 as i32 as uint8_t,
-    13 as i32 as uint8_t,
-    12 as i32 as uint8_t,
-    12 as i32 as uint8_t,
-    12 as i32 as uint8_t,
-    12 as i32 as uint8_t,
-    12 as i32 as uint8_t,
-    12 as i32 as uint8_t,
+static mut digits_per_limb_table: [u8; 35] = [
+    64 as i32 as u8,
+    40 as i32 as u8,
+    32 as i32 as u8,
+    27 as i32 as u8,
+    24 as i32 as u8,
+    22 as i32 as u8,
+    21 as i32 as u8,
+    20 as i32 as u8,
+    19 as i32 as u8,
+    18 as i32 as u8,
+    17 as i32 as u8,
+    17 as i32 as u8,
+    16 as i32 as u8,
+    16 as i32 as u8,
+    16 as i32 as u8,
+    15 as i32 as u8,
+    15 as i32 as u8,
+    15 as i32 as u8,
+    14 as i32 as u8,
+    14 as i32 as u8,
+    14 as i32 as u8,
+    14 as i32 as u8,
+    13 as i32 as u8,
+    13 as i32 as u8,
+    13 as i32 as u8,
+    13 as i32 as u8,
+    13 as i32 as u8,
+    13 as i32 as u8,
+    13 as i32 as u8,
+    12 as i32 as u8,
+    12 as i32 as u8,
+    12 as i32 as u8,
+    12 as i32 as u8,
+    12 as i32 as u8,
+    12 as i32 as u8,
 ];
 unsafe extern "C" fn get_limb_radix(mut radix: i32) -> limb_t {
     let mut i: i32 = 0;
@@ -4327,7 +4286,7 @@ unsafe extern "C" fn bf_integer_from_radix(
     pow_tab_len = ceil_log2(n) + 2 as i32;
     pow_tab = bf_malloc(
         s,
-        (::std::mem::size_of::<bf_t>() as u64).wrapping_mul(pow_tab_len as u64),
+        (::std::mem::size_of::<bf_t>()).wrapping_mul(pow_tab_len as usize),
     ) as *mut bf_t;
     if pow_tab.is_null() {
         return -(1 as i32);
@@ -4510,7 +4469,7 @@ unsafe extern "C" fn bf_add_limb(mut a: *mut bf_t, mut ppos: *mut slimb_t, mut v
         new_tab = bf_realloc(
             (*a).ctx,
             (*a).tab as *mut std::ffi::c_void,
-            (::std::mem::size_of::<limb_t>() as u64).wrapping_mul(new_size),
+            (::std::mem::size_of::<limb_t>()).wrapping_mul(new_size as usize),
         ) as *mut limb_t;
         if new_tab.is_null() {
             return -(1 as i32);
@@ -4648,7 +4607,7 @@ unsafe extern "C" fn bf_atof_internal(
                 _ =>
                 /* there must be a digit after the prefix */
                 {
-                    if to_digit(*p as uint8_t as i32) >= radix {
+                    if to_digit(*p as u8 as i32) >= radix {
                         bf_set_nan(r); /* base is not a power of two */
                         ret = 0 as i32;
                         current_block = 11118440404757757489;
@@ -5012,181 +4971,169 @@ pub unsafe extern "C" fn bf_atof(
     );
 }
 /* base conversion to radix */
-static mut inv_log2_radix: [[uint32_t; 3]; 35] = [
+static mut inv_log2_radix: [[u32; 3]; 35] = [
+    [0x80000000 as u32, 0 as i32 as u32, 0 as i32 as u32],
     [
-        0x80000000 as u32,
-        0 as i32 as uint32_t,
-        0 as i32 as uint32_t,
-    ],
-    [
-        0x50c24e60 as i32 as uint32_t,
+        0x50c24e60 as i32 as u32,
         0xd4d4f4a7 as u32,
-        0x21f57bc as i32 as uint32_t,
+        0x21f57bc as i32 as u32,
+    ],
+    [0x40000000 as i32 as u32, 0 as i32 as u32, 0 as i32 as u32],
+    [
+        0x372068d2 as i32 as u32,
+        0xa1ee5ca as i32 as u32,
+        0x19ea911b as i32 as u32,
     ],
     [
-        0x40000000 as i32 as uint32_t,
-        0 as i32 as uint32_t,
-        0 as i32 as uint32_t,
-    ],
-    [
-        0x372068d2 as i32 as uint32_t,
-        0xa1ee5ca as i32 as uint32_t,
-        0x19ea911b as i32 as uint32_t,
-    ],
-    [
-        0x3184648d as i32 as uint32_t,
+        0x3184648d as i32 as u32,
         0xb8153e7a as u32,
-        0x7fc2d2e1 as i32 as uint32_t,
+        0x7fc2d2e1 as i32 as u32,
     ],
     [
-        0x2d983275 as i32 as uint32_t,
+        0x2d983275 as i32 as u32,
         0x9d5369c4 as u32,
-        0x4dec1661 as i32 as uint32_t,
+        0x4dec1661 as i32 as u32,
     ],
     [
-        0x2aaaaaaa as i32 as uint32_t,
+        0x2aaaaaaa as i32 as u32,
         0xaaaaaaaa as u32,
         0xaaaaaaab as u32,
     ],
     [
-        0x28612730 as i32 as uint32_t,
-        0x6a6a7a53 as i32 as uint32_t,
+        0x28612730 as i32 as u32,
+        0x6a6a7a53 as i32 as u32,
         0x810fabde as u32,
     ],
     [
-        0x268826a1 as i32 as uint32_t,
-        0x3ef3fde6 as i32 as uint32_t,
-        0x23e2566b as i32 as uint32_t,
+        0x268826a1 as i32 as u32,
+        0x3ef3fde6 as i32 as u32,
+        0x23e2566b as i32 as u32,
     ],
     [
-        0x25001383 as i32 as uint32_t,
+        0x25001383 as i32 as u32,
         0xbac8a744 as u32,
-        0x385a3349 as i32 as uint32_t,
+        0x385a3349 as i32 as u32,
     ],
     [
-        0x23b46706 as i32 as uint32_t,
+        0x23b46706 as i32 as u32,
         0x82c0c709 as u32,
-        0x3f891718 as i32 as uint32_t,
+        0x3f891718 as i32 as u32,
     ],
     [
-        0x229729f1 as i32 as uint32_t,
+        0x229729f1 as i32 as u32,
         0xb2c83ded as u32,
-        0x15fba800 as i32 as uint32_t,
+        0x15fba800 as i32 as u32,
     ],
     [
-        0x219e7ffd as i32 as uint32_t,
+        0x219e7ffd as i32 as u32,
         0xa5ad572a as u32,
         0xe169744b as u32,
     ],
     [
-        0x20c33b88 as i32 as uint32_t,
+        0x20c33b88 as i32 as u32,
         0xda7c29aa as u32,
         0x9bddee52 as u32,
     ],
+    [0x20000000 as i32 as u32, 0 as i32 as u32, 0 as i32 as u32],
     [
-        0x20000000 as i32 as uint32_t,
-        0 as i32 as uint32_t,
-        0 as i32 as uint32_t,
-    ],
-    [
-        0x1f50b57e as i32 as uint32_t,
+        0x1f50b57e as i32 as u32,
         0xac5884b3 as u32,
-        0x70e28eee as i32 as uint32_t,
+        0x70e28eee as i32 as u32,
     ],
     [
-        0x1eb22cc6 as i32 as uint32_t,
+        0x1eb22cc6 as i32 as u32,
         0x8aa6e26f as u32,
-        0x6d1a2a2 as i32 as uint32_t,
+        0x6d1a2a2 as i32 as u32,
     ],
     [
-        0x1e21e118 as i32 as uint32_t,
-        0xc5daab1 as i32 as uint32_t,
+        0x1e21e118 as i32 as u32,
+        0xc5daab1 as i32 as u32,
         0x81b4f4bf as u32,
     ],
     [
-        0x1d9dcd21 as i32 as uint32_t,
-        0x439834e3 as i32 as uint32_t,
+        0x1d9dcd21 as i32 as u32,
+        0x439834e3 as i32 as u32,
         0x81667575 as u32,
     ],
     [
-        0x1d244c78 as i32 as uint32_t,
-        0x367a0d64 as i32 as uint32_t,
+        0x1d244c78 as i32 as u32,
+        0x367a0d64 as i32 as u32,
         0xc8204d6d as u32,
     ],
     [
-        0x1cb40589 as i32 as uint32_t,
+        0x1cb40589 as i32 as u32,
         0xac173e0c as u32,
-        0x3b7b16ba as i32 as uint32_t,
+        0x3b7b16ba as i32 as u32,
     ],
     [
-        0x1c4bd95b as i32 as uint32_t,
+        0x1c4bd95b as i32 as u32,
         0xa8d72b0d as u32,
-        0x5879f25a as i32 as uint32_t,
+        0x5879f25a as i32 as u32,
     ],
     [
-        0x1bead768 as i32 as uint32_t,
+        0x1bead768 as i32 as u32,
         0x98f8ce4c as u32,
-        0x66cc2858 as i32 as uint32_t,
+        0x66cc2858 as i32 as u32,
     ],
     [
-        0x1b903469 as i32 as uint32_t,
-        0x50f72e5 as i32 as uint32_t,
-        0xcf5488e as i32 as uint32_t,
+        0x1b903469 as i32 as u32,
+        0x50f72e5 as i32 as u32,
+        0xcf5488e as i32 as u32,
     ],
     [
-        0x1b3b433f as i32 as uint32_t,
-        0x2eb06f14 as i32 as uint32_t,
+        0x1b3b433f as i32 as u32,
+        0x2eb06f14 as i32 as u32,
         0x8c89719c as u32,
     ],
     [
-        0x1aeb6f75 as i32 as uint32_t,
+        0x1aeb6f75 as i32 as u32,
         0x9c46fc37 as u32,
         0xab5fc7e9 as u32,
     ],
     [
-        0x1aa038eb as i32 as uint32_t,
-        0xe3bfd17 as i32 as uint32_t,
-        0x1bd62080 as i32 as uint32_t,
+        0x1aa038eb as i32 as u32,
+        0xe3bfd17 as i32 as u32,
+        0x1bd62080 as i32 as u32,
     ],
     [
-        0x1a593062 as i32 as uint32_t,
+        0x1a593062 as i32 as u32,
         0xb38d8c56 as u32,
-        0x7998ab45 as i32 as uint32_t,
+        0x7998ab45 as i32 as u32,
     ],
     [
-        0x1a15f4c3 as i32 as uint32_t,
-        0x2b95a2e6 as i32 as uint32_t,
-        0x46aed6a0 as i32 as uint32_t,
+        0x1a15f4c3 as i32 as u32,
+        0x2b95a2e6 as i32 as u32,
+        0x46aed6a0 as i32 as u32,
     ],
     [
-        0x19d630dc as i32 as uint32_t,
+        0x19d630dc as i32 as u32,
         0xcc7ddef9 as u32,
-        0x5aadd61b as i32 as uint32_t,
+        0x5aadd61b as i32 as u32,
     ],
     [
-        0x19999999 as i32 as uint32_t,
+        0x19999999 as i32 as u32,
         0x99999999 as u32,
         0x9999999a as u32,
     ],
     [
-        0x195fec80 as i32 as uint32_t,
+        0x195fec80 as i32 as u32,
         0x8a609430 as u32,
         0xe1106014 as u32,
     ],
     [
-        0x1928ee7b as i32 as uint32_t,
-        0xb4f22f9 as i32 as uint32_t,
-        0x5f69791d as i32 as uint32_t,
+        0x1928ee7b as i32 as u32,
+        0xb4f22f9 as i32 as u32,
+        0x5f69791d as i32 as u32,
     ],
     [
-        0x18f46acf as i32 as uint32_t,
+        0x18f46acf as i32 as u32,
         0x8c06e318 as u32,
-        0x4d2aeb2c as i32 as uint32_t,
+        0x4d2aeb2c as i32 as u32,
     ],
     [
-        0x18c23246 as i32 as uint32_t,
+        0x18c23246 as i32 as u32,
         0xdc0a9f3d as u32,
-        0x3fe16970 as i32 as uint32_t,
+        0x3fe16970 as i32 as u32,
     ],
 ];
 static mut log2_radix: [limb_t; 35] = [
@@ -5261,7 +5208,7 @@ pub unsafe extern "C" fn bf_mul_log2_radix(
             a = a.wrapping_mul(radix_bits as u64)
         }
     } else {
-        let mut tab: *const uint32_t = 0 as *const uint32_t;
+        let mut tab: *const u32 = 0 as *const u32;
         let mut b0: limb_t = 0;
         let mut b1: limb_t = 0;
         let mut t: dlimb_t = 0;
@@ -5376,7 +5323,7 @@ unsafe extern "C" fn bf_integer_to_radix_rec(
             );
             /* we use enough bits for the maximum possible 'n1' value,
             i.e. n2 + 1 */
-            ret |= bf_set_ui(&mut R, 1 as i32 as uint64_t);
+            ret |= bf_set_ui(&mut R, 1 as i32 as u64);
             ret |= bf_div(
                 B_inv,
                 &mut R,
@@ -5464,7 +5411,7 @@ unsafe extern "C" fn bf_integer_to_radix_rec(
                                 if bf_add_si(
                                     &mut Q,
                                     &mut Q,
-                                    q_add as int64_t,
+                                    q_add as i64,
                                     ((1 as i32 as limb_t) << ((1 as i32) << 6 as i32) - 2 as i32)
                                         .wrapping_sub(2 as i32 as u64)
                                         .wrapping_add(1 as i32 as u64),
@@ -5544,7 +5491,7 @@ unsafe extern "C" fn bf_integer_to_radix(
     pow_tab_len = (ceil_log2(r_len) + 2 as i32) * 2 as i32;
     pow_tab = bf_malloc(
         s,
-        (::std::mem::size_of::<bf_t>() as u64).wrapping_mul(pow_tab_len as u64),
+        (::std::mem::size_of::<bf_t>()).wrapping_mul(pow_tab_len as usize),
     ) as *mut bf_t;
     if pow_tab.is_null() {
         return -(1 as i32);
@@ -5859,7 +5806,7 @@ unsafe extern "C" fn output_digits(
                     l = dot_pos
                 } else {
                     if i == dot_pos {
-                        dbuf_putc(s, '.' as i32 as uint8_t);
+                        dbuf_putc(s, '.' as i32 as u8);
                     }
                     l = n_digits
                 }
@@ -5869,7 +5816,7 @@ unsafe extern "C" fn output_digits(
                 ) as limb_t;
                 dbuf_put(
                     s,
-                    buf.as_mut_ptr().offset(buf_pos as isize) as *mut uint8_t,
+                    buf.as_mut_ptr().offset(buf_pos as isize) as *mut u8,
                     l as usize,
                 );
                 buf_pos = (buf_pos as u64).wrapping_add(l) as i32 as i32;
@@ -5885,14 +5832,14 @@ unsafe extern "C" fn output_digits(
 unsafe extern "C" fn bf_dbuf_realloc(
     mut opaque: *mut std::ffi::c_void,
     mut ptr: *mut std::ffi::c_void,
-    mut size: size_t,
+    mut size: usize,
 ) -> *mut std::ffi::c_void {
     let mut s: *mut bf_context_t = opaque as *mut bf_context_t;
     return bf_realloc(s, ptr, size);
 }
 /* return the length in bytes. A trailing '\0' is added */
 unsafe extern "C" fn bf_ftoa_internal(
-    mut plen: *mut size_t,
+    mut plen: *mut u64,
     mut a2: *const bf_t,
     mut radix: i32,
     mut prec: limb_t,
@@ -5910,7 +5857,7 @@ unsafe extern "C" fn bf_ftoa_internal(
     let mut current_block: u64;
     let mut ctx: *mut bf_context_t = (*a2).ctx;
     let mut s_s: DynBuf = DynBuf {
-        buf: 0 as *mut uint8_t,
+        buf: 0 as *mut u8,
         size: 0,
         allocated_size: 0,
         error: 0,
@@ -5929,7 +5876,7 @@ unsafe extern "C" fn bf_ftoa_internal(
                 as unsafe extern "C" fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
-                    _: size_t,
+                    _: usize,
                 ) -> *mut std::ffi::c_void,
         ),
     );
@@ -5938,7 +5885,7 @@ unsafe extern "C" fn bf_ftoa_internal(
         current_block = 17418136423408909163;
     } else {
         if (*a2).sign != 0 {
-            dbuf_putc(s, '-' as i32 as uint8_t);
+            dbuf_putc(s, '-' as i32 as u8);
         }
         if (*a2).expn == 9223372036854775807 as i64 - 1 as i32 as i64 {
             if flags & ((1 as i32) << 22 as i32) as u32 != 0 {
@@ -6036,7 +5983,7 @@ unsafe extern "C" fn bf_ftoa_internal(
                                         );
                                         i = 0 as i32 as slimb_t;
                                         while (i as u64) < prec {
-                                            dbuf_putc(s, '0' as i32 as uint8_t);
+                                            dbuf_putc(s, '0' as i32 as u8);
                                             i += 1
                                         }
                                     }
@@ -6050,7 +5997,7 @@ unsafe extern "C" fn bf_ftoa_internal(
                                         );
                                         i = 0 as i32 as slimb_t;
                                         while i < -n {
-                                            dbuf_putc(s, '0' as i32 as uint8_t);
+                                            dbuf_putc(s, '0' as i32 as u8);
                                             i += 1
                                         }
                                         if n_digits > 0 as i32 as i64 {
@@ -6079,8 +6026,8 @@ unsafe extern "C" fn bf_ftoa_internal(
                         }
                     }
                 } else {
-                    let mut pos: size_t = 0;
-                    let mut start: size_t = 0;
+                    let mut pos: usize = 0;
+                    let mut start: usize = 0;
                     let mut a_s: bf_t = bf_t {
                         ctx: 0 as *mut bf_context_t,
                         sign: 0,
@@ -6120,10 +6067,9 @@ unsafe extern "C" fn bf_ftoa_internal(
                         output_digits(s, a1, radix, n_digits as limb_t, n as limb_t, is_dec);
                         /* remove leading zeros because we allocated one more digit */
                         pos = start;
-                        while pos.wrapping_add(1 as i32 as u64) < (*s).size
+                        while pos.wrapping_add(1) < (*s).size
                             && *(*s).buf.offset(pos as isize) as i32 == '0' as i32
-                            && *(*s).buf.offset(pos.wrapping_add(1 as i32 as u64) as isize) as i32
-                                != '.' as i32
+                            && *(*s).buf.offset(pos.wrapping_add(1) as isize) as i32 != '.' as i32
                         {
                             pos = pos.wrapping_add(1)
                         }
@@ -6132,8 +6078,7 @@ unsafe extern "C" fn bf_ftoa_internal(
                                 (*s).buf.offset(pos as isize) as *const u8,
                                 (*s).size.wrapping_sub(pos) as usize,
                             );
-                            (*s).size = ((*s).size as u64).wrapping_sub(pos.wrapping_sub(start))
-                                as size_t as size_t
+                            (*s).size = ((*s).size).wrapping_sub(pos.wrapping_sub(start))
                         }
                         current_block = 9985465603744958559;
                     }
@@ -6448,7 +6393,7 @@ unsafe extern "C" fn bf_ftoa_internal(
                                 );
                                 i = 0 as i32 as slimb_t;
                                 while i < -n {
-                                    dbuf_putc(s, '0' as i32 as uint8_t);
+                                    dbuf_putc(s, '0' as i32 as u8);
                                     i += 1
                                 }
                                 output_digits(
@@ -6471,7 +6416,7 @@ unsafe extern "C" fn bf_ftoa_internal(
                                 );
                                 i = 0 as i32 as slimb_t;
                                 while i < n - n_digits {
-                                    dbuf_putc(s, '0' as i32 as uint8_t);
+                                    dbuf_putc(s, '0' as i32 as u8);
                                     i += 1
                                 }
                             } else {
@@ -6503,10 +6448,10 @@ unsafe extern "C" fn bf_ftoa_internal(
     }
     match current_block {
         17418136423408909163 => {
-            dbuf_putc(s, '\u{0}' as i32 as uint8_t);
+            dbuf_putc(s, '\u{0}' as i32 as u8);
             if !(dbuf_error(s) != 0) {
                 if !plen.is_null() {
-                    *plen = (*s).size.wrapping_sub(1 as i32 as u64)
+                    *plen = (*s).size.wrapping_sub(1) as u64
                 }
                 return (*s).buf as *mut std::os::raw::c_char;
             }
@@ -6515,13 +6460,13 @@ unsafe extern "C" fn bf_ftoa_internal(
     }
     bf_free(ctx, (*s).buf as *mut std::ffi::c_void);
     if !plen.is_null() {
-        *plen = 0 as i32 as size_t
+        *plen = 0 as i32 as u64
     }
     return 0 as *mut std::os::raw::c_char;
 }
 #[no_mangle]
 pub unsafe extern "C" fn bf_ftoa(
-    mut plen: *mut size_t,
+    mut plen: *mut u64,
     mut a: *const bf_t,
     mut radix: i32,
     mut prec: limb_t,
@@ -6543,7 +6488,7 @@ unsafe extern "C" fn bf_const_log2_rec(
     let mut s: *mut bf_context_t = (*T).ctx;
     if n2.wrapping_sub(n1) == 1 as i32 as u64 {
         if n1 == 0 as i32 as u64 {
-            bf_set_ui(P, 3 as i32 as uint64_t);
+            bf_set_ui(P, 3 as i32 as u64);
         } else {
             bf_set_ui(P, n1);
             (*P).sign = 1 as i32
@@ -6675,13 +6620,13 @@ unsafe extern "C" fn chud_bs(
     mut P: *mut bf_t,
     mut Q: *mut bf_t,
     mut G: *mut bf_t,
-    mut a: int64_t,
-    mut b: int64_t,
+    mut a: i64,
+    mut b: i64,
     mut need_g: i32,
     mut prec: limb_t,
 ) {
     let mut s: *mut bf_context_t = (*P).ctx;
-    let mut c: int64_t = 0;
+    let mut c: i64 = 0;
     if a == b - 1 as i32 as i64 {
         let mut T0: bf_t = bf_t {
             ctx: 0 as *mut bf_context_t,
@@ -6699,30 +6644,30 @@ unsafe extern "C" fn chud_bs(
         };
         bf_init(s, &mut T0);
         bf_init(s, &mut T1);
-        bf_set_ui(G, (2 as i32 as i64 * b - 1 as i32 as i64) as uint64_t);
+        bf_set_ui(G, (2 as i32 as i64 * b - 1 as i32 as i64) as u64);
         bf_mul_ui(
             G,
             G,
-            (6 as i32 as i64 * b - 1 as i32 as i64) as uint64_t,
+            (6 as i32 as i64 * b - 1 as i32 as i64) as u64,
             prec,
             BF_RNDN as i32 as bf_flags_t,
         );
         bf_mul_ui(
             G,
             G,
-            (6 as i32 as i64 * b - 5 as i32 as i64) as uint64_t,
+            (6 as i32 as i64 * b - 5 as i32 as i64) as u64,
             prec,
             BF_RNDN as i32 as bf_flags_t,
         );
-        bf_set_ui(&mut T0, 545140134 as i32 as uint64_t);
+        bf_set_ui(&mut T0, 545140134 as i32 as u64);
         bf_mul_ui(
             &mut T0,
             &mut T0,
-            b as uint64_t,
+            b as u64,
             prec,
             BF_RNDN as i32 as bf_flags_t,
         );
-        bf_set_ui(&mut T1, 13591409 as i32 as uint64_t);
+        bf_set_ui(&mut T1, 13591409 as i32 as u64);
         bf_add(
             &mut T0,
             &mut T0,
@@ -6732,13 +6677,13 @@ unsafe extern "C" fn chud_bs(
         );
         bf_mul(P, G, &mut T0, prec, BF_RNDN as i32 as bf_flags_t);
         (*P).sign = (b & 1 as i32 as i64) as i32;
-        bf_set_ui(Q, b as uint64_t);
-        bf_mul_ui(Q, Q, b as uint64_t, prec, BF_RNDN as i32 as bf_flags_t);
-        bf_mul_ui(Q, Q, b as uint64_t, prec, BF_RNDN as i32 as bf_flags_t);
+        bf_set_ui(Q, b as u64);
+        bf_mul_ui(Q, Q, b as u64, prec, BF_RNDN as i32 as bf_flags_t);
+        bf_mul_ui(Q, Q, b as u64, prec, BF_RNDN as i32 as bf_flags_t);
         bf_mul_ui(
             Q,
             Q,
-            (640320 as i32 as uint64_t)
+            (640320 as i32 as u64)
                 .wrapping_mul(640320 as i32 as u64)
                 .wrapping_mul(640320 as i32 as u64)
                 .wrapping_div(24 as i32 as u64),
@@ -6780,7 +6725,7 @@ unsafe extern "C" fn chud_bs(
         /* P = P1 * Q2 + P2 * G1 */
         bf_mul(&mut P2, &mut P2, G, prec, BF_RNDN as i32 as bf_flags_t);
         if need_g == 0 {
-            bf_set_ui(G, 0 as i32 as uint64_t);
+            bf_set_ui(G, 0 as i32 as u64);
         }
         bf_mul(P, P, &mut Q2, prec, BF_RNDN as i32 as bf_flags_t);
         bf_add(P, P, &mut P2, prec, BF_RNDN as i32 as bf_flags_t);
@@ -6797,8 +6742,8 @@ unsafe extern "C" fn chud_bs(
 Chudnovsky formula */
 unsafe extern "C" fn bf_const_pi_internal(mut Q: *mut bf_t, mut prec: limb_t) {
     let mut s: *mut bf_context_t = (*Q).ctx;
-    let mut n: int64_t = 0;
-    let mut prec1: int64_t = 0;
+    let mut n: i64 = 0;
+    let mut prec1: i64 = 0;
     let mut P: bf_t = bf_t {
         ctx: 0 as *mut bf_context_t,
         sign: 0,
@@ -6816,16 +6761,16 @@ unsafe extern "C" fn bf_const_pi_internal(mut Q: *mut bf_t, mut prec: limb_t) {
     /* number of serie terms */
     n = prec
         .wrapping_div(47 as i32 as u64)
-        .wrapping_add(1 as i32 as u64) as int64_t;
+        .wrapping_add(1 as i32 as u64) as i64;
     /* XXX: precision analysis */
-    prec1 = prec.wrapping_add(32 as i32 as u64) as int64_t;
+    prec1 = prec.wrapping_add(32 as i32 as u64) as i64;
     bf_init(s, &mut P);
     bf_init(s, &mut G);
     chud_bs(
         &mut P,
         Q,
         &mut G,
-        0 as i32 as int64_t,
+        0 as i32 as i64,
         n,
         0 as i32,
         ((1 as i32 as limb_t) << ((1 as i32) << 6 as i32) - 2 as i32)
@@ -6835,7 +6780,7 @@ unsafe extern "C" fn bf_const_pi_internal(mut Q: *mut bf_t, mut prec: limb_t) {
     bf_mul_ui(
         &mut G,
         Q,
-        13591409 as i32 as uint64_t,
+        13591409 as i32 as u64,
         prec1 as limb_t,
         BF_RNDN as i32 as bf_flags_t,
     );
@@ -6847,7 +6792,7 @@ unsafe extern "C" fn bf_const_pi_internal(mut Q: *mut bf_t, mut prec: limb_t) {
         BF_RNDN as i32 as bf_flags_t,
     );
     bf_div(Q, Q, &mut P, prec1 as limb_t, BF_RNDF as i32 as bf_flags_t);
-    bf_set_ui(&mut P, 640320 as i32 as uint64_t);
+    bf_set_ui(&mut P, 640320 as i32 as u64);
     bf_sqrt(
         &mut G,
         &mut P,
@@ -6857,7 +6802,7 @@ unsafe extern "C" fn bf_const_pi_internal(mut Q: *mut bf_t, mut prec: limb_t) {
     bf_mul_ui(
         &mut G,
         &mut G,
-        (640320 as i32 as uint64_t).wrapping_div(12 as i32 as u64),
+        (640320 as i32 as u64).wrapping_div(12 as i32 as u64),
         prec1 as limb_t,
         BF_RNDF as i32 as bf_flags_t,
     );
@@ -6978,7 +6923,7 @@ unsafe extern "C" fn bf_ziv_rounding(
             ret = f.expect("non-null function pointer")(r, a, prec1 as limb_t, opaque);
             if ret & ((1 as i32) << 2 as i32 | (1 as i32) << 3 as i32 | (1 as i32) << 5 as i32) != 0
             {
-                //            printf("ziv_extra_bits=%" PRId64 "\n", (int64_t)ziv_extra_bits);
+                //            printf("ziv_extra_bits=%" PRId64 "\n", (i64)ziv_extra_bits);
                 /* overflow or underflow should never happen because
                 it indicates the rounding cannot be done correctly,
                 but we do not catch all the cases */
@@ -7022,7 +6967,7 @@ unsafe extern "C" fn bf_add_epsilon(
     let mut ret: i32 = 0;
     /* small argument case: result = 1 + epsilon * sign(x) */
     bf_init((*a).ctx, T);
-    bf_set_ui(T, 1 as i32 as uint64_t);
+    bf_set_ui(T, 1 as i32 as u64);
     (*T).sign = e_sign;
     (*T).expn += e;
     ret = bf_add(r, r, T, prec, flags as bf_flags_t);
@@ -7123,16 +7068,16 @@ unsafe extern "C" fn bf_exp_internal(
     };
     let mut U: *mut bf_t = &mut U_s;
     bf_init(s, U);
-    bf_set_ui(r, 1 as i32 as uint64_t);
+    bf_set_ui(r, 1 as i32 as u64);
     i = l;
     while i >= 1 as i32 as i64 {
-        bf_set_ui(U, i as uint64_t);
+        bf_set_ui(U, i as u64);
         bf_div(U, T, U, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
         bf_mul(r, r, U, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
         bf_add_si(
             r,
             r,
-            1 as i32 as int64_t,
+            1 as i32 as i64,
             prec1 as limb_t,
             BF_RNDN as i32 as bf_flags_t,
         );
@@ -7209,7 +7154,7 @@ unsafe extern "C" fn check_exp_underflow_overflow(
     bf_mul_ui(
         T,
         log2,
-        e_max as uint64_t,
+        e_max as u64,
         ((1 as i32) << 6 as i32) as limb_t,
         BF_RNDU as i32 as bf_flags_t,
     );
@@ -7240,7 +7185,7 @@ unsafe extern "C" fn check_exp_underflow_overflow(
         bf_delete(log2);
         if rnd_mode == BF_RNDU as i32 {
             /* set the smallest value */
-            bf_set_ui(r, 1 as i32 as uint64_t);
+            bf_set_ui(r, 1 as i32 as u64);
             (*r).expn = e_min
         } else {
             bf_set_zero(r, 0 as i32);
@@ -7274,7 +7219,7 @@ pub unsafe extern "C" fn bf_exp(
                 bf_set_inf(r, 0 as i32);
             }
         } else {
-            bf_set_ui(r, 1 as i32 as uint64_t);
+            bf_set_ui(r, 1 as i32 as u64);
         }
         return 0 as i32;
     }
@@ -7284,7 +7229,7 @@ pub unsafe extern "C" fn bf_exp(
     }
     if (*a).expn < 0 as i32 as i64 && -(*a).expn as u64 >= prec.wrapping_add(2 as i32 as u64) {
         /* small argument case: result = 1 + epsilon * sign(x) */
-        bf_set_ui(r, 1 as i32 as uint64_t);
+        bf_set_ui(r, 1 as i32 as u64);
         return bf_add_epsilon(
             r,
             r,
@@ -7367,7 +7312,7 @@ unsafe extern "C" fn bf_log_internal(
     (*T).expn = 0 as i32 as slimb_t;
     /* U= ~ 2/3 */
     bf_init(s, U_0);
-    bf_set_ui(U_0, 0xaaaaaaaa as u32 as uint64_t);
+    bf_set_ui(U_0, 0xaaaaaaaa as u32 as u64);
     (*U_0).expn = 0 as i32 as slimb_t;
     if bf_cmp_lt(T, U_0) != 0 {
         (*T).expn += 1;
@@ -7398,7 +7343,7 @@ unsafe extern "C" fn bf_log_internal(
     bf_add_si(
         T,
         T,
-        -(1 as i32) as int64_t,
+        -(1 as i32) as i64,
         ((1 as i32 as limb_t) << ((1 as i32) << 6 as i32) - 2 as i32)
             .wrapping_sub(2 as i32 as u64)
             .wrapping_add(1 as i32 as u64),
@@ -7411,7 +7356,7 @@ unsafe extern "C" fn bf_log_internal(
         bf_add_si(
             U,
             T,
-            1 as i32 as int64_t,
+            1 as i32 as i64,
             prec1 as limb_t,
             BF_RNDN as i32 as bf_flags_t,
         );
@@ -7419,7 +7364,7 @@ unsafe extern "C" fn bf_log_internal(
         bf_add_si(
             U,
             V,
-            1 as i32 as int64_t,
+            1 as i32 as i64,
             prec1 as limb_t,
             BF_RNDN as i32 as bf_flags_t,
         );
@@ -7452,17 +7397,17 @@ unsafe extern "C" fn bf_log_internal(
     bf_add_si(
         Y,
         T,
-        2 as i32 as int64_t,
+        2 as i32 as i64,
         prec1 as limb_t,
         BF_RNDN as i32 as bf_flags_t,
     );
     bf_div(Y, T, Y, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
     bf_mul(Y2, Y, Y, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
-    bf_set_ui(r, 0 as i32 as uint64_t);
+    bf_set_ui(r, 0 as i32 as u64);
     i = l;
     while i >= 1 as i32 as i64 {
-        bf_set_ui(U, 1 as i32 as uint64_t);
-        bf_set_ui(V, (2 as i32 as i64 * i + 1 as i32 as i64) as uint64_t);
+        bf_set_ui(U, 1 as i32 as u64);
+        bf_set_ui(V, (2 as i32 as i64 * i + 1 as i32 as i64) as u64);
         bf_div(U, U, V, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
         bf_add(r, r, U, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
         bf_mul(r, r, Y2, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
@@ -7471,7 +7416,7 @@ unsafe extern "C" fn bf_log_internal(
     bf_add_si(
         r,
         r,
-        1 as i32 as int64_t,
+        1 as i32 as i64,
         prec1 as limb_t,
         BF_RNDN as i32 as bf_flags_t,
     );
@@ -7539,7 +7484,7 @@ pub unsafe extern "C" fn bf_log(
         return (1 as i32) << 0 as i32;
     }
     bf_init(s, T);
-    bf_set_ui(T, 1 as i32 as uint64_t);
+    bf_set_ui(T, 1 as i32 as u64);
     if bf_cmp_eq(a, T) != 0 {
         bf_set_zero(r, 0 as i32);
         bf_delete(T);
@@ -7642,7 +7587,7 @@ unsafe extern "C" fn bf_pow_int(
     );
     if (*y).sign != 0 {
         bf_init(s, T);
-        bf_set_ui(T, 1 as i32 as uint64_t);
+        bf_set_ui(T, 1 as i32 as u64);
         ret |= bf_div(
             r,
             T,
@@ -7754,12 +7699,12 @@ pub unsafe extern "C" fn bf_pow(
     if (*x).len == 0 as i32 as u64 || (*y).len == 0 as i32 as u64 {
         if (*y).expn == -(9223372036854775807 as i64) - 1 as i32 as i64 {
             /* pow(x, 0) = 1 */
-            bf_set_ui(r, 1 as i32 as uint64_t);
+            bf_set_ui(r, 1 as i32 as u64);
         } else if (*x).expn == 9223372036854775807 as i64 {
             bf_set_nan(r);
         } else {
             let mut cmp_x_abs_1: i32 = 0;
-            bf_set_ui(r, 1 as i32 as uint64_t);
+            bf_set_ui(r, 1 as i32 as u64);
             cmp_x_abs_1 = bf_cmpu(x, r);
             if cmp_x_abs_1 == 0 as i32
                 && flags & ((1 as i32) << 16 as i32) as u32 != 0
@@ -7818,7 +7763,7 @@ pub unsafe extern "C" fn bf_pow(
     } else {
         r_sign = 0 as i32
     }
-    bf_set_ui(r, 1 as i32 as uint64_t);
+    bf_set_ui(r, 1 as i32 as u64);
     if bf_cmp_eq(T, r) != 0 {
         /* abs(x) = 1: nothing more to do */
         ret = 0 as i32
@@ -7889,7 +7834,7 @@ pub unsafe extern "C" fn bf_pow(
                             BF_RNDZ as i32 as bf_flags_t,
                         );
                         bf_get_limb(&mut e, T, 0 as i32);
-                        bf_set_ui(r, 1 as i32 as uint64_t);
+                        bf_set_ui(r, 1 as i32 as u64);
                         ret = bf_mul_2exp(r, e, prec, flags);
                         current_block = 9694412348743700975;
                     } else if prec
@@ -8148,14 +8093,14 @@ unsafe extern "C" fn bf_sincos(
     /* Taylor expansion:
        -x^2/2 + x^4/4! - x^6/6! + ...
     */
-    bf_set_ui(r, 1 as i32 as uint64_t);
+    bf_set_ui(r, 1 as i32 as u64);
     i = l;
     while i >= 1 as i32 as i64 {
-        bf_set_ui(U, (2 as i32 as i64 * i - 1 as i32 as i64) as uint64_t);
+        bf_set_ui(U, (2 as i32 as i64 * i - 1 as i32 as i64) as u64);
         bf_mul_ui(
             U,
             U,
-            (2 as i32 as i64 * i) as uint64_t,
+            (2 as i32 as i64 * i) as u64,
             ((1 as i32 as limb_t) << ((1 as i32) << 6 as i32) - 2 as i32)
                 .wrapping_sub(2 as i32 as u64)
                 .wrapping_add(1 as i32 as u64),
@@ -8168,7 +8113,7 @@ unsafe extern "C" fn bf_sincos(
             bf_add_si(
                 r,
                 r,
-                1 as i32 as int64_t,
+                1 as i32 as i64,
                 prec1 as limb_t,
                 BF_RNDN as i32 as bf_flags_t,
             );
@@ -8207,7 +8152,7 @@ unsafe extern "C" fn bf_sincos(
             bf_add_si(
                 c,
                 r,
-                1 as i32 as int64_t,
+                1 as i32 as i64,
                 prec1 as limb_t,
                 BF_RNDN as i32 as bf_flags_t,
             );
@@ -8225,7 +8170,7 @@ unsafe extern "C" fn bf_sincos(
             bf_add_si(
                 s,
                 r,
-                1 as i32 as int64_t,
+                1 as i32 as i64,
                 prec1 as limb_t,
                 BF_RNDN as i32 as bf_flags_t,
             );
@@ -8258,7 +8203,7 @@ pub unsafe extern "C" fn bf_cos(
             bf_set_nan(r);
             return (1 as i32) << 0 as i32;
         } else {
-            bf_set_ui(r, 1 as i32 as uint64_t);
+            bf_set_ui(r, 1 as i32 as u64);
             return 0 as i32;
         }
     }
@@ -8268,7 +8213,7 @@ pub unsafe extern "C" fn bf_cos(
         let mut e: slimb_t = 0;
         e = 2 as i32 as i64 * (*a).expn - 1 as i32 as i64;
         if (e as u64) < prec.wrapping_add(2 as i32 as u64).wrapping_neg() {
-            bf_set_ui(r, 1 as i32 as uint64_t);
+            bf_set_ui(r, 1 as i32 as u64);
             return bf_add_epsilon(r, r, e, 1 as i32, prec, flags as i32);
         }
     }
@@ -8494,7 +8439,7 @@ unsafe extern "C" fn bf_atan_internal(
     bf_init(s, T); /* a >= 1 */
     cmp_1 = ((*a).expn >= 1 as i32 as i64) as i32;
     if cmp_1 != 0 {
-        bf_set_ui(T, 1 as i32 as uint64_t);
+        bf_set_ui(T, 1 as i32 as u64);
         bf_div(T, T, a, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
     } else {
         bf_set(T, a);
@@ -8511,7 +8456,7 @@ unsafe extern "C" fn bf_atan_internal(
         bf_add_si(
             U,
             U,
-            1 as i32 as int64_t,
+            1 as i32 as i64,
             prec1 as limb_t,
             BF_RNDN as i32 as bf_flags_t,
         );
@@ -8519,7 +8464,7 @@ unsafe extern "C" fn bf_atan_internal(
         bf_add_si(
             V,
             V,
-            1 as i32 as int64_t,
+            1 as i32 as i64,
             prec1 as limb_t,
             BF_RNDN as i32 as bf_flags_t,
         );
@@ -8530,11 +8475,11 @@ unsafe extern "C" fn bf_atan_internal(
        x - x^3/3 + ... + (-1)^ l * y^(2*l + 1) / (2*l+1)
     */
     bf_mul(X2, T, T, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
-    bf_set_ui(r, 0 as i32 as uint64_t);
+    bf_set_ui(r, 0 as i32 as u64);
     i = l;
     while i >= 1 as i32 as i64 {
-        bf_set_si(U, 1 as i32 as int64_t);
-        bf_set_ui(V, (2 as i32 as i64 * i + 1 as i32 as i64) as uint64_t);
+        bf_set_si(U, 1 as i32 as i64);
+        bf_set_ui(V, (2 as i32 as i64 * i + 1 as i32 as i64) as u64);
         bf_div(U, U, V, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
         bf_neg(r);
         bf_add(r, r, U, prec1 as limb_t, BF_RNDN as i32 as bf_flags_t);
@@ -8545,7 +8490,7 @@ unsafe extern "C" fn bf_atan_internal(
     bf_add_si(
         r,
         r,
-        1 as i32 as int64_t,
+        1 as i32 as i64,
         prec1 as limb_t,
         BF_RNDN as i32 as bf_flags_t,
     );
@@ -8626,7 +8571,7 @@ pub unsafe extern "C" fn bf_atan(
         }
     }
     bf_init(s, T);
-    bf_set_ui(T, 1 as i32 as uint64_t);
+    bf_set_ui(T, 1 as i32 as u64);
     res = bf_cmpu(a, T);
     bf_delete(T);
     if res == 0 as i32 {
@@ -8704,7 +8649,7 @@ unsafe extern "C" fn bf_atan2_internal(
     if (*y).expn == 9223372036854775807 as i64 - 1 as i32 as i64
         && (*x).expn == 9223372036854775807 as i64 - 1 as i32 as i64
     {
-        bf_set_ui(T, 1 as i32 as uint64_t);
+        bf_set_ui(T, 1 as i32 as u64);
         (*T).sign = (*y).sign ^ (*x).sign
     } else if (*y).expn == -(9223372036854775807 as i64) - 1 as i32 as i64
         && (*x).expn == -(9223372036854775807 as i64) - 1 as i32 as i64
@@ -8783,13 +8728,7 @@ unsafe extern "C" fn bf_asin_internal(
     bf_init(s, T);
     bf_mul(T, a, a, prec2, BF_RNDN as i32 as bf_flags_t);
     bf_neg(T);
-    bf_add_si(
-        T,
-        T,
-        1 as i32 as int64_t,
-        prec2,
-        BF_RNDN as i32 as bf_flags_t,
-    );
+    bf_add_si(T, T, 1 as i32 as i64, prec2, BF_RNDN as i32 as bf_flags_t);
     bf_sqrt(r, T, prec1, BF_RNDN as i32 as bf_flags_t);
     bf_div(T, a, r, prec1, BF_RNDN as i32 as bf_flags_t);
     if is_acos != 0 {
@@ -8829,7 +8768,7 @@ pub unsafe extern "C" fn bf_asin(
         }
     }
     bf_init(s, T);
-    bf_set_ui(T, 1 as i32 as uint64_t);
+    bf_set_ui(T, 1 as i32 as u64);
     res = bf_cmpu(a, T);
     bf_delete(T);
     if res > 0 as i32 {
@@ -8908,7 +8847,7 @@ pub unsafe extern "C" fn bf_acos(
         }
     }
     bf_init(s, T);
-    bf_set_ui(T, 1 as i32 as uint64_t);
+    bf_set_ui(T, 1 as i32 as u64);
     res = bf_cmpu(a, T);
     bf_delete(T);
     if res > 0 as i32 {
@@ -8985,160 +8924,160 @@ static mut mp_pow_div: [FastDivData; 20] = [
     {
         let mut init = FastDivData {
             m1: 0x1 as i32 as limb_t,
-            shift1: 0 as i32 as int8_t,
-            shift2: 0 as i32 as int8_t,
+            shift1: 0 as i32 as i8,
+            shift2: 0 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x999999999999999a as u64,
-            shift1: 1 as i32 as int8_t,
-            shift2: 3 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 3 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x47ae147ae147ae15 as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 6 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 6 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x624dd2f1a9fbe77 as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 9 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 9 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0xa36e2eb1c432ca58 as u64,
-            shift1: 1 as i32 as int8_t,
-            shift2: 13 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 13 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x4f8b588e368f0847 as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 16 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 16 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0xc6f7a0b5ed8d36c as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 19 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 19 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0xad7f29abcaf48579 as u64,
-            shift1: 1 as i32 as int8_t,
-            shift2: 23 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 23 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x5798ee2308c39dfa as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 26 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 26 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x12e0be826d694b2f as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 29 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 29 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0xb7cdfd9d7bdbab7e as u64,
-            shift1: 1 as i32 as int8_t,
-            shift2: 33 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 33 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x5fd7fe17964955fe as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 36 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 36 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x19799812dea11198 as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 39 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 39 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0xc25c268497681c27 as u64,
-            shift1: 1 as i32 as int8_t,
-            shift2: 43 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 43 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x6849b86a12b9b01f as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 46 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 46 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x203af9ee756159b3 as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 49 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 49 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0xcd2b297d889bc2b7 as u64,
-            shift1: 1 as i32 as int8_t,
-            shift2: 53 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 53 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x70ef54646d496893 as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 56 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 56 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0x2725dd1d243aba0f as i64 as limb_t,
-            shift1: 1 as i32 as int8_t,
-            shift2: 59 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 59 as i32 as i8,
         };
         init
     },
     {
         let mut init = FastDivData {
             m1: 0xd83c94fb6d2ac34d as u64,
-            shift1: 1 as i32 as int8_t,
-            shift2: 63 as i32 as int8_t,
+            shift1: 1 as i32 as i8,
+            shift2: 63 as i32 as i8,
         };
         init
     },
@@ -9285,40 +9224,37 @@ pub unsafe extern "C" fn mp_mul1_dec(
         let mut __t_0: limb_t = t0;
         t0 = (t0 as u64).wrapping_add(l) as limb_t as limb_t;
         t1 = (t1 as u64).wrapping_add((0 as i32 + (t0 < __t_0) as i32) as u64) as limb_t as limb_t;
-        let mut __a0: uint64_t = 0;
-        let mut __a1: uint64_t = 0;
-        let mut __t0: uint64_t = 0;
-        let mut __t1: uint64_t = 0;
-        let mut __b: uint64_t = 10000000000000000000 as u64;
+        let mut __a0: u64 = 0;
+        let mut __a1: u64 = 0;
+        let mut __t0: u64 = 0;
+        let mut __t1: u64 = 0;
+        let mut __b: u64 = 10000000000000000000 as u64;
         __a0 = t0;
         __a1 = t1;
         __t0 = __a1;
         __t0 = shld(__t0, __a0, 1 as i32 as i64);
         let mut __t_1: u128 = 0;
         __t_1 = (__t0 as u128).wrapping_mul(17014118346046923173 as u64 as u128);
-        __t1 = __t_1 as uint64_t;
+        __t1 = __t_1 as u64;
         l = (__t_1 >> 64 as i32) as limb_t;
         let mut __t_2: u128 = 0;
         __t_2 = (l as u128).wrapping_mul(__b as u128);
-        __t0 = __t_2 as uint64_t;
-        __t1 = (__t_2 >> 64 as i32) as uint64_t;
+        __t0 = __t_2 as u64;
+        __t1 = (__t_2 >> 64 as i32) as u64;
         let mut __t_3: limb_t = __a0;
-        __a0 = (__a0 as u64).wrapping_sub(__t0) as uint64_t as uint64_t;
-        __a1 = (__a1 as u64).wrapping_sub(__t1.wrapping_add((__a0 > __t_3) as i32 as u64))
-            as uint64_t as uint64_t;
+        __a0 = (__a0 as u64).wrapping_sub(__t0) as u64 as u64;
+        __a1 = (__a1 as u64).wrapping_sub(__t1.wrapping_add((__a0 > __t_3) as i32 as u64)) as u64
+            as u64;
         let mut __t_4: limb_t = __a0;
-        __a0 =
-            (__a0 as u64).wrapping_sub(__b.wrapping_mul(2 as i32 as u64)) as uint64_t as uint64_t;
-        __a1 = (__a1 as u64).wrapping_sub((1 as i32 + (__a0 > __t_4) as i32) as u64) as uint64_t
-            as uint64_t;
-        __t0 = (__a1 as slimb_t >> 1 as i32) as uint64_t;
+        __a0 = (__a0 as u64).wrapping_sub(__b.wrapping_mul(2 as i32 as u64)) as u64 as u64;
+        __a1 = (__a1 as u64).wrapping_sub((1 as i32 + (__a0 > __t_4) as i32) as u64) as u64 as u64;
+        __t0 = (__a1 as slimb_t >> 1 as i32) as u64;
         l = (l as u64).wrapping_add((2 as i32 as u64).wrapping_add(__t0)) as limb_t as limb_t;
         let mut __t_5: limb_t = __a0;
-        __a0 = (__a0 as u64).wrapping_add(__b & __t0) as uint64_t as uint64_t;
-        __a1 = (__a1 as u64).wrapping_add((0 as i32 + (__a0 < __t_5) as i32) as u64) as uint64_t
-            as uint64_t;
+        __a0 = (__a0 as u64).wrapping_add(__b & __t0) as u64 as u64;
+        __a1 = (__a1 as u64).wrapping_add((0 as i32 + (__a0 < __t_5) as i32) as u64) as u64 as u64;
         l = (l as u64).wrapping_add(__a1) as limb_t as limb_t;
-        __a0 = (__a0 as u64).wrapping_add(__b & __a1) as uint64_t as uint64_t;
+        __a0 = (__a0 as u64).wrapping_add(__b & __a1) as u64 as u64;
         r = __a0;
         *tabr.offset(i as isize) = r;
         i += 1
@@ -9352,40 +9288,37 @@ pub unsafe extern "C" fn mp_add_mul1_dec(
         let mut __t_1: limb_t = t0;
         t0 = (t0 as u64).wrapping_add(*tabr.offset(i as isize)) as limb_t as limb_t;
         t1 = (t1 as u64).wrapping_add((0 as i32 + (t0 < __t_1) as i32) as u64) as limb_t as limb_t;
-        let mut __a0: uint64_t = 0;
-        let mut __a1: uint64_t = 0;
-        let mut __t0: uint64_t = 0;
-        let mut __t1: uint64_t = 0;
-        let mut __b: uint64_t = 10000000000000000000 as u64;
+        let mut __a0: u64 = 0;
+        let mut __a1: u64 = 0;
+        let mut __t0: u64 = 0;
+        let mut __t1: u64 = 0;
+        let mut __b: u64 = 10000000000000000000 as u64;
         __a0 = t0;
         __a1 = t1;
         __t0 = __a1;
         __t0 = shld(__t0, __a0, 1 as i32 as i64);
         let mut __t_2: u128 = 0;
         __t_2 = (__t0 as u128).wrapping_mul(17014118346046923173 as u64 as u128);
-        __t1 = __t_2 as uint64_t;
+        __t1 = __t_2 as u64;
         l = (__t_2 >> 64 as i32) as limb_t;
         let mut __t_3: u128 = 0;
         __t_3 = (l as u128).wrapping_mul(__b as u128);
-        __t0 = __t_3 as uint64_t;
-        __t1 = (__t_3 >> 64 as i32) as uint64_t;
+        __t0 = __t_3 as u64;
+        __t1 = (__t_3 >> 64 as i32) as u64;
         let mut __t_4: limb_t = __a0;
-        __a0 = (__a0 as u64).wrapping_sub(__t0) as uint64_t as uint64_t;
-        __a1 = (__a1 as u64).wrapping_sub(__t1.wrapping_add((__a0 > __t_4) as i32 as u64))
-            as uint64_t as uint64_t;
+        __a0 = (__a0 as u64).wrapping_sub(__t0) as u64 as u64;
+        __a1 = (__a1 as u64).wrapping_sub(__t1.wrapping_add((__a0 > __t_4) as i32 as u64)) as u64
+            as u64;
         let mut __t_5: limb_t = __a0;
-        __a0 =
-            (__a0 as u64).wrapping_sub(__b.wrapping_mul(2 as i32 as u64)) as uint64_t as uint64_t;
-        __a1 = (__a1 as u64).wrapping_sub((1 as i32 + (__a0 > __t_5) as i32) as u64) as uint64_t
-            as uint64_t;
-        __t0 = (__a1 as slimb_t >> 1 as i32) as uint64_t;
+        __a0 = (__a0 as u64).wrapping_sub(__b.wrapping_mul(2 as i32 as u64)) as u64 as u64;
+        __a1 = (__a1 as u64).wrapping_sub((1 as i32 + (__a0 > __t_5) as i32) as u64) as u64 as u64;
+        __t0 = (__a1 as slimb_t >> 1 as i32) as u64;
         l = (l as u64).wrapping_add((2 as i32 as u64).wrapping_add(__t0)) as limb_t as limb_t;
         let mut __t_6: limb_t = __a0;
-        __a0 = (__a0 as u64).wrapping_add(__b & __t0) as uint64_t as uint64_t;
-        __a1 = (__a1 as u64).wrapping_add((0 as i32 + (__a0 < __t_6) as i32) as u64) as uint64_t
-            as uint64_t;
+        __a0 = (__a0 as u64).wrapping_add(__b & __t0) as u64 as u64;
+        __a1 = (__a1 as u64).wrapping_add((0 as i32 + (__a0 < __t_6) as i32) as u64) as u64 as u64;
         l = (l as u64).wrapping_add(__a1) as limb_t as limb_t;
-        __a0 = (__a0 as u64).wrapping_add(__b & __a1) as uint64_t as uint64_t;
+        __a0 = (__a0 as u64).wrapping_add(__b & __a1) as u64 as u64;
         r = __a0;
         *tabr.offset(i as isize) = r;
         i += 1
@@ -9421,40 +9354,37 @@ pub unsafe extern "C" fn mp_sub_mul1_dec(
         let mut __t_0: limb_t = t0;
         t0 = (t0 as u64).wrapping_add(l) as limb_t as limb_t;
         t1 = (t1 as u64).wrapping_add((0 as i32 + (t0 < __t_0) as i32) as u64) as limb_t as limb_t;
-        let mut __a0: uint64_t = 0;
-        let mut __a1: uint64_t = 0;
-        let mut __t0: uint64_t = 0;
-        let mut __t1: uint64_t = 0;
-        let mut __b: uint64_t = 10000000000000000000 as u64;
+        let mut __a0: u64 = 0;
+        let mut __a1: u64 = 0;
+        let mut __t0: u64 = 0;
+        let mut __t1: u64 = 0;
+        let mut __b: u64 = 10000000000000000000 as u64;
         __a0 = t0;
         __a1 = t1;
         __t0 = __a1;
         __t0 = shld(__t0, __a0, 1 as i32 as i64);
         let mut __t_1: u128 = 0;
         __t_1 = (__t0 as u128).wrapping_mul(17014118346046923173 as u64 as u128);
-        __t1 = __t_1 as uint64_t;
+        __t1 = __t_1 as u64;
         l = (__t_1 >> 64 as i32) as limb_t;
         let mut __t_2: u128 = 0;
         __t_2 = (l as u128).wrapping_mul(__b as u128);
-        __t0 = __t_2 as uint64_t;
-        __t1 = (__t_2 >> 64 as i32) as uint64_t;
+        __t0 = __t_2 as u64;
+        __t1 = (__t_2 >> 64 as i32) as u64;
         let mut __t_3: limb_t = __a0;
-        __a0 = (__a0 as u64).wrapping_sub(__t0) as uint64_t as uint64_t;
-        __a1 = (__a1 as u64).wrapping_sub(__t1.wrapping_add((__a0 > __t_3) as i32 as u64))
-            as uint64_t as uint64_t;
+        __a0 = (__a0 as u64).wrapping_sub(__t0) as u64 as u64;
+        __a1 = (__a1 as u64).wrapping_sub(__t1.wrapping_add((__a0 > __t_3) as i32 as u64)) as u64
+            as u64;
         let mut __t_4: limb_t = __a0;
-        __a0 =
-            (__a0 as u64).wrapping_sub(__b.wrapping_mul(2 as i32 as u64)) as uint64_t as uint64_t;
-        __a1 = (__a1 as u64).wrapping_sub((1 as i32 + (__a0 > __t_4) as i32) as u64) as uint64_t
-            as uint64_t;
-        __t0 = (__a1 as slimb_t >> 1 as i32) as uint64_t;
+        __a0 = (__a0 as u64).wrapping_sub(__b.wrapping_mul(2 as i32 as u64)) as u64 as u64;
+        __a1 = (__a1 as u64).wrapping_sub((1 as i32 + (__a0 > __t_4) as i32) as u64) as u64 as u64;
+        __t0 = (__a1 as slimb_t >> 1 as i32) as u64;
         l = (l as u64).wrapping_add((2 as i32 as u64).wrapping_add(__t0)) as limb_t as limb_t;
         let mut __t_5: limb_t = __a0;
-        __a0 = (__a0 as u64).wrapping_add(__b & __t0) as uint64_t as uint64_t;
-        __a1 = (__a1 as u64).wrapping_add((0 as i32 + (__a0 < __t_5) as i32) as u64) as uint64_t
-            as uint64_t;
+        __a0 = (__a0 as u64).wrapping_add(__b & __t0) as u64 as u64;
+        __a1 = (__a1 as u64).wrapping_add((0 as i32 + (__a0 < __t_5) as i32) as u64) as u64 as u64;
         l = (l as u64).wrapping_add(__a1) as limb_t as limb_t;
-        __a0 = (__a0 as u64).wrapping_add(__b & __a1) as uint64_t as uint64_t;
+        __a0 = (__a0 as u64).wrapping_add(__b & __a1) as u64 as u64;
         r = __a0;
         v = *tabr.offset(i as isize);
         a = v.wrapping_sub(r);
@@ -9522,8 +9452,8 @@ pub unsafe extern "C" fn mp_div1_dec(
         if r != 0 {
             r = base_div2
         }
-        i = na - 1 as i32 as i64;
-        while i >= 0 as i32 as i64 {
+        i = na - 1;
+        while i >= 0 {
             t0 = *taba.offset(i as isize);
             *tabr.offset(i as isize) = (t0 >> 1 as i32).wrapping_add(r);
             r = 0 as i32 as limb_t;
@@ -9535,14 +9465,14 @@ pub unsafe extern "C" fn mp_div1_dec(
         if r != 0 {
             r = 1 as i32 as limb_t
         }
-    } else if na >= 3 as i32 as i64 {
+    } else if na >= 3 {
         shift = clz(b);
-        if shift == 0 as i32 {
+        if shift == 0 {
             /* normalized case: b >= 2^(LIMB_BITS-1) */
             let mut b_inv: limb_t = 0;
             b_inv = udiv1norm_init(b);
-            i = na - 1 as i32 as i64;
-            while i >= 0 as i32 as i64 {
+            i = na - 1;
+            while i >= 0 {
                 let mut __t: u128 = 0;
                 __t = (r as u128).wrapping_mul(base as u128);
                 t0 = __t as limb_t;
@@ -9559,8 +9489,8 @@ pub unsafe extern "C" fn mp_div1_dec(
             let mut b_inv_0: limb_t = 0;
             b <<= shift;
             b_inv_0 = udiv1norm_init(b);
-            i = na - 1 as i32 as i64;
-            while i >= 0 as i32 as i64 {
+            i = na - 1;
+            while i >= 0 {
                 let mut __t_1: u128 = 0;
                 __t_1 = (r as u128).wrapping_mul(base as u128);
                 t0 = __t_1 as limb_t;
@@ -9578,8 +9508,8 @@ pub unsafe extern "C" fn mp_div1_dec(
             }
         }
     } else {
-        i = na - 1 as i32 as i64;
-        while i >= 0 as i32 as i64 {
+        i = na - 1;
+        while i >= 0 {
             let mut __t_3: u128 = 0;
             __t_3 = (r as u128).wrapping_mul(base as u128);
             t0 = __t_3 as limb_t;
@@ -9635,8 +9565,8 @@ unsafe extern "C" fn mp_div_dec(
     let mut j: mp_size_t = 0;
     let mut static_tabb: [limb_t; 16] = [0; 16];
     /* normalize tabb */
-    r = *tabb1.offset((nb - 1 as i32 as i64) as isize);
-    if r != 0 as i32 as u64 {
+    r = *tabb1.offset((nb - 1) as isize);
+    if r != 0 {
     } else {
         assert!(r != 0);
     }
@@ -9645,8 +9575,8 @@ unsafe extern "C" fn mp_div_dec(
         mult = 1 as i32 as limb_t;
         tabb = tabb1 as *mut limb_t;
         q = 1 as i32 as limb_t;
-        j = nb - 1 as i32 as i64;
-        while j >= 0 as i32 as i64 {
+        j = nb - 1;
+        while j >= 0 {
             if *taba.offset((i + j) as isize) != *tabb.offset(j as isize) {
                 if *taba.offset((i + j) as isize) < *tabb.offset(j as isize) {
                     q = 0 as i32 as limb_t
@@ -9669,12 +9599,12 @@ unsafe extern "C" fn mp_div_dec(
         i -= 1
     } else {
         mult = base.wrapping_div(r.wrapping_add(1 as i32 as u64));
-        if (nb <= 16 as i32 as i64) as i32 as i64 != 0 {
+        if (nb <= 16) as i64 != 0 {
             tabb = static_tabb.as_mut_ptr()
         } else {
             tabb = bf_malloc(
                 s,
-                (::std::mem::size_of::<limb_t>() as u64).wrapping_mul(nb as u64),
+                (::std::mem::size_of::<limb_t>()).wrapping_mul(nb as usize),
             ) as *mut limb_t;
             if tabb.is_null() {
                 return -(1 as i32);
@@ -9683,11 +9613,8 @@ unsafe extern "C" fn mp_div_dec(
         mp_mul1_dec(tabb, tabb1, nb, mult, 0 as i32 as limb_t);
         *taba.offset(na as isize) = mp_mul1_dec(taba, taba, na, mult, 0 as i32 as limb_t)
     }
-    while i >= 0 as i32 as i64 {
-        if (*taba.offset((i + nb) as isize) >= *tabb.offset((nb - 1 as i32 as i64) as isize)) as i32
-            as i64
-            != 0
-        {
+    while i >= 0 {
+        if (*taba.offset((i + nb) as isize) >= *tabb.offset((nb - 1) as isize)) {
             /* XXX: check if it is really possible */
             q = base.wrapping_sub(1 as i32 as u64)
         } else {
@@ -9696,12 +9623,10 @@ unsafe extern "C" fn mp_div_dec(
             t0 = __t as limb_t;
             t1 = (__t >> 64 as i32) as limb_t;
             let mut __t_0: limb_t = t0;
-            t0 = (t0 as u64).wrapping_add(*taba.offset((i + nb - 1 as i32 as i64) as isize))
-                as limb_t as limb_t;
-            t1 = (t1 as u64).wrapping_add((0 as i32 + (t0 < __t_0) as i32) as u64) as limb_t
-                as limb_t;
+            t0 = (t0 as u64).wrapping_add(*taba.offset((i + nb - 1) as isize)) as limb_t as limb_t;
+            t1 = (t1 as u64).wrapping_add((0 + (t0 < __t_0) as i32) as u64) as limb_t as limb_t;
             let mut __t_1: u128 = 0;
-            let mut __b: limb_t = *tabb.offset((nb - 1 as i32 as i64) as isize);
+            let mut __b: limb_t = *tabb.offset((nb - 1) as isize);
             __t_1 = (t1 as u128) << 64 as i32 | t0 as u128;
             q = __t_1.wrapping_div(__b as u128) as limb_t;
             r = __t_1.wrapping_rem(__b as u128) as limb_t
@@ -9770,8 +9695,8 @@ unsafe extern "C" fn mp_shr_dec(
         assert!(shift >= 1 && shift < LIMB_DIGITS);
     }
     l = high;
-    i = n - 1 as i32 as i64;
-    while i >= 0 as i32 as i64 {
+    i = n - 1;
+    while i >= 0 {
         a = *tab.offset(i as isize);
         q = fast_shr_dec(a, shift as i32);
         r = a.wrapping_sub(q.wrapping_mul(mp_pow_dec[shift as usize]));
@@ -9835,39 +9760,37 @@ unsafe extern "C" fn mp_sqrtrem2_dec(mut tabs: *mut limb_t, mut taba: *mut limb_
     s >>= k >> 1 as i32;
     /* convert the remainder back to decimal */
     r = a.wrapping_sub((s as dlimb_t).wrapping_mul(s as dlimb_t));
-    let mut __a0: uint64_t = 0;
-    let mut __a1: uint64_t = 0;
-    let mut __t0: uint64_t = 0;
-    let mut __t1: uint64_t = 0;
-    let mut __b: uint64_t = 10000000000000000000 as u64;
-    __a0 = r as uint64_t;
-    __a1 = (r >> ((1 as i32) << 6 as i32)) as uint64_t;
+    let mut __a0: u64 = 0;
+    let mut __a1: u64 = 0;
+    let mut __t0: u64 = 0;
+    let mut __t1: u64 = 0;
+    let mut __b: u64 = 10000000000000000000 as u64;
+    __a0 = r as u64;
+    __a1 = (r >> ((1 as i32) << 6 as i32)) as u64;
     __t0 = __a1;
     __t0 = shld(__t0, __a0, 1 as i32 as i64);
     let mut __t: u128 = 0;
     __t = (__t0 as u128).wrapping_mul(17014118346046923173 as u64 as u128);
-    __t1 = __t as uint64_t;
+    __t1 = __t as u64;
     r1 = (__t >> 64 as i32) as limb_t;
     let mut __t_0: u128 = 0;
     __t_0 = (r1 as u128).wrapping_mul(__b as u128);
-    __t0 = __t_0 as uint64_t;
-    __t1 = (__t_0 >> 64 as i32) as uint64_t;
+    __t0 = __t_0 as u64;
+    __t1 = (__t_0 >> 64 as i32) as u64;
     let mut __t_1: limb_t = __a0;
-    __a0 = (__a0 as u64).wrapping_sub(__t0) as uint64_t as uint64_t;
-    __a1 = (__a1 as u64).wrapping_sub(__t1.wrapping_add((__a0 > __t_1) as i32 as u64)) as uint64_t
-        as uint64_t;
+    __a0 = (__a0 as u64).wrapping_sub(__t0) as u64 as u64;
+    __a1 =
+        (__a1 as u64).wrapping_sub(__t1.wrapping_add((__a0 > __t_1) as i32 as u64)) as u64 as u64;
     let mut __t_2: limb_t = __a0;
-    __a0 = (__a0 as u64).wrapping_sub(__b.wrapping_mul(2 as i32 as u64)) as uint64_t as uint64_t;
-    __a1 = (__a1 as u64).wrapping_sub((1 as i32 + (__a0 > __t_2) as i32) as u64) as uint64_t
-        as uint64_t;
-    __t0 = (__a1 as slimb_t >> 1 as i32) as uint64_t;
+    __a0 = (__a0 as u64).wrapping_sub(__b.wrapping_mul(2 as i32 as u64)) as u64 as u64;
+    __a1 = (__a1 as u64).wrapping_sub((1 as i32 + (__a0 > __t_2) as i32) as u64) as u64 as u64;
+    __t0 = (__a1 as slimb_t >> 1 as i32) as u64;
     r1 = (r1 as u64).wrapping_add((2 as i32 as u64).wrapping_add(__t0)) as limb_t as limb_t;
     let mut __t_3: limb_t = __a0;
-    __a0 = (__a0 as u64).wrapping_add(__b & __t0) as uint64_t as uint64_t;
-    __a1 = (__a1 as u64).wrapping_add((0 as i32 + (__a0 < __t_3) as i32) as u64) as uint64_t
-        as uint64_t;
+    __a0 = (__a0 as u64).wrapping_add(__b & __t0) as u64 as u64;
+    __a1 = (__a1 as u64).wrapping_add((0 as i32 + (__a0 < __t_3) as i32) as u64) as u64 as u64;
     r1 = (r1 as u64).wrapping_add(__a1) as limb_t as limb_t;
-    __a0 = (__a0 as u64).wrapping_add(__b & __a1) as uint64_t as uint64_t;
+    __a0 = (__a0 as u64).wrapping_add(__b & __a1) as u64 as u64;
     r0 = __a0;
     *taba.offset(0 as i32 as isize) = r0;
     *tabs.offset(0 as i32 as isize) = s;
@@ -10008,7 +9931,7 @@ pub unsafe extern "C" fn mp_sqrtrem_dec(
     } else {
         tmp_buf = bf_malloc(
             s,
-            (::std::mem::size_of::<limb_t>() as u64).wrapping_mul(n2 as u64),
+            (::std::mem::size_of::<limb_t>()).wrapping_mul(n2 as usize),
         ) as *mut limb_t;
         if tmp_buf.is_null() {
             return -(1 as i32);
@@ -10703,7 +10626,7 @@ pub unsafe extern "C" fn bfdec_normalize_and_round(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_set_ui(mut r: *mut bfdec_t, mut v: uint64_t) -> i32 {
+pub unsafe extern "C" fn bfdec_set_ui(mut r: *mut bfdec_t, mut v: u64) -> i32 {
     let mut current_block: u64;
     if v >= 10000000000000000000 as u64 {
         if bfdec_resize(r, 2 as i32 as limb_t) != 0 {
@@ -10739,13 +10662,13 @@ pub unsafe extern "C" fn bfdec_set_ui(mut r: *mut bfdec_t, mut v: uint64_t) -> i
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_set_si(mut r: *mut bfdec_t, mut v: int64_t) -> i32 {
+pub unsafe extern "C" fn bfdec_set_si(mut r: *mut bfdec_t, mut v: i64) -> i32 {
     let mut ret: i32 = 0;
     if v < 0 as i32 as i64 {
-        ret = bfdec_set_ui(r, -v as uint64_t);
+        ret = bfdec_set_ui(r, -v as u64);
         (*r).sign = 1 as i32
     } else {
-        ret = bfdec_set_ui(r, v as uint64_t)
+        ret = bfdec_set_ui(r, v as u64)
     }
     return ret;
 }
@@ -10864,7 +10787,7 @@ unsafe extern "C" fn bfdec_add_internal(
                     b1_len = (*b).len.wrapping_add(1 as i32 as u64) as mp_size_t;
                     b1_tab = bf_malloc(
                         s,
-                        (::std::mem::size_of::<limb_t>() as u64).wrapping_mul(b1_len as u64),
+                        (::std::mem::size_of::<limb_t>()).wrapping_mul(b1_len as usize),
                     ) as *mut limb_t;
                     if b1_tab.is_null() {
                         current_block = 5503229294326981584;
@@ -10898,7 +10821,7 @@ unsafe extern "C" fn bfdec_add_internal(
                                 carry = mp_sub_ui_dec(
                                     (*r).tab.offset(b_offset as isize).offset(b1_len as isize),
                                     carry,
-                                    r_len - (b_offset + b1_len),
+                                    (r_len as isize - (b_offset as isize + b1_len)) as isize,
                                 );
                                 if carry == 0 as i32 as u64 {
                                 } else {
@@ -10918,7 +10841,7 @@ unsafe extern "C" fn bfdec_add_internal(
                                 carry = mp_add_ui_dec(
                                     (*r).tab.offset(b_offset as isize).offset(b1_len as isize),
                                     carry,
-                                    r_len - (b_offset + b1_len),
+                                    (r_len as isize - (b_offset as isize + b1_len)) as isize,
                                 )
                             }
                             if carry != 0 as i32 as u64 {
@@ -11141,7 +11064,7 @@ pub unsafe extern "C" fn bfdec_mul(
 pub unsafe extern "C" fn bfdec_mul_si(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
-    mut b1: int64_t,
+    mut b1: i64,
     mut prec: limb_t,
     mut flags: bf_flags_t,
 ) -> i32 {
@@ -11163,7 +11086,7 @@ pub unsafe extern "C" fn bfdec_mul_si(
 pub unsafe extern "C" fn bfdec_add_si(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
-    mut b1: int64_t,
+    mut b1: i64,
     mut prec: limb_t,
     mut flags: bf_flags_t,
 ) -> i32 {
@@ -11263,8 +11186,7 @@ unsafe extern "C" fn __bfdec_div(
     na = n.wrapping_add(nb);
     taba = bf_malloc(
         (*r).ctx,
-        na.wrapping_add(1 as i32 as u64)
-            .wrapping_mul(::std::mem::size_of::<limb_t>() as u64),
+        (na.wrapping_add(1) as usize).wrapping_mul(::std::mem::size_of::<limb_t>()),
     ) as *mut limb_t;
     if !taba.is_null() {
         d = na.wrapping_sub((*a).len) as slimb_t;
@@ -11363,7 +11285,7 @@ unsafe extern "C" fn bfdec_tdivremu(
     mut b: *const bfdec_t,
 ) {
     if bfdec_cmpu(a, b) < 0 as i32 {
-        bfdec_set_ui(q, 0 as i32 as uint64_t);
+        bfdec_set_ui(q, 0 as i32 as u64);
         bfdec_set(r, a);
     } else {
         bfdec_div(
@@ -11500,7 +11422,7 @@ pub unsafe extern "C" fn bfdec_divrem(
                 } else if bfdec_mul_si(
                     r1,
                     r1,
-                    2 as i32 as int64_t,
+                    2 as i32 as i64,
                     ((1 as i32 as limb_t) << ((1 as i32) << 6 as i32) - 2 as i32)
                         .wrapping_sub(2 as i32 as u64)
                         .wrapping_add(1 as i32 as u64),
@@ -11542,7 +11464,7 @@ pub unsafe extern "C" fn bfdec_divrem(
                     res = bfdec_add_si(
                         q,
                         q,
-                        1 as i32 as int64_t,
+                        1 as i32 as i64,
                         ((1 as i32 as limb_t) << ((1 as i32) << 6 as i32) - 2 as i32)
                             .wrapping_sub(2 as i32 as u64)
                             .wrapping_add(1 as i32 as u64),
@@ -11677,9 +11599,9 @@ pub unsafe extern "C" fn bfdec_sqrt(
         } else {
             a1 = bf_malloc(
                 s,
-                (::std::mem::size_of::<limb_t>() as u64)
-                    .wrapping_mul(2 as i32 as u64)
-                    .wrapping_mul(n as u64),
+                (::std::mem::size_of::<limb_t>())
+                    .wrapping_mul(2)
+                    .wrapping_mul(n as usize),
             ) as *mut limb_t;
             if a1.is_null() {
                 current_block = 6745124862139863313;
@@ -11694,20 +11616,14 @@ pub unsafe extern "C" fn bfdec_sqrt(
                     (n1 as usize).wrapping_mul(std::mem::size_of::<limb_t>()),
                 );
                 if (*a).expn & 1 as i32 as i64 != 0 {
-                    res = mp_shr_dec(
-                        a1,
-                        a1,
-                        2 as i32 as i64 * n,
-                        1 as i32 as limb_t,
-                        0 as i32 as limb_t,
-                    )
+                    res = mp_shr_dec(a1, a1, 2 * n as isize, 1, 0)
                 } else {
-                    res = 0 as i32 as limb_t
+                    res = 0
                 }
                 /* normalize so that a1 >= B^(2*n)/4. Not need for n = 1
                 because mp_sqrtrem2_dec already does it */
-                k = 0 as i32;
-                if n > 1 as i32 as i64 {
+                k = 0;
+                if n > 1 {
                     v = *a1.offset((2 as i32 as i64 * n - 1 as i32 as i64) as isize);
                     while v < (10000000000000000000 as u64).wrapping_div(4 as i32 as u64) {
                         k += 1;
@@ -11717,7 +11633,7 @@ pub unsafe extern "C" fn bfdec_sqrt(
                         mp_mul1_dec(
                             a1,
                             a1,
-                            2 as i32 as i64 * n,
+                            2 * n as isize,
                             ((1 as i32) << 2 as i32 * k) as limb_t,
                             0 as i32 as limb_t,
                         );
@@ -11731,13 +11647,13 @@ pub unsafe extern "C" fn bfdec_sqrt(
                         mp_div1_dec(
                             (*r).tab,
                             (*r).tab,
-                            n,
+                            n as isize,
                             ((1 as i32) << k) as limb_t,
                             0 as i32 as limb_t,
                         );
                     }
                     if res == 0 {
-                        res = mp_scan_nz(a1, n + 1 as i32 as i64)
+                        res = mp_scan_nz(a1, n as isize + 1)
                     }
                     bf_free(s, a1 as *mut std::ffi::c_void);
                     if res == 0 {
@@ -11775,18 +11691,18 @@ pub unsafe extern "C" fn bfdec_sqrt(
 is an overflow and 0 otherwise. No memory error is possible. */
 #[no_mangle]
 pub unsafe extern "C" fn bfdec_get_int32(mut pres: *mut i32, mut a: *const bfdec_t) -> i32 {
-    let mut v: uint32_t = 0;
+    let mut v: u32 = 0;
     let mut ret: i32 = 0;
     if (*a).expn >= 9223372036854775807 as i64 - 1 as i32 as i64 {
         ret = 0 as i32;
         if (*a).expn == 9223372036854775807 as i64 - 1 as i32 as i64 {
-            v = (2147483647 as i32 as uint32_t).wrapping_add((*a).sign as u32)
+            v = (2147483647 as i32 as u32).wrapping_add((*a).sign as u32)
         /* XXX: return overflow ? */
         } else {
-            v = 2147483647 as i32 as uint32_t
+            v = 2147483647 as i32 as u32
         }
     } else if (*a).expn <= 0 as i32 as i64 {
-        v = 0 as i32 as uint32_t;
+        v = 0 as i32 as u32;
         ret = 0 as i32
     } else if (*a).expn <= 9 as i32 as i64 {
         v = fast_shr_dec(
@@ -11794,33 +11710,33 @@ pub unsafe extern "C" fn bfdec_get_int32(mut pres: *mut i32, mut a: *const bfdec
                 .tab
                 .offset((*a).len.wrapping_sub(1 as i32 as u64) as isize),
             (19 as i32 as i64 - (*a).expn) as i32,
-        ) as uint32_t;
+        ) as u32;
         if (*a).sign != 0 {
             v = v.wrapping_neg()
         }
         ret = 0 as i32
     } else if (*a).expn == 10 as i32 as i64 {
-        let mut v1: uint64_t = 0;
-        let mut v_max: uint32_t = 0;
+        let mut v1: u64 = 0;
+        let mut v_max: u32 = 0;
         v1 = fast_shr_dec(
             *(*a)
                 .tab
                 .offset((*a).len.wrapping_sub(1 as i32 as u64) as isize),
             (19 as i32 as i64 - (*a).expn) as i32,
         );
-        v_max = (2147483647 as i32 as uint32_t).wrapping_add((*a).sign as u32);
+        v_max = (2147483647 as i32 as u32).wrapping_add((*a).sign as u32);
         if v1 > v_max as u64 {
             v = v_max;
             ret = (1 as i32) << 2 as i32
         } else {
-            v = v1 as uint32_t;
+            v = v1 as u32;
             if (*a).sign != 0 {
                 v = v.wrapping_neg()
             }
             ret = 0 as i32
         }
     } else {
-        v = (2147483647 as i32 as uint32_t).wrapping_add((*a).sign as u32);
+        v = (2147483647 as i32 as u32).wrapping_add((*a).sign as u32);
         ret = (1 as i32) << 2 as i32
     }
     *pres = v as i32;
@@ -11841,7 +11757,7 @@ pub unsafe extern "C" fn bfdec_pow_ui(
         assert!(r as *const bfdec_t != a);
     }
     if b == 0 as i32 as u64 {
-        return bfdec_set_ui(r, 1 as i32 as uint64_t);
+        return bfdec_set_ui(r, 1 as i32 as u64);
     }
     ret = bfdec_set(r, a);
     n_bits = ((1 as i32) << 6 as i32) - clz(b);
@@ -11873,7 +11789,7 @@ pub unsafe extern "C" fn bfdec_pow_ui(
 }
 #[no_mangle]
 pub unsafe extern "C" fn bfdec_ftoa(
-    mut plen: *mut size_t,
+    mut plen: *mut u64,
     mut a: *const bfdec_t,
     mut prec: limb_t,
     mut flags: bf_flags_t,
@@ -12071,7 +11987,7 @@ unsafe extern "C" fn mul_mod_fast3(
 unsafe extern "C" fn init_mul_mod_fast2(mut b: limb_t, mut m: limb_t) -> limb_t {
     return ((b as dlimb_t) << ((1 as i32) << 6 as i32)).wrapping_div(m as u128) as limb_t;
 }
-unsafe extern "C" fn ntt_malloc(mut s: *mut BFNTTState, mut size: size_t) -> *mut std::ffi::c_void {
+unsafe extern "C" fn ntt_malloc(mut s: *mut BFNTTState, mut size: usize) -> *mut std::ffi::c_void {
     return bf_malloc((*s).ctx, size);
 }
 unsafe extern "C" fn ntt_free(mut s: *mut BFNTTState, mut ptr: *mut std::ffi::c_void) {
@@ -12257,9 +12173,9 @@ unsafe extern "C" fn get_trig(
     m = ntt_mods[m_idx as usize];
     tab = ntt_malloc(
         s,
-        (::std::mem::size_of::<NTTLimb>() as u64)
-            .wrapping_mul(n2)
-            .wrapping_mul(2 as i32 as u64),
+        (::std::mem::size_of::<NTTLimb>())
+            .wrapping_mul(n2 as usize)
+            .wrapping_mul(2),
     ) as *mut NTTLimb;
     if tab.is_null() {
         return 0 as *mut NTTLimb;
@@ -12337,7 +12253,7 @@ unsafe extern "C" fn ntt_fft_partial(
     buf2 = 0 as *mut NTTLimb;
     buf3 = ntt_malloc(
         s,
-        (::std::mem::size_of::<NTTLimb>() as u64).wrapping_mul(n1),
+        (::std::mem::size_of::<NTTLimb>()).wrapping_mul(n1 as usize),
     ) as *mut NTTLimb;
     if !buf3.is_null() {
         if k2 == 0 as i32 {
@@ -12350,9 +12266,9 @@ unsafe extern "C" fn ntt_fft_partial(
             strip_len = 16 as i32 as limb_t;
             buf2 = ntt_malloc(
                 s,
-                (::std::mem::size_of::<NTTLimb>() as u64)
-                    .wrapping_mul(n1)
-                    .wrapping_mul(strip_len),
+                (::std::mem::size_of::<NTTLimb>())
+                    .wrapping_mul(n1 as usize)
+                    .wrapping_mul(strip_len as usize),
             ) as *mut NTTLimb;
             if buf2.is_null() {
                 current_block = 7202299292956205343;
@@ -12769,7 +12685,7 @@ unsafe extern "C" fn ntt_static_init(mut s1: *mut bf_context_t) -> i32 {
     if !(*s1).ntt_state.is_null() {
         return 0 as i32;
     }
-    s = bf_malloc(s1, ::std::mem::size_of::<BFNTTState>() as u64) as *mut BFNTTState;
+    s = bf_malloc(s1, ::std::mem::size_of::<BFNTTState>()) as *mut BFNTTState;
     if s.is_null() {
         return -(1 as i32);
     }
@@ -12863,7 +12779,7 @@ pub unsafe extern "C" fn bf_get_fft_size(
             if n_bits <= int_bits {
                 cost = (((fft_len_log2 + 1 as i32) as limb_t) << fft_len_log2)
                     .wrapping_mul(nb_mods as u64);
-                //                printf("n=%d dpl=%d: cost=%" PRId64 "\n", nb_mods, dpl, (int64_t)cost);
+                //                printf("n=%d dpl=%d: cost=%" PRId64 "\n", nb_mods, dpl, (i64)cost);
                 if cost < min_cost {
                     min_cost = cost;
                     dpl_found = dpl;
@@ -12924,7 +12840,7 @@ unsafe extern "C" fn fft_mul(
     /* find the optimal number of digits per limb (dpl) */
     len = a_len.wrapping_add(b_len) as slimb_t;
     fft_len_log2 = bf_get_fft_size(&mut dpl, &mut nb_mods, len as limb_t);
-    fft_len = ((1 as i32 as uint64_t) << fft_len_log2) as slimb_t;
+    fft_len = ((1 as i32 as u64) << fft_len_log2) as slimb_t;
     //    printf("len=%" PRId64 " fft_len_log2=%d dpl=%d\n", len, fft_len_log2, dpl);
     if mul_flags & ((1 as i32) << 0 as i32 | (1 as i32) << 1 as i32) == 0 as i32 {
         if mul_flags & (1 as i32) << 2 as i32 == 0 {
@@ -12943,9 +12859,9 @@ unsafe extern "C" fn fft_mul(
     }
     buf1 = ntt_malloc(
         s,
-        (::std::mem::size_of::<NTTLimb>() as u64)
-            .wrapping_mul(fft_len as u64)
-            .wrapping_mul(nb_mods as u64),
+        (::std::mem::size_of::<NTTLimb>())
+            .wrapping_mul(fft_len as usize)
+            .wrapping_mul(nb_mods as usize),
     ) as *mut NTTLimb;
     if buf1.is_null() {
         return -(1 as i32);
@@ -12969,9 +12885,9 @@ unsafe extern "C" fn fft_mul(
     if reduced_mem == 0 {
         buf2 = ntt_malloc(
             s,
-            (::std::mem::size_of::<NTTLimb>() as u64)
-                .wrapping_mul(fft_len as u64)
-                .wrapping_mul(nb_mods as u64),
+            (::std::mem::size_of::<NTTLimb>())
+                .wrapping_mul(fft_len as usize)
+                .wrapping_mul(nb_mods as usize),
         ) as *mut NTTLimb;
         if buf2.is_null() {
             current_block = 11742859648667696368;
@@ -12995,7 +12911,7 @@ unsafe extern "C" fn fft_mul(
     } else {
         buf2 = ntt_malloc(
             s,
-            (::std::mem::size_of::<NTTLimb>() as u64).wrapping_mul(fft_len as u64),
+            (::std::mem::size_of::<NTTLimb>()).wrapping_mul(fft_len as usize),
         ) as *mut NTTLimb; /* in case res == b and reduced mem */
         if buf2.is_null() {
             current_block = 11742859648667696368;
