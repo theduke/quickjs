@@ -20,6 +20,7 @@
                 clang
                 python3
                 gdb
+                wasmtime
             ];
             buildPhase = "";
             installPhase = "";
