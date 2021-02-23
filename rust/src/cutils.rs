@@ -506,40 +506,19 @@ pub unsafe fn dbuf_putc(mut s: *mut DynBuf, mut c: u8) -> i32 {
 pub unsafe fn dbuf_putstr(mut s: *mut DynBuf, mut str: *const std::os::raw::c_char) -> i32 {
     return dbuf_put(s, str as *const u8, cstr_len(str));
 }
-#[no_mangle]
-pub unsafe extern "C" fn dbuf_printf(
-    mut s: *mut DynBuf,
-    mut fmt: *const std::os::raw::c_char,
-    mut args: ...
-) -> i32 {
-    let mut ap: ::std::ffi::VaListImpl;
-    let mut buf: [std::os::raw::c_char; 128] = [0; 128];
-    let mut len = 0;
-    ap = args.clone();
-    len = cstr_vsnprintf(
-        buf.as_mut_ptr(),
-        ::std::mem::size_of::<[std::os::raw::c_char; 128]>(),
-        fmt,
-        ap.as_va_list(),
-    );
-    if (len as usize) < ::std::mem::size_of::<[std::os::raw::c_char; 128]>() {
-        /* fast case */
-        return dbuf_put(s, buf.as_mut_ptr() as *mut u8, len as usize);
-    } else {
-        if dbuf_realloc(s, (*s).size.wrapping_add(len as usize).wrapping_add(1)) != 0 {
-            return -1;
+
+impl std::fmt::Write for DynBuf {
+    fn write_str(&mut self, value: &str) -> Result<(), std::fmt::Error> {
+        unsafe {
+            if dbuf_put(self as *mut DynBuf, value.as_bytes().as_ptr(), value.len()) != 0 {
+                Err(std::fmt::Error::default())
+            } else {
+                Ok(())
+            }
         }
-        ap = args.clone();
-        cstr_vsnprintf(
-            (*s).buf.offset((*s).size as isize) as *mut std::os::raw::c_char,
-            (*s).allocated_size.wrapping_sub((*s).size) as usize,
-            fmt,
-            ap.as_va_list(),
-        );
-        (*s).size = ((*s).size as u64).wrapping_add(len as u64) as usize as usize
     }
-    0
 }
+
 #[no_mangle]
 pub unsafe fn dbuf_free(mut s: *mut DynBuf) {
     /* we test s->buf as a fail safe to avoid crashing if dbuf_free()

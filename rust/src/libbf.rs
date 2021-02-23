@@ -1,7 +1,7 @@
-use std::process::abort;
+use std::{fmt::Write as _, process::abort};
 
 use crate::cutils::{
-    dbuf_error, dbuf_init2, dbuf_printf, dbuf_put, dbuf_putc, dbuf_putstr, dbuf_set_error, DynBuf,
+    dbuf_error, dbuf_init2, dbuf_put, dbuf_putc, dbuf_putstr, dbuf_set_error, DynBuf,
     DynBufReallocFunc, BOOL, FALSE, TRUE,
 };
 
@@ -6299,36 +6299,25 @@ unsafe fn bf_ftoa_internal(
                                     is_dec,
                                 );
                                 if radix_bits != 0 as i32 && radix <= 16 as i32 {
+                                    let value = (n - 1 as i32 as i64) * radix_bits as i64;
                                     if flags & ((1 as i32) << 22 as i32) as u32 != 0 {
-                                        fmt_0 =
-                                            b"p%+ld\x00" as *const u8 as *const std::os::raw::c_char
+                                        write!(&mut s_s, "p{:+}\0", value).unwrap();
                                     } else {
-                                        fmt_0 =
-                                            b"p%ld\x00" as *const u8 as *const std::os::raw::c_char
+                                        write!(&mut s_s, "p{}\0", value).unwrap();
                                     }
-                                    dbuf_printf(
-                                        s,
-                                        fmt_0,
-                                        (n - 1 as i32 as i64) * radix_bits as i64,
-                                    );
                                 } else {
-                                    if flags & ((1 as i32) << 22 as i32) as u32 != 0 {
-                                        fmt_0 = b"%c%+ld\x00" as *const u8
-                                            as *const std::os::raw::c_char
+                                    let v1 = if radix <= 10 as i32 {
+                                        'e' as i32
                                     } else {
-                                        fmt_0 =
-                                            b"%c%ld\x00" as *const u8 as *const std::os::raw::c_char
+                                        '@' as i32
+                                    };
+                                    let v2 = n - 1 as i32 as i64;
+
+                                    if flags & ((1 as i32) << 22 as i32) as u32 != 0 {
+                                        write!(&mut s_s, "{}{:+}\x00", v1, v2).unwrap();
+                                    } else {
+                                        write!(&mut s_s, "{}{}\x00", v1, v2).unwrap();
                                     }
-                                    dbuf_printf(
-                                        s,
-                                        fmt_0,
-                                        if radix <= 10 as i32 {
-                                            'e' as i32
-                                        } else {
-                                            '@' as i32
-                                        },
-                                        n - 1 as i32 as i64,
-                                    );
                                 }
                             } else if n <= 0 as i32 as i64 {
                                 /* 0.x */
