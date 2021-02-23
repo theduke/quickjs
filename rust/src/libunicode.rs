@@ -38,7 +38,7 @@ pub struct CharRange {
     pub points: *mut u32,
     pub mem_opaque: *mut std::ffi::c_void,
     pub realloc_func: Option<
-        unsafe extern "C" fn(
+        unsafe fn(
             _: *mut std::ffi::c_void,
             _: *mut std::ffi::c_void,
             _: usize,
@@ -390,7 +390,7 @@ pub type C2RustUnnamed_4 = u32;
 pub type C2RustUnnamed_5 = u32;
 pub type C2RustUnnamed_6 = u32;
 #[inline]
-unsafe extern "C" fn max_int(mut a: i32, mut b: i32) -> i32 {
+unsafe fn max_int(mut a: i32, mut b: i32) -> i32 {
     if a > b {
         return a;
     } else {
@@ -398,7 +398,7 @@ unsafe extern "C" fn max_int(mut a: i32, mut b: i32) -> i32 {
     };
 }
 #[inline]
-unsafe extern "C" fn cr_add_point(mut cr: *mut CharRange, mut v: u32) -> i32 {
+unsafe fn cr_add_point(mut cr: *mut CharRange, mut v: u32) -> i32 {
     if (*cr).len >= (*cr).size {
         if cr_realloc(cr, (*cr).len + 1 as i32) != 0 {
             return -(1 as i32);
@@ -410,7 +410,7 @@ unsafe extern "C" fn cr_add_point(mut cr: *mut CharRange, mut v: u32) -> i32 {
     return 0 as i32;
 }
 #[inline]
-unsafe extern "C" fn cr_add_interval(mut cr: *mut CharRange, mut c1: u32, mut c2: u32) -> i32 {
+unsafe fn cr_add_interval(mut cr: *mut CharRange, mut c1: u32, mut c2: u32) -> i32 {
     if (*cr).len + 2 as i32 > (*cr).size {
         if cr_realloc(cr, (*cr).len + 2 as i32) != 0 {
             return -(1 as i32);
@@ -27464,7 +27464,7 @@ static mut unicode_prop_len_table: [u16; 50] = [0; 50];
    2 = case folding (= to lower with modifications)
 */
 #[no_mangle]
-pub unsafe extern "C" fn lre_case_conv(mut res: *mut u32, mut c: u32, mut conv_type: i32) -> i32 {
+pub unsafe fn lre_case_conv(mut res: *mut u32, mut c: u32, mut conv_type: i32) -> i32 {
     if c < 128 as i32 as u32 {
         if conv_type != 0 {
             if c >= 'A' as i32 as u32 && c <= 'Z' as i32 as u32 {
@@ -27605,12 +27605,12 @@ pub unsafe extern "C" fn lre_case_conv(mut res: *mut u32, mut c: u32, mut conv_t
     return 1 as i32;
 }
 
-unsafe extern "C" fn get_le24(mut ptr: *const u8) -> u32 {
+unsafe fn get_le24(mut ptr: *const u8) -> u32 {
     return (*(ptr as *mut u16) as i32 | (*ptr.offset(2 as i32 as isize) as i32) << 16 as i32)
         as u32;
 }
 /* return -1 if not in table, otherwise the offset in the block */
-unsafe extern "C" fn get_index_pos(
+unsafe fn get_index_pos(
     mut pcode: *mut u32,
     mut c: u32,
     mut index_table: *const u8,
@@ -27648,7 +27648,7 @@ unsafe extern "C" fn get_index_pos(
     *pcode = v & (((1 as i32) << 21 as i32) - 1 as i32) as u32;
     return (((idx_min + 1 as i32) * 32 as i32) as u32).wrapping_add(v >> 21 as i32) as i32;
 }
-unsafe extern "C" fn lre_is_in_table(
+unsafe fn lre_is_in_table(
     mut c: u32,
     mut table: *const u8,
     mut index_table: *const u8,
@@ -27706,7 +27706,7 @@ unsafe extern "C" fn lre_is_in_table(
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn lre_is_cased(mut c: u32) -> i32 {
+pub unsafe fn lre_is_cased(mut c: u32) -> i32 {
     let mut v: u32 = 0;
     let mut code: u32 = 0;
     let mut len: u32 = 0;
@@ -27738,7 +27738,7 @@ pub unsafe extern "C" fn lre_is_cased(mut c: u32) -> i32 {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn lre_is_case_ignorable(mut c: u32) -> i32 {
+pub unsafe fn lre_is_case_ignorable(mut c: u32) -> i32 {
     return lre_is_in_table(
         c,
         unicode_prop_Case_Ignorable_table.as_ptr(),
@@ -27746,7 +27746,7 @@ pub unsafe extern "C" fn lre_is_case_ignorable(mut c: u32) -> i32 {
         (::std::mem::size_of::<[u8; 66]>() as u64).wrapping_div(3 as i32 as u64) as i32,
     );
 }
-unsafe extern "C" fn cr_default_realloc(
+unsafe fn cr_default_realloc(
     mut opaque: *mut std::ffi::c_void,
     mut ptr: *mut std::ffi::c_void,
     mut size: usize,
@@ -27755,7 +27755,7 @@ unsafe extern "C" fn cr_default_realloc(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn cr_init(
+pub unsafe fn cr_init(
     mut cr: *mut CharRange,
     mut mem_opaque: *mut std::ffi::c_void,
     mut realloc_func: Option<DynBufReallocFunc>,
@@ -27769,7 +27769,7 @@ pub unsafe extern "C" fn cr_init(
     } else {
         Some(
             cr_default_realloc
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
                     _: usize,
@@ -27778,7 +27778,7 @@ pub unsafe extern "C" fn cr_init(
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn cr_free(mut cr: *mut CharRange) {
+pub unsafe fn cr_free(mut cr: *mut CharRange) {
     (*cr).realloc_func.expect("non-null function pointer")(
         (*cr).mem_opaque,
         (*cr).points as *mut std::ffi::c_void,
@@ -27786,7 +27786,7 @@ pub unsafe extern "C" fn cr_free(mut cr: *mut CharRange) {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn cr_realloc(mut cr: *mut CharRange, mut size: i32) -> i32 {
+pub unsafe fn cr_realloc(mut cr: *mut CharRange, mut size: i32) -> i32 {
     let mut new_size: i32 = 0;
     let mut new_buf: *mut u32 = 0 as *mut u32;
     if size > (*cr).size {
@@ -27805,7 +27805,7 @@ pub unsafe extern "C" fn cr_realloc(mut cr: *mut CharRange, mut size: i32) -> i3
     return 0 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn cr_copy(mut cr: *mut CharRange, mut cr1: *const CharRange) -> i32 {
+pub unsafe fn cr_copy(mut cr: *mut CharRange, mut cr1: *const CharRange) -> i32 {
     if cr_realloc(cr, (*cr1).len) != 0 {
         return -(1 as i32);
     }
@@ -27817,7 +27817,7 @@ pub unsafe extern "C" fn cr_copy(mut cr: *mut CharRange, mut cr1: *const CharRan
     return 0 as i32;
 }
 /* merge consecutive intervals and remove empty intervals */
-unsafe extern "C" fn cr_compress(mut cr: *mut CharRange) {
+unsafe fn cr_compress(mut cr: *mut CharRange) {
     let mut i: i32 = 0;
     let mut j: i32 = 0;
     let mut k: i32 = 0;
@@ -27850,7 +27850,7 @@ unsafe extern "C" fn cr_compress(mut cr: *mut CharRange) {
 }
 /* union or intersection */
 #[no_mangle]
-pub unsafe extern "C" fn cr_op(
+pub unsafe fn cr_op(
     mut cr: *mut CharRange,
     mut a_pt: *const u32,
     mut a_len: i32,
@@ -27919,11 +27919,7 @@ pub unsafe extern "C" fn cr_op(
     return 0 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn cr_union1(
-    mut cr: *mut CharRange,
-    mut b_pt: *const u32,
-    mut b_len: i32,
-) -> i32 {
+pub unsafe fn cr_union1(mut cr: *mut CharRange, mut b_pt: *const u32, mut b_len: i32) -> i32 {
     let mut a: CharRange = *cr;
     let mut ret: i32 = 0;
     (*cr).len = 0 as i32;
@@ -27934,7 +27930,7 @@ pub unsafe extern "C" fn cr_union1(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn cr_invert(mut cr: *mut CharRange) -> i32 {
+pub unsafe fn cr_invert(mut cr: *mut CharRange) -> i32 {
     let mut len: i32 = 0;
     len = (*cr).len;
     if cr_realloc(cr, len + 2 as i32) != 0 {
@@ -27951,7 +27947,7 @@ pub unsafe extern "C" fn cr_invert(mut cr: *mut CharRange) -> i32 {
     return 0 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn lre_is_id_start(mut c: u32) -> i32 {
+pub unsafe fn lre_is_id_start(mut c: u32) -> i32 {
     return lre_is_in_table(
         c,
         unicode_prop_ID_Start_table.as_ptr(),
@@ -27960,7 +27956,7 @@ pub unsafe extern "C" fn lre_is_id_start(mut c: u32) -> i32 {
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn lre_is_id_continue(mut c: u32) -> i32 {
+pub unsafe fn lre_is_id_continue(mut c: u32) -> i32 {
     return (lre_is_id_start(c) != 0
         || lre_is_in_table(
             c,
@@ -27969,7 +27965,7 @@ pub unsafe extern "C" fn lre_is_id_continue(mut c: u32) -> i32 {
             (::std::mem::size_of::<[u8; 60]>() as u64).wrapping_div(3 as i32 as u64) as i32,
         ) != 0) as i32;
 }
-unsafe extern "C" fn unicode_get_short_code(mut c: u32) -> u32 {
+unsafe fn unicode_get_short_code(mut c: u32) -> u32 {
     static mut unicode_short_table: [u16; 2] = [0x2044 as i32 as u16, 0x2215 as i32 as u16];
     if c < 0x80 as i32 as u32 {
         return c;
@@ -27983,7 +27979,7 @@ unsafe extern "C" fn unicode_get_short_code(mut c: u32) -> u32 {
             .wrapping_sub(0x50 as i32 as u32) as usize] as u32;
     };
 }
-unsafe extern "C" fn unicode_get_lower_simple(mut c: u32) -> u32 {
+unsafe fn unicode_get_lower_simple(mut c: u32) -> u32 {
     if c < 0x100 as i32 as u32 || c >= 0x410 as i32 as u32 && c <= 0x42f as i32 as u32 {
         c = (c as u32).wrapping_add(0x20 as i32 as u32) as u32 as u32
     } else {
@@ -27991,11 +27987,11 @@ unsafe extern "C" fn unicode_get_lower_simple(mut c: u32) -> u32 {
     }
     return c;
 }
-unsafe extern "C" fn unicode_get16(mut p: *const u8) -> u16 {
+unsafe fn unicode_get16(mut p: *const u8) -> u16 {
     return (*p.offset(0 as i32 as isize) as i32 | (*p.offset(1 as i32 as isize) as i32) << 8 as i32)
         as u16;
 }
-unsafe extern "C" fn unicode_decomp_entry(
+unsafe fn unicode_decomp_entry(
     mut res: *mut u32,
     mut c: u32,
     mut idx: i32,
@@ -28189,11 +28185,7 @@ unsafe extern "C" fn unicode_decomp_entry(
 }
 /* return the length of the decomposition (length <=
 UNICODE_DECOMP_LEN_MAX) or 0 if no decomposition */
-unsafe extern "C" fn unicode_decomp_char(
-    mut res: *mut u32,
-    mut c: u32,
-    mut is_compat1: BOOL,
-) -> i32 {
+unsafe fn unicode_decomp_char(mut res: *mut u32, mut c: u32, mut is_compat1: BOOL) -> i32 {
     let mut v: u32 = 0;
     let mut type_0: u32 = 0;
     let mut is_compat: u32 = 0;
@@ -28228,7 +28220,7 @@ unsafe extern "C" fn unicode_decomp_char(
     return 0 as i32;
 }
 /* return 0 if no pair found */
-unsafe extern "C" fn unicode_compose_pair(mut c0: u32, mut c1: u32) -> i32 {
+unsafe fn unicode_compose_pair(mut c0: u32, mut c1: u32) -> i32 {
     let mut code: u32 = 0;
     let mut len: u32 = 0;
     let mut type_0: u32 = 0;
@@ -28273,7 +28265,7 @@ unsafe extern "C" fn unicode_compose_pair(mut c0: u32, mut c1: u32) -> i32 {
     return 0 as i32;
 }
 /* return the combining class of character c (between 0 and 255) */
-unsafe extern "C" fn unicode_get_cc(mut c: u32) -> i32 {
+unsafe fn unicode_get_cc(mut c: u32) -> i32 {
     let mut code: u32 = 0;
     let mut n: u32 = 0;
     let mut type_0: u32 = 0;
@@ -28337,7 +28329,7 @@ unsafe extern "C" fn unicode_get_cc(mut c: u32) -> i32 {
         code = c1
     }
 }
-unsafe extern "C" fn sort_cc(mut buf: *mut i32, mut len: i32) {
+unsafe fn sort_cc(mut buf: *mut i32, mut len: i32) {
     let mut i: i32 = 0;
     let mut j: i32 = 0;
     let mut k: i32 = 0;
@@ -28373,7 +28365,7 @@ unsafe extern "C" fn sort_cc(mut buf: *mut i32, mut len: i32) {
         i += 1
     }
 }
-unsafe extern "C" fn to_nfd_rec(
+unsafe fn to_nfd_rec(
     mut dbuf: *mut DynBuf,
     mut src: *const i32,
     mut src_len: i32,
@@ -28417,7 +28409,7 @@ unsafe extern "C" fn to_nfd_rec(
     }
 }
 /* return 0 if not found */
-unsafe extern "C" fn compose_pair(mut c0: u32, mut c1: u32) -> i32 {
+unsafe fn compose_pair(mut c0: u32, mut c1: u32) -> i32 {
     /* Hangul composition */
     if c0 >= 0x1100 as i32 as u32
         && c0 < (0x1100 as i32 + 19 as i32) as u32
@@ -28448,7 +28440,7 @@ unsafe extern "C" fn compose_pair(mut c0: u32, mut c1: u32) -> i32 {
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn unicode_normalize(
+pub unsafe fn unicode_normalize(
     mut pdst: *mut *mut u32,
     mut src: *const u32,
     mut src_len: i32,
@@ -28581,7 +28573,7 @@ pub unsafe extern "C" fn unicode_normalize(
     return -(1 as i32);
 }
 /* char ranges for various unicode properties */
-unsafe extern "C" fn unicode_find_name(
+unsafe fn unicode_find_name(
     mut name_table: *const std::os::raw::c_char,
     mut name: *const std::os::raw::c_char,
 ) -> i32 {
@@ -28618,7 +28610,7 @@ unsafe extern "C" fn unicode_find_name(
 /* 'cr' must be initialized and empty. Return 0 if OK, -1 if error, -2
 if not found */
 #[no_mangle]
-pub unsafe extern "C" fn unicode_script(
+pub unsafe fn unicode_script(
     mut cr: *mut CharRange,
     mut script_name: *const std::os::raw::c_char,
     mut is_ext: BOOL,
@@ -28848,7 +28840,7 @@ pub unsafe extern "C" fn unicode_script(
         }
     }
 }
-unsafe extern "C" fn unicode_general_category1(mut cr: *mut CharRange, mut gc_mask: u32) -> i32 {
+unsafe fn unicode_general_category1(mut cr: *mut CharRange, mut gc_mask: u32) -> i32 {
     let mut p: *const u8 = 0 as *const u8;
     let mut p_end: *const u8 = 0 as *const u8;
     let mut c: u32 = 0;
@@ -28937,7 +28929,7 @@ unsafe extern "C" fn unicode_general_category1(mut cr: *mut CharRange, mut gc_ma
     }
     return 0 as i32;
 }
-unsafe extern "C" fn unicode_prop1(mut cr: *mut CharRange, mut prop_idx: i32) -> i32 {
+unsafe fn unicode_prop1(mut cr: *mut CharRange, mut prop_idx: i32) -> i32 {
     let mut p: *const u8 = 0 as *const u8;
     let mut p_end: *const u8 = 0 as *const u8;
     let mut c: u32 = 0;
@@ -29000,7 +28992,7 @@ unsafe extern "C" fn unicode_prop1(mut cr: *mut CharRange, mut prop_idx: i32) ->
   CASE_L: set char if modified by lowercasing,
   CASE_F: set char if modified by case folding,
 */
-unsafe extern "C" fn unicode_case1(mut cr: *mut CharRange, mut case_mask: i32) -> i32 {
+unsafe fn unicode_case1(mut cr: *mut CharRange, mut case_mask: i32) -> i32 {
     let mut current_block: u64;
     let tab_run_mask: [u32; 3] = [
         ((1 as i32) << RUN_TYPE_U as i32
@@ -29334,7 +29326,7 @@ static mut unicode_gc_mask_table: [u32; 8] = [
 /* 'cr' must be initialized and empty. Return 0 if OK, -1 if error, -2
 if not found */
 #[no_mangle]
-pub unsafe extern "C" fn unicode_general_category(
+pub unsafe fn unicode_general_category(
     mut cr: *mut CharRange,
     mut gc_name: *const std::os::raw::c_char,
 ) -> i32 {
@@ -29354,7 +29346,7 @@ pub unsafe extern "C" fn unicode_general_category(
 /* 'cr' must be initialized and empty. Return 0 if OK, -1 if error, -2
 if not found */
 #[no_mangle]
-pub unsafe extern "C" fn unicode_prop(
+pub unsafe fn unicode_prop(
     mut cr: *mut CharRange,
     mut prop_name: *const std::os::raw::c_char,
 ) -> i32 {
@@ -29616,7 +29608,7 @@ pub unsafe extern "C" fn unicode_prop(
 /* Note: at most 31 bits are encoded. At most UTF8_CHAR_LEN_MAX bytes
 are output. */
 #[no_mangle]
-pub unsafe extern "C" fn unicode_to_utf8(mut buf: *mut u8, mut c: u32) -> i32 {
+pub unsafe fn unicode_to_utf8(mut buf: *mut u8, mut c: u32) -> i32 {
     let mut q: *mut u8 = buf;
     if c < 0x80 as i32 as u32 {
         let fresh2 = q;
@@ -29689,11 +29681,7 @@ static mut utf8_first_code_mask: [std::os::raw::c_uchar; 5] = [
 /* return -1 if error. *pp is not updated in this case. max_len must
 be >= 1. The maximum length for a UTF8 byte sequence is 6 bytes. */
 #[no_mangle]
-pub unsafe extern "C" fn unicode_from_utf8(
-    mut p: *const u8,
-    mut max_len: i32,
-    mut pp: *mut *const u8,
-) -> i32 {
+pub unsafe fn unicode_from_utf8(mut p: *const u8, mut max_len: i32, mut pp: *mut *const u8) -> i32 {
     let mut l: i32 = 0;
     let mut c: i32 = 0;
     let mut b: i32 = 0;
@@ -29739,7 +29727,7 @@ pub unsafe extern "C" fn unicode_from_utf8(
     return c;
 }
 
-unsafe extern "C" fn run_static_initializers() {
+unsafe fn run_static_initializers() {
     unicode_prop_len_table = [
         (::std::mem::size_of::<[u8; 28]>() as u64).wrapping_div(::std::mem::size_of::<u8>() as u64)
             as u16,
@@ -29847,5 +29835,5 @@ unsafe extern "C" fn run_static_initializers() {
 #[cfg_attr(target_os = "linux", link_section = ".init_array")]
 #[cfg_attr(target_os = "windows", link_section = ".CRT$XIB")]
 #[cfg_attr(target_os = "macos", link_section = "__DATA,__mod_init_func")]
-static INIT_ARRAY: [unsafe extern "C" fn(); 1] = [run_static_initializers];
+static INIT_ARRAY: [unsafe fn(); 1] = [run_static_initializers];
 /* CONFIG_ALL_UNICODE */

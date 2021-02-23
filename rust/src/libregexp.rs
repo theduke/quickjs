@@ -138,19 +138,19 @@ pub type C2RustUnnamed_2 = u32;
 pub const REOP_invalid: C2RustUnnamed_2 = 0;
 pub type C2RustUnnamed_3 = u32;
 #[inline]
-unsafe extern "C" fn get_u32(mut tab: *const u8) -> u32 {
+unsafe fn get_u32(mut tab: *const u8) -> u32 {
     return (*(tab as *const packed_u32)).v;
 }
 #[inline]
-unsafe extern "C" fn put_u32(mut tab: *mut u8, mut val: u32) {
+unsafe fn put_u32(mut tab: *mut u8, mut val: u32) {
     (*(tab as *mut packed_u32)).v = val;
 }
 #[inline]
-unsafe extern "C" fn get_u16(mut tab: *const u8) -> u32 {
+unsafe fn get_u16(mut tab: *const u8) -> u32 {
     return (*(tab as *const packed_u16)).v as u32;
 }
 #[inline]
-unsafe extern "C" fn from_hex(mut c: i32) -> i32 {
+unsafe fn from_hex(mut c: i32) -> i32 {
     if c >= '0' as i32 && c <= '9' as i32 {
         return c - '0' as i32;
     } else if c >= 'A' as i32 && c <= 'F' as i32 {
@@ -162,7 +162,7 @@ unsafe extern "C" fn from_hex(mut c: i32) -> i32 {
     };
 }
 #[inline]
-unsafe extern "C" fn lre_js_is_ident_next(mut c: i32) -> i32 {
+unsafe fn lre_js_is_ident_next(mut c: i32) -> i32 {
     if (c as u32) < 128 as i32 as u32 {
         return (lre_id_continue_table_ascii[(c >> 5 as i32) as usize] >> (c & 31 as i32)
             & 1 as i32 as u32) as i32;
@@ -172,7 +172,7 @@ unsafe extern "C" fn lre_js_is_ident_next(mut c: i32) -> i32 {
     };
 }
 #[inline]
-unsafe extern "C" fn lre_js_is_ident_first(mut c: i32) -> i32 {
+unsafe fn lre_js_is_ident_first(mut c: i32) -> i32 {
     if (c as u32) < 128 as i32 as u32 {
         return (lre_id_start_table_ascii[(c >> 5 as i32) as usize] >> (c & 31 as i32)
             & 1 as i32 as u32) as i32;
@@ -181,7 +181,7 @@ unsafe extern "C" fn lre_js_is_ident_first(mut c: i32) -> i32 {
     };
 }
 #[inline]
-unsafe extern "C" fn cr_add_point(mut cr: *mut CharRange, mut v: u32) -> i32 {
+unsafe fn cr_add_point(mut cr: *mut CharRange, mut v: u32) -> i32 {
     if (*cr).len >= (*cr).size {
         if cr_realloc(cr, (*cr).len + 1 as i32) != 0 {
             return -(1 as i32);
@@ -193,7 +193,7 @@ unsafe extern "C" fn cr_add_point(mut cr: *mut CharRange, mut v: u32) -> i32 {
     return 0 as i32;
 }
 #[inline]
-unsafe extern "C" fn cr_union_interval(mut cr: *mut CharRange, mut c1: u32, mut c2: u32) -> i32 {
+unsafe fn cr_union_interval(mut cr: *mut CharRange, mut c1: u32, mut c2: u32) -> i32 {
     let mut b_pt: [u32; 2] = [0; 2];
     b_pt[0 as i32 as usize] = c1;
     b_pt[1 as i32 as usize] = c2.wrapping_add(1 as i32 as u32);
@@ -376,11 +376,11 @@ static mut reopcode_info: [REOpCode; 29] = [
     },
 ];
 #[inline]
-unsafe extern "C" fn is_digit(mut c: i32) -> i32 {
+unsafe fn is_digit(mut c: i32) -> i32 {
     return (c >= '0' as i32 && c <= '9' as i32) as i32;
 }
 /* insert 'len' bytes at position 'pos'. Return < 0 if error. */
-unsafe extern "C" fn dbuf_insert(mut s: *mut DynBuf, mut pos: i32, mut len: i32) -> i32 {
+unsafe fn dbuf_insert(mut s: *mut DynBuf, mut pos: i32, mut len: i32) -> i32 {
     if dbuf_realloc(s, (*s).size.wrapping_add(len as usize)) != 0 {
         return -1;
     }
@@ -393,7 +393,7 @@ unsafe extern "C" fn dbuf_insert(mut s: *mut DynBuf, mut pos: i32, mut len: i32)
     return 0 as i32;
 }
 /* canonicalize with the specific JS regexp rules */
-unsafe extern "C" fn lre_canonicalize(mut c: u32, mut is_utf16: BOOL) -> u32 {
+unsafe fn lre_canonicalize(mut c: u32, mut is_utf16: BOOL) -> u32 {
     let mut res: [u32; 3] = [0; 3];
     let mut len: i32 = 0;
     if is_utf16 != 0 {
@@ -452,7 +452,7 @@ static mut char_range_s: [u16; 21] = [
     (0xfeff as i32 + 1 as i32) as u16,
 ];
 #[no_mangle]
-pub unsafe extern "C" fn lre_is_space(mut c: i32) -> i32 {
+pub unsafe fn lre_is_space(mut c: i32) -> i32 {
     let mut i: i32 = 0;
     let mut n: i32 = 0;
     let mut low: i32 = 0;
@@ -507,11 +507,7 @@ static mut char_range_table: [*const u16; 3] = unsafe {
         char_range_w.as_ptr(),
     ]
 };
-unsafe extern "C" fn cr_init_char_range(
-    mut s: *mut REParseState,
-    mut cr: *mut CharRange,
-    mut c: u32,
-) -> i32 {
+unsafe fn cr_init_char_range(mut s: *mut REParseState, mut cr: *mut CharRange, mut c: u32) -> i32 {
     let mut current_block: u64;
     let mut invert: BOOL = 0;
     let mut c_pt: *const u16 = 0 as *const u16;
@@ -527,7 +523,7 @@ unsafe extern "C" fn cr_init_char_range(
         (*s).opaque,
         Some(
             lre_realloc
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
                     _: usize,
@@ -567,7 +563,7 @@ unsafe extern "C" fn cr_init_char_range(
     cr_free(cr);
     return -(1 as i32);
 }
-unsafe extern "C" fn cr_canonicalize(mut cr: *mut CharRange) -> i32 {
+unsafe fn cr_canonicalize(mut cr: *mut CharRange) -> i32 {
     let mut a: CharRange = CharRange {
         len: 0,
         size: 0,
@@ -583,7 +579,7 @@ unsafe extern "C" fn cr_canonicalize(mut cr: *mut CharRange) -> i32 {
         (*cr).mem_opaque,
         Some(
             lre_realloc
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
                     _: usize,
@@ -616,18 +612,18 @@ unsafe extern "C" fn cr_canonicalize(mut cr: *mut CharRange) -> i32 {
     cr_free(&mut a);
     return ret;
 }
-unsafe extern "C" fn re_emit_op(mut s: *mut REParseState, mut op: i32) {
+unsafe fn re_emit_op(mut s: *mut REParseState, mut op: i32) {
     dbuf_putc(&mut (*s).byte_code, op as u8);
 }
 /* return the offset of the u32 value */
-unsafe extern "C" fn re_emit_op_u32(mut s: *mut REParseState, mut op: i32, mut val: u32) -> i32 {
+unsafe fn re_emit_op_u32(mut s: *mut REParseState, mut op: i32, mut val: u32) -> i32 {
     let mut pos: i32 = 0;
     dbuf_putc(&mut (*s).byte_code, op as u8);
     pos = (*s).byte_code.size as i32;
     dbuf_put_u32(&mut (*s).byte_code, val);
     return pos;
 }
-unsafe extern "C" fn re_emit_goto(mut s: *mut REParseState, mut op: i32, mut val: u32) -> i32 {
+unsafe fn re_emit_goto(mut s: *mut REParseState, mut op: i32, mut val: u32) -> i32 {
     let mut pos: i32 = 0;
     dbuf_putc(&mut (*s).byte_code, op as u8);
     pos = (*s).byte_code.size as i32;
@@ -637,11 +633,11 @@ unsafe extern "C" fn re_emit_goto(mut s: *mut REParseState, mut op: i32, mut val
     );
     return pos;
 }
-unsafe extern "C" fn re_emit_op_u8(mut s: *mut REParseState, mut op: i32, mut val: u32) {
+unsafe fn re_emit_op_u8(mut s: *mut REParseState, mut op: i32, mut val: u32) {
     dbuf_putc(&mut (*s).byte_code, op as u8);
     dbuf_putc(&mut (*s).byte_code, val as u8);
 }
-unsafe extern "C" fn re_emit_op_u16(mut s: *mut REParseState, mut op: i32, mut val: u32) {
+unsafe fn re_emit_op_u16(mut s: *mut REParseState, mut op: i32, mut val: u32) {
     dbuf_putc(&mut (*s).byte_code, op as u8);
     dbuf_put_u16(&mut (*s).byte_code, val as u16);
 }
@@ -660,7 +656,7 @@ unsafe extern "C" fn re_parse_error(
     );
     return -(1 as i32);
 }
-unsafe extern "C" fn re_parse_out_of_memory(mut s: *mut REParseState) -> i32 {
+unsafe fn re_parse_out_of_memory(mut s: *mut REParseState) -> i32 {
     return re_parse_error(
         s,
         b"out of memory\x00" as *const u8 as *const std::os::raw::c_char,
@@ -668,7 +664,7 @@ unsafe extern "C" fn re_parse_out_of_memory(mut s: *mut REParseState) -> i32 {
 }
 /* If allow_overflow is false, return -1 in case of
 overflow. Otherwise return INT32_MAX. */
-unsafe extern "C" fn parse_digits(mut pp: *mut *const u8, mut allow_overflow: BOOL) -> i32 {
+unsafe fn parse_digits(mut pp: *mut *const u8, mut allow_overflow: BOOL) -> i32 {
     let mut p: *const u8 = 0 as *const u8;
     let mut v: u64 = 0;
     let mut c: i32 = 0;
@@ -695,11 +691,7 @@ unsafe extern "C" fn parse_digits(mut pp: *mut *const u8, mut allow_overflow: BO
     *pp = p;
     return v as i32;
 }
-unsafe extern "C" fn re_parse_expect(
-    mut s: *mut REParseState,
-    mut pp: *mut *const u8,
-    mut c: i32,
-) -> i32 {
+unsafe fn re_parse_expect(mut s: *mut REParseState, mut pp: *mut *const u8, mut c: i32) -> i32 {
     let mut p: *const u8 = 0 as *const u8;
     p = *pp;
     if *p as i32 != c {
@@ -724,7 +716,7 @@ Return the unicode char and update *pp if recognized,
 return -1 if malformed escape,
 return -2 otherwise. */
 #[no_mangle]
-pub unsafe extern "C" fn lre_parse_escape(mut pp: *mut *const u8, mut allow_utf16: i32) -> i32 {
+pub unsafe fn lre_parse_escape(mut pp: *mut *const u8, mut allow_utf16: i32) -> i32 {
     let mut p: *const u8 = 0 as *const u8;
     let mut c: u32 = 0;
     p = *pp;
@@ -836,13 +828,13 @@ pub unsafe extern "C" fn lre_parse_escape(mut pp: *mut *const u8, mut allow_utf1
     return c as i32;
 }
 /* XXX: we use the same chars for name and value */
-unsafe extern "C" fn is_unicode_char(mut c: i32) -> BOOL {
+unsafe fn is_unicode_char(mut c: i32) -> BOOL {
     return (c >= '0' as i32 && c <= '9' as i32
         || c >= 'A' as i32 && c <= 'Z' as i32
         || c >= 'a' as i32 && c <= 'z' as i32
         || c == '_' as i32) as i32;
 }
-unsafe extern "C" fn parse_unicode_property(
+unsafe fn parse_unicode_property(
     mut s: *mut REParseState,
     mut cr: *mut CharRange,
     mut pp: *mut *const u8,
@@ -945,12 +937,11 @@ unsafe extern "C" fn parse_unicode_property(
                     (*s).opaque,
                     Some(
                         lre_realloc
-                            as unsafe extern "C" fn(
+                            as unsafe fn(
                                 _: *mut std::ffi::c_void,
                                 _: *mut std::ffi::c_void,
                                 _: usize,
-                            )
-                                -> *mut std::ffi::c_void,
+                            ) -> *mut std::ffi::c_void,
                     ),
                 );
                 ret = unicode_general_category(cr, value.as_mut_ptr());
@@ -974,12 +965,11 @@ unsafe extern "C" fn parse_unicode_property(
                     (*s).opaque,
                     Some(
                         lre_realloc
-                            as unsafe extern "C" fn(
+                            as unsafe fn(
                                 _: *mut std::ffi::c_void,
                                 _: *mut std::ffi::c_void,
                                 _: usize,
-                            )
-                                -> *mut std::ffi::c_void,
+                            ) -> *mut std::ffi::c_void,
                     ),
                 );
                 ret = unicode_general_category(cr, name.as_mut_ptr());
@@ -1014,7 +1004,7 @@ unsafe extern "C" fn parse_unicode_property(
                                 (*s).opaque,
                                 Some(
                                     lre_realloc
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut std::ffi::c_void,
                                             _: *mut std::ffi::c_void,
                                             _: usize,
@@ -1067,7 +1057,7 @@ unsafe extern "C" fn parse_unicode_property(
 /* return -1 if error otherwise the character or a class range
 (CLASS_RANGE_BASE). In case of class range, 'cr' is
 initialized. Otherwise, it is ignored. */
-unsafe extern "C" fn get_class_atom(
+unsafe fn get_class_atom(
     mut s: *mut REParseState,
     mut cr: *mut CharRange,
     mut pp: *mut *const u8,
@@ -1251,7 +1241,7 @@ unsafe extern "C" fn get_class_atom(
     *pp = p;
     return c as i32;
 }
-unsafe extern "C" fn re_emit_range(mut s: *mut REParseState, mut cr: *const CharRange) -> i32 {
+unsafe fn re_emit_range(mut s: *mut REParseState, mut cr: *const CharRange) -> i32 {
     let mut len: i32 = 0;
     let mut i: i32 = 0;
     let mut high: u32 = 0;
@@ -1301,7 +1291,7 @@ unsafe extern "C" fn re_emit_range(mut s: *mut REParseState, mut cr: *const Char
     }
     return 0 as i32;
 }
-unsafe extern "C" fn re_parse_char_class(mut s: *mut REParseState, mut pp: *mut *const u8) -> i32 {
+unsafe fn re_parse_char_class(mut s: *mut REParseState, mut pp: *mut *const u8) -> i32 {
     let mut current_block: u64;
     let mut p: *const u8 = 0 as *const u8;
     let mut c1: u32 = 0;
@@ -1328,7 +1318,7 @@ unsafe extern "C" fn re_parse_char_class(mut s: *mut REParseState, mut pp: *mut 
         (*s).opaque,
         Some(
             lre_realloc
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
                     _: usize,
@@ -1468,7 +1458,7 @@ unsafe extern "C" fn re_parse_char_class(mut s: *mut REParseState, mut pp: *mut 
    0 if the character pointer may not be advanced.
    -1 if the code may depend on side effects of its previous execution (backreference)
 */
-unsafe extern "C" fn re_check_advance(mut bc_buf: *const u8, mut bc_buf_len: i32) -> i32 {
+unsafe fn re_check_advance(mut bc_buf: *const u8, mut bc_buf_len: i32) -> i32 {
     let mut current_block: u64; /* not known yet */
     let mut pos: i32 = 0;
     let mut opcode: i32 = 0;
@@ -1564,7 +1554,7 @@ unsafe extern "C" fn re_check_advance(mut bc_buf: *const u8, mut bc_buf_len: i32
 }
 /* return -1 if a simple quantifier cannot be used. Otherwise return
 the number of characters in the atom. */
-unsafe extern "C" fn re_is_simple_quantifier(mut bc_buf: *const u8, mut bc_buf_len: i32) -> i32 {
+unsafe fn re_is_simple_quantifier(mut bc_buf: *const u8, mut bc_buf_len: i32) -> i32 {
     let mut current_block: u64;
     let mut pos: i32 = 0;
     let mut opcode: i32 = 0;
@@ -1604,7 +1594,7 @@ unsafe extern "C" fn re_is_simple_quantifier(mut bc_buf: *const u8, mut bc_buf_l
     return count;
 }
 /* '*pp' is the first char after '<' */
-unsafe extern "C" fn re_parse_group_name(
+unsafe fn re_parse_group_name(
     mut buf: *mut std::os::raw::c_char,
     mut buf_size: i32,
     mut pp: *mut *const u8,
@@ -1666,7 +1656,7 @@ unsafe extern "C" fn re_parse_group_name(
 /* if capture_name = NULL: return the number of captures + 1.
 Otherwise, return the capture index corresponding to capture_name
 or -1 if none */
-unsafe extern "C" fn re_parse_captures(
+unsafe fn re_parse_captures(
     mut s: *mut REParseState,
     mut phas_named_captures: *mut i32,
     mut capture_name: *const std::os::raw::c_char,
@@ -1733,7 +1723,7 @@ unsafe extern "C" fn re_parse_captures(
         return capture_index;
     };
 }
-unsafe extern "C" fn re_count_captures(mut s: *mut REParseState) -> i32 {
+unsafe fn re_count_captures(mut s: *mut REParseState) -> i32 {
     if (*s).total_capture_count < 0 as i32 {
         (*s).total_capture_count = re_parse_captures(
             s,
@@ -1743,16 +1733,13 @@ unsafe extern "C" fn re_count_captures(mut s: *mut REParseState) -> i32 {
     }
     return (*s).total_capture_count;
 }
-unsafe extern "C" fn re_has_named_captures(mut s: *mut REParseState) -> BOOL {
+unsafe fn re_has_named_captures(mut s: *mut REParseState) -> BOOL {
     if (*s).has_named_captures < 0 as i32 {
         re_count_captures(s);
     }
     return (*s).has_named_captures;
 }
-unsafe extern "C" fn find_group_name(
-    mut s: *mut REParseState,
-    mut name: *const std::os::raw::c_char,
-) -> i32 {
+unsafe fn find_group_name(mut s: *mut REParseState, mut name: *const std::os::raw::c_char) -> i32 {
     let mut p: *const std::os::raw::c_char = 0 as *const std::os::raw::c_char;
     let mut buf_end: *const std::os::raw::c_char = 0 as *const std::os::raw::c_char;
     let mut len: usize = 0;
@@ -1775,7 +1762,7 @@ unsafe extern "C" fn find_group_name(
     }
     return -(1 as i32);
 }
-unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> i32 {
+unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> i32 {
     let mut q: *const u8 = 0 as *const u8;
     let mut current_block: u64;
     let mut p: *const u8 = 0 as *const u8;
@@ -4659,10 +4646,7 @@ unsafe extern "C" fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir
     (*s).buf_ptr = p;
     return 0 as i32;
 }
-unsafe extern "C" fn re_parse_alternative(
-    mut s: *mut REParseState,
-    mut is_backward_dir: BOOL,
-) -> i32 {
+unsafe fn re_parse_alternative(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> i32 {
     let mut p: *const u8 = 0 as *const u8;
     let mut ret: i32 = 0;
     let mut start: usize = 0;
@@ -4708,10 +4692,7 @@ unsafe extern "C" fn re_parse_alternative(
     }
     return 0 as i32;
 }
-unsafe extern "C" fn re_parse_disjunction(
-    mut s: *mut REParseState,
-    mut is_backward_dir: BOOL,
-) -> i32 {
+unsafe fn re_parse_disjunction(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> i32 {
     let mut start: i32 = 0;
     let mut len: i32 = 0;
     let mut pos: i32 = 0;
@@ -4751,7 +4732,7 @@ unsafe extern "C" fn re_parse_disjunction(
     return 0 as i32;
 }
 /* the control flow is recursive so the analysis can be linear */
-unsafe extern "C" fn compute_stack_size(mut bc_buf: *const u8, mut bc_buf_len: i32) -> i32 {
+unsafe fn compute_stack_size(mut bc_buf: *const u8, mut bc_buf_len: i32) -> i32 {
     let mut stack_size: i32 = 0;
     let mut stack_size_max: i32 = 0;
     let mut pos: i32 = 0;
@@ -4810,7 +4791,7 @@ unsafe extern "C" fn compute_stack_size(mut bc_buf: *const u8, mut bc_buf_len: i
    otherwise the compiled bytecode and its length in plen.
 */
 #[no_mangle]
-pub unsafe extern "C" fn lre_compile(
+pub unsafe fn lre_compile(
     mut plen: *mut i32,
     mut error_msg: *mut std::os::raw::c_char,
     mut error_msg_size: i32,
@@ -4874,7 +4855,7 @@ pub unsafe extern "C" fn lre_compile(
         opaque,
         Some(
             lre_realloc
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
                     _: usize,
@@ -4886,7 +4867,7 @@ pub unsafe extern "C" fn lre_compile(
         opaque,
         Some(
             lre_realloc
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
                     _: usize,
@@ -4963,19 +4944,19 @@ pub unsafe extern "C" fn lre_compile(
     *plen = 0 as i32;
     return 0 as *mut u8;
 }
-unsafe extern "C" fn is_line_terminator(mut c: u32) -> BOOL {
+unsafe fn is_line_terminator(mut c: u32) -> BOOL {
     return (c == '\n' as i32 as u32
         || c == '\r' as i32 as u32
         || c == 0x2028 as i32 as u32
         || c == 0x2029 as i32 as u32) as i32;
 }
-unsafe extern "C" fn is_word_char(mut c: u32) -> BOOL {
+unsafe fn is_word_char(mut c: u32) -> BOOL {
     return (c >= '0' as i32 as u32 && c <= '9' as i32 as u32
         || c >= 'a' as i32 as u32 && c <= 'z' as i32 as u32
         || c >= 'A' as i32 as u32 && c <= 'Z' as i32 as u32
         || c == '_' as i32 as u32) as i32;
 }
-unsafe extern "C" fn push_state(
+unsafe fn push_state(
     mut s: *mut REExecContext,
     mut capture: *mut *mut u8,
     mut stack: *mut StackInt,
@@ -5034,7 +5015,7 @@ unsafe extern "C" fn push_state(
     return 0 as i32;
 }
 /* return 1 if match, 0 if not match or -1 if error. */
-unsafe extern "C" fn lre_exec_backtrack(
+unsafe fn lre_exec_backtrack(
     mut s: *mut REExecContext,
     mut capture: *mut *mut u8,
     mut stack: *mut StackInt,
@@ -5961,7 +5942,7 @@ unsafe extern "C" fn lre_exec_backtrack(
 starting position of the match and must be such as 0 <= cindex <=
 clen. */
 #[no_mangle]
-pub unsafe extern "C" fn lre_exec(
+pub unsafe fn lre_exec(
     mut capture: *mut *mut u8,
     mut bc_buf: *const u8,
     mut cbuf: *const u8,
@@ -6043,17 +6024,17 @@ pub unsafe extern "C" fn lre_exec(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn lre_get_capture_count(mut bc_buf: *const u8) -> i32 {
+pub unsafe fn lre_get_capture_count(mut bc_buf: *const u8) -> i32 {
     return *bc_buf.offset(1 as i32 as isize) as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn lre_get_flags(mut bc_buf: *const u8) -> i32 {
+pub unsafe fn lre_get_flags(mut bc_buf: *const u8) -> i32 {
     return *bc_buf.offset(0 as i32 as isize) as i32;
 }
 /* Return NULL if no group names. Otherwise, return a pointer to
 'capture_count - 1' zero terminated UTF-8 strings. */
 #[no_mangle]
-pub unsafe extern "C" fn lre_get_groupnames(mut bc_buf: *const u8) -> *const std::os::raw::c_char {
+pub unsafe fn lre_get_groupnames(mut bc_buf: *const u8) -> *const std::os::raw::c_char {
     let mut re_bytecode_len: u32 = 0;
     if lre_get_flags(bc_buf) & (1 as i32) << 7 as i32 == 0 as i32 {
         return 0 as *const std::os::raw::c_char;

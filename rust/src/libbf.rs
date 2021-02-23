@@ -49,7 +49,7 @@ pub struct BFConstCache {
     pub val: bf_t,
     pub prec: limb_t,
 }
-pub type bf_realloc_func_t = unsafe extern "C" fn(
+pub type bf_realloc_func_t = unsafe fn(
     _: *mut std::ffi::c_void,
     _: *mut std::ffi::c_void,
     _: usize,
@@ -117,13 +117,8 @@ pub union Float64Union {
     pub d: f64,
     pub u: u64,
 }
-pub type bf_op2_func_t = unsafe extern "C" fn(
-    _: *mut bf_t,
-    _: *const bf_t,
-    _: *const bf_t,
-    _: limb_t,
-    _: bf_flags_t,
-) -> i32;
+pub type bf_op2_func_t =
+    unsafe fn(_: *mut bf_t, _: *const bf_t, _: *const bf_t, _: limb_t, _: bf_flags_t) -> i32;
 pub type mp_size_t = intptr_t;
 
 #[repr(C)]
@@ -137,19 +132,19 @@ pub struct FastDivData {
 precision 'prec'. For efficiency purposes, the final bf_round()
 does not need to be done in the function. */
 pub type ZivFunc =
-    unsafe extern "C" fn(_: *mut bf_t, _: *const bf_t, _: limb_t, _: *mut std::ffi::c_void) -> i32;
+    unsafe fn(_: *mut bf_t, _: *const bf_t, _: limb_t, _: *mut std::ffi::c_void) -> i32;
 
 #[inline]
-unsafe extern "C" fn clz64(mut a: u64) -> i32 {
+unsafe fn clz64(mut a: u64) -> i32 {
     return (a as u64).leading_zeros() as i32;
 }
 #[inline]
-unsafe extern "C" fn ctz64(mut a: u64) -> i32 {
+unsafe fn ctz64(mut a: u64) -> i32 {
     return (a as u64).trailing_zeros() as i32;
 }
 
 #[inline]
-pub unsafe extern "C" fn bf_get_exp_bits(mut flags: bf_flags_t) -> i32 {
+pub unsafe fn bf_get_exp_bits(mut flags: bf_flags_t) -> i32 {
     let mut e: i32 = 0;
     e = (flags >> 5 as i32 & 0x3f as i32 as u32) as i32;
     if e == 0x3f as i32 {
@@ -159,11 +154,11 @@ pub unsafe extern "C" fn bf_get_exp_bits(mut flags: bf_flags_t) -> i32 {
     };
 }
 #[inline]
-pub unsafe extern "C" fn bf_set_exp_bits(mut n: i32) -> bf_flags_t {
+pub unsafe fn bf_set_exp_bits(mut n: i32) -> bf_flags_t {
     return ((((1 as i32) << 6 as i32) - 3 as i32 - n & 0x3f as i32) << 5 as i32) as bf_flags_t;
 }
 #[inline]
-unsafe extern "C" fn bf_max(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
+unsafe fn bf_max(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
     if a > b {
         return a;
     } else {
@@ -171,7 +166,7 @@ unsafe extern "C" fn bf_max(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
     };
 }
 #[inline]
-unsafe extern "C" fn bf_min(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
+unsafe fn bf_min(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
     if a < b {
         return a;
     } else {
@@ -179,7 +174,7 @@ unsafe extern "C" fn bf_min(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
     };
 }
 #[inline]
-pub unsafe extern "C" fn bf_realloc(
+pub unsafe fn bf_realloc(
     mut s: *mut bf_context_t,
     mut ptr: *mut std::ffi::c_void,
     mut size: usize,
@@ -187,122 +182,122 @@ pub unsafe extern "C" fn bf_realloc(
     return (*s).realloc_func.expect("non-null function pointer")((*s).realloc_opaque, ptr, size);
 }
 #[inline]
-unsafe extern "C" fn bf_malloc(mut s: *mut bf_context_t, mut size: usize) -> *mut std::ffi::c_void {
+unsafe fn bf_malloc(mut s: *mut bf_context_t, mut size: usize) -> *mut std::ffi::c_void {
     return bf_realloc(s, 0 as *mut std::ffi::c_void, size);
 }
 #[inline]
-pub unsafe extern "C" fn bf_free(mut s: *mut bf_context_t, mut ptr: *mut std::ffi::c_void) {
+pub unsafe fn bf_free(mut s: *mut bf_context_t, mut ptr: *mut std::ffi::c_void) {
     if !ptr.is_null() {
         bf_realloc(s, ptr, 0);
     };
 }
 #[inline]
-pub unsafe extern "C" fn bf_delete(mut r: *mut bf_t) {
+pub unsafe fn bf_delete(mut r: *mut bf_t) {
     let mut s: *mut bf_context_t = (*r).ctx;
     if !s.is_null() && !(*r).tab.is_null() {
         bf_realloc(s, (*r).tab as *mut std::ffi::c_void, 0);
     };
 }
 #[inline]
-pub unsafe extern "C" fn bf_neg(mut r: *mut bf_t) {
+pub unsafe fn bf_neg(mut r: *mut bf_t) {
     (*r).sign ^= 1 as i32;
 }
 #[inline]
-pub unsafe extern "C" fn bf_is_finite(mut a: *const bf_t) -> i32 {
+pub unsafe fn bf_is_finite(mut a: *const bf_t) -> i32 {
     return ((*a).expn < 9223372036854775807 - 1) as i32;
 }
 
 #[inline]
-pub unsafe extern "C" fn bf_is_zero(mut a: *const bf_t) -> i32 {
+pub unsafe fn bf_is_zero(mut a: *const bf_t) -> i32 {
     return ((*a).expn == -(9223372036854775807) - 1) as i32;
 }
 
 #[inline]
-pub unsafe extern "C" fn bf_is_nan(mut a: *const bf_t) -> i32 {
+pub unsafe fn bf_is_nan(mut a: *const bf_t) -> i32 {
     return ((*a).expn == 9223372036854775807) as i32;
 }
 #[inline]
-pub unsafe extern "C" fn bf_cmp_eq(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
+pub unsafe fn bf_cmp_eq(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     return (bf_cmp(a, b) == 0) as i32;
 }
 
 #[inline]
-pub unsafe extern "C" fn bf_cmp_le(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
+pub unsafe fn bf_cmp_le(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     return (bf_cmp(a, b) <= 0) as i32;
 }
 
 #[inline]
-pub unsafe extern "C" fn bf_cmp_lt(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
+pub unsafe fn bf_cmp_lt(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     return (bf_cmp(a, b) < 0 as i32) as i32;
 }
 #[inline]
-pub unsafe extern "C" fn bfdec_init(mut s: *mut bf_context_t, mut r: *mut bfdec_t) {
+pub unsafe fn bfdec_init(mut s: *mut bf_context_t, mut r: *mut bfdec_t) {
     bf_init(s, r as *mut bf_t);
 }
 
 #[inline]
-pub unsafe extern "C" fn bfdec_cmp_le(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
+pub unsafe fn bfdec_cmp_le(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
     return (bfdec_cmp(a, b) <= 0) as i32;
 }
 
 #[inline]
-pub unsafe extern "C" fn bfdec_cmp_eq(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
+pub unsafe fn bfdec_cmp_eq(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
     return (bfdec_cmp(a, b) == 0) as i32;
 }
 
 #[inline]
-pub unsafe extern "C" fn bfdec_cmp_lt(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
+pub unsafe fn bfdec_cmp_lt(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
     return (bfdec_cmp(a, b) < 0) as i32;
 }
 
 #[inline]
-pub unsafe extern "C" fn bfdec_neg(mut r: *mut bfdec_t) {
+pub unsafe fn bfdec_neg(mut r: *mut bfdec_t) {
     (*r).sign ^= 1;
 }
 #[inline]
-pub unsafe extern "C" fn bfdec_delete(mut r: *mut bfdec_t) {
+pub unsafe fn bfdec_delete(mut r: *mut bfdec_t) {
     bf_delete(r as *mut bf_t);
 }
 #[inline]
-pub unsafe extern "C" fn bfdec_is_nan(mut a: *const bfdec_t) -> i32 {
+pub unsafe fn bfdec_is_nan(mut a: *const bfdec_t) -> i32 {
     return ((*a).expn == 9223372036854775807) as i32;
 }
 #[inline]
-pub unsafe extern "C" fn bfdec_set_nan(mut r: *mut bfdec_t) {
+pub unsafe fn bfdec_set_nan(mut r: *mut bfdec_t) {
     bf_set_nan(r as *mut bf_t);
 }
 #[inline]
-pub unsafe extern "C" fn bfdec_set_zero(mut r: *mut bfdec_t, mut is_neg: i32) {
+pub unsafe fn bfdec_set_zero(mut r: *mut bfdec_t, mut is_neg: i32) {
     bf_set_zero(r as *mut bf_t, is_neg);
 }
 #[inline]
-pub unsafe extern "C" fn bfdec_set_inf(mut r: *mut bfdec_t, mut is_neg: i32) {
+pub unsafe fn bfdec_set_inf(mut r: *mut bfdec_t, mut is_neg: i32) {
     bf_set_inf(r as *mut bf_t, is_neg);
 }
 #[inline]
-pub unsafe extern "C" fn bfdec_set(mut r: *mut bfdec_t, mut a: *const bfdec_t) -> i32 {
+pub unsafe fn bfdec_set(mut r: *mut bfdec_t, mut a: *const bfdec_t) -> i32 {
     return bf_set(r as *mut bf_t, a as *mut bf_t);
 }
 #[inline]
-pub unsafe extern "C" fn bfdec_move(mut r: *mut bfdec_t, mut a: *mut bfdec_t) {
+pub unsafe fn bfdec_move(mut r: *mut bfdec_t, mut a: *mut bfdec_t) {
     bf_move(r as *mut bf_t, a as *mut bf_t);
 }
 #[inline]
-pub unsafe extern "C" fn bfdec_cmpu(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
+pub unsafe fn bfdec_cmpu(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
     return bf_cmpu(a as *const bf_t, b as *const bf_t);
 }
 
 #[inline]
-pub unsafe extern "C" fn bfdec_cmp(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
+pub unsafe fn bfdec_cmp(mut a: *const bfdec_t, mut b: *const bfdec_t) -> i32 {
     return bf_cmp(a as *const bf_t, b as *const bf_t);
 }
 #[inline]
-unsafe extern "C" fn bfdec_resize(mut r: *mut bfdec_t, mut len: limb_t) -> i32 {
+unsafe fn bfdec_resize(mut r: *mut bfdec_t, mut len: limb_t) -> i32 {
     return bf_resize(r as *mut bf_t, len);
 }
 /* could leading zeros */
 #[inline]
-unsafe extern "C" fn clz(mut a: limb_t) -> i32 {
+unsafe fn clz(mut a: limb_t) -> i32 {
     if a == 0 as i32 as u64 {
         return (1 as i32) << 6 as i32;
     } else {
@@ -310,7 +305,7 @@ unsafe extern "C" fn clz(mut a: limb_t) -> i32 {
     };
 }
 #[inline]
-unsafe extern "C" fn ctz(mut a: limb_t) -> i32 {
+unsafe fn ctz(mut a: limb_t) -> i32 {
     if a == 0 as i32 as u64 {
         return (1 as i32) << 6 as i32;
     } else {
@@ -318,7 +313,7 @@ unsafe extern "C" fn ctz(mut a: limb_t) -> i32 {
     };
 }
 #[inline]
-unsafe extern "C" fn ceil_log2(mut a: limb_t) -> i32 {
+unsafe fn ceil_log2(mut a: limb_t) -> i32 {
     if a <= 1 as i32 as u64 {
         return 0 as i32;
     } else {
@@ -327,7 +322,7 @@ unsafe extern "C" fn ceil_log2(mut a: limb_t) -> i32 {
 }
 /* b must be >= 1 */
 #[inline]
-unsafe extern "C" fn ceil_div(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
+unsafe fn ceil_div(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
     if a >= 0 as i32 as i64 {
         return (a + b - 1 as i32 as i64) / b;
     } else {
@@ -336,7 +331,7 @@ unsafe extern "C" fn ceil_div(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
 }
 /* b must be >= 1 */
 #[inline]
-unsafe extern "C" fn floor_div(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
+unsafe fn floor_div(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
     if a >= 0 as i32 as i64 {
         return a / b;
     } else {
@@ -345,7 +340,7 @@ unsafe extern "C" fn floor_div(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
 }
 /* return r = a modulo b (0 <= r <= b - 1. b must be >= 1 */
 #[inline]
-unsafe extern "C" fn smod(mut a: slimb_t, mut b: slimb_t) -> limb_t {
+unsafe fn smod(mut a: slimb_t, mut b: slimb_t) -> limb_t {
     a = a % b;
     if a < 0 as i32 as i64 {
         a += b
@@ -354,7 +349,7 @@ unsafe extern "C" fn smod(mut a: slimb_t, mut b: slimb_t) -> limb_t {
 }
 /* signed addition with saturation */
 #[inline]
-unsafe extern "C" fn sat_add(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
+unsafe fn sat_add(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
     let mut r: slimb_t = 0;
     r = a + b;
     /* overflow ? */
@@ -366,7 +361,7 @@ unsafe extern "C" fn sat_add(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
     return r;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_context_init(
+pub unsafe fn bf_context_init(
     mut s: *mut bf_context_t,
     mut realloc_func: Option<bf_realloc_func_t>,
     mut realloc_opaque: *mut std::ffi::c_void,
@@ -376,11 +371,11 @@ pub unsafe extern "C" fn bf_context_init(
     (*s).realloc_opaque = realloc_opaque;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_context_end(mut s: *mut bf_context_t) {
+pub unsafe fn bf_context_end(mut s: *mut bf_context_t) {
     bf_clear_cache(s);
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_init(mut s: *mut bf_context_t, mut r: *mut bf_t) {
+pub unsafe fn bf_init(mut s: *mut bf_context_t, mut r: *mut bf_t) {
     (*r).ctx = s;
     (*r).sign = 0 as i32;
     (*r).expn = -(9223372036854775807 as i64) - 1 as i32 as i64;
@@ -389,7 +384,7 @@ pub unsafe extern "C" fn bf_init(mut s: *mut bf_context_t, mut r: *mut bf_t) {
 }
 /* return 0 if OK, -1 if alloc error */
 #[no_mangle]
-pub unsafe extern "C" fn bf_resize(mut r: *mut bf_t, mut len: limb_t) -> i32 {
+pub unsafe fn bf_resize(mut r: *mut bf_t, mut len: limb_t) -> i32 {
     let mut tab: *mut limb_t = 0 as *mut limb_t;
     if len != (*r).len {
         tab = bf_realloc(
@@ -407,7 +402,7 @@ pub unsafe extern "C" fn bf_resize(mut r: *mut bf_t, mut len: limb_t) -> i32 {
 }
 /* return 0 or BF_ST_MEM_ERROR */
 #[no_mangle]
-pub unsafe extern "C" fn bf_set_ui(mut r: *mut bf_t, mut a: u64) -> i32 {
+pub unsafe fn bf_set_ui(mut r: *mut bf_t, mut a: u64) -> i32 {
     (*r).sign = 0 as i32;
     if a == 0 as i32 as u64 {
         (*r).expn = -(9223372036854775807 as i64) - 1 as i32 as i64;
@@ -428,7 +423,7 @@ pub unsafe extern "C" fn bf_set_ui(mut r: *mut bf_t, mut a: u64) -> i32 {
 }
 /* return 0 or BF_ST_MEM_ERROR */
 #[no_mangle]
-pub unsafe extern "C" fn bf_set_si(mut r: *mut bf_t, mut a: i64) -> i32 {
+pub unsafe fn bf_set_si(mut r: *mut bf_t, mut a: i64) -> i32 {
     let mut ret: i32 = 0; /* cannot fail */
     if a < 0 as i32 as i64 {
         ret = bf_set_ui(r, -a as u64); /* cannot fail */
@@ -439,26 +434,26 @@ pub unsafe extern "C" fn bf_set_si(mut r: *mut bf_t, mut a: i64) -> i32 {
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_set_nan(mut r: *mut bf_t) {
+pub unsafe fn bf_set_nan(mut r: *mut bf_t) {
     bf_resize(r, 0 as i32 as limb_t);
     (*r).expn = 9223372036854775807 as i64;
     (*r).sign = 0 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_set_zero(mut r: *mut bf_t, mut is_neg: i32) {
+pub unsafe fn bf_set_zero(mut r: *mut bf_t, mut is_neg: i32) {
     bf_resize(r, 0 as i32 as limb_t);
     (*r).expn = -(9223372036854775807 as i64) - 1 as i32 as i64;
     (*r).sign = is_neg;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_set_inf(mut r: *mut bf_t, mut is_neg: i32) {
+pub unsafe fn bf_set_inf(mut r: *mut bf_t, mut is_neg: i32) {
     bf_resize(r, 0 as i32 as limb_t);
     (*r).expn = 9223372036854775807 as i64 - 1 as i32 as i64;
     (*r).sign = is_neg;
 }
 /* return 0 or BF_ST_MEM_ERROR */
 #[no_mangle]
-pub unsafe extern "C" fn bf_set(mut r: *mut bf_t, mut a: *const bf_t) -> i32 {
+pub unsafe fn bf_set(mut r: *mut bf_t, mut a: *const bf_t) -> i32 {
     if r == a as *mut bf_t {
         return 0 as i32;
     }
@@ -476,7 +471,7 @@ pub unsafe extern "C" fn bf_set(mut r: *mut bf_t, mut a: *const bf_t) -> i32 {
 }
 /* equivalent to bf_set(r, a); bf_delete(a) */
 #[no_mangle]
-pub unsafe extern "C" fn bf_move(mut r: *mut bf_t, mut a: *mut bf_t) {
+pub unsafe fn bf_move(mut r: *mut bf_t, mut a: *mut bf_t) {
     let mut s: *mut bf_context_t = (*r).ctx;
     if r == a {
         return;
@@ -484,7 +479,7 @@ pub unsafe extern "C" fn bf_move(mut r: *mut bf_t, mut a: *mut bf_t) {
     bf_free(s, (*r).tab as *mut std::ffi::c_void);
     *r = *a;
 }
-unsafe extern "C" fn get_limbz(mut a: *const bf_t, mut idx: limb_t) -> limb_t {
+unsafe fn get_limbz(mut a: *const bf_t, mut idx: limb_t) -> limb_t {
     if idx >= (*a).len {
         return 0 as i32 as limb_t;
     } else {
@@ -493,7 +488,7 @@ unsafe extern "C" fn get_limbz(mut a: *const bf_t, mut idx: limb_t) -> limb_t {
 }
 /* get LIMB_BITS at bit position 'pos' in tab */
 #[inline]
-unsafe extern "C" fn get_bits(mut tab: *const limb_t, mut len: limb_t, mut pos: slimb_t) -> limb_t {
+unsafe fn get_bits(mut tab: *const limb_t, mut len: limb_t, mut pos: slimb_t) -> limb_t {
     let mut i: limb_t = 0;
     let mut a0: limb_t = 0;
     let mut a1: limb_t = 0;
@@ -518,7 +513,7 @@ unsafe extern "C" fn get_bits(mut tab: *const limb_t, mut len: limb_t, mut pos: 
     };
 }
 #[inline]
-unsafe extern "C" fn get_bit(mut tab: *const limb_t, mut len: limb_t, mut pos: slimb_t) -> limb_t {
+unsafe fn get_bit(mut tab: *const limb_t, mut len: limb_t, mut pos: slimb_t) -> limb_t {
     let mut i: slimb_t = 0;
     i = pos >> 6 as i32;
     if i < 0 as i32 as i64 || i as u64 >= len {
@@ -528,7 +523,7 @@ unsafe extern "C" fn get_bit(mut tab: *const limb_t, mut len: limb_t, mut pos: s
         & 1 as i32 as u64;
 }
 #[inline]
-unsafe extern "C" fn limb_mask(mut start: i32, mut last: i32) -> limb_t {
+unsafe fn limb_mask(mut start: i32, mut last: i32) -> limb_t {
     let mut v: limb_t = 0;
     let mut n: i32 = 0;
     n = last - start + 1 as i32;
@@ -539,7 +534,7 @@ unsafe extern "C" fn limb_mask(mut start: i32, mut last: i32) -> limb_t {
     }
     return v;
 }
-unsafe extern "C" fn mp_scan_nz(mut tab: *const limb_t, mut n: mp_size_t) -> limb_t {
+unsafe fn mp_scan_nz(mut tab: *const limb_t, mut n: mp_size_t) -> limb_t {
     let mut i: mp_size_t = 0;
     i = 0 as i32 as mp_size_t;
     while i < n {
@@ -552,7 +547,7 @@ unsafe extern "C" fn mp_scan_nz(mut tab: *const limb_t, mut n: mp_size_t) -> lim
 }
 /* return != 0 if one bit between 0 and bit_pos inclusive is not zero. */
 #[inline]
-unsafe extern "C" fn scan_bit_nz(mut r: *const bf_t, mut bit_pos: slimb_t) -> limb_t {
+unsafe fn scan_bit_nz(mut r: *const bf_t, mut bit_pos: slimb_t) -> limb_t {
     let mut pos: slimb_t = 0;
     let mut v: limb_t = 0;
     pos = bit_pos >> 6 as i32;
@@ -578,7 +573,7 @@ unsafe extern "C" fn scan_bit_nz(mut r: *const bf_t, mut bit_pos: slimb_t) -> li
 }
 /* return the addend for rounding. Note that prec can be <= 0 (for
 BF_FLAG_RADPNT_PREC) */
-unsafe extern "C" fn bf_get_rnd_add(
+unsafe fn bf_get_rnd_add(
     mut pret: *mut i32,
     mut r: *const bf_t,
     mut l: limb_t,
@@ -647,7 +642,7 @@ unsafe extern "C" fn bf_get_rnd_add(
     }
     return add_one;
 }
-unsafe extern "C" fn bf_set_overflow(
+unsafe fn bf_set_overflow(
     mut r: *mut bf_t,
     mut sign: i32,
     mut prec: limb_t,
@@ -699,7 +694,7 @@ assumed to have length 'l' (1 <= l <= r->len). Note: 'prec1' can be
 infinite (BF_PREC_INF). 'ret' is 0 or BF_ST_INEXACT if the result
 is known to be inexact. Can fail with BF_ST_MEM_ERROR in case of
 overflow not returning infinity. */
-unsafe extern "C" fn __bf_round(
+unsafe fn __bf_round(
     mut r: *mut bf_t,
     mut prec1: limb_t,
     mut flags: bf_flags_t,
@@ -856,7 +851,7 @@ unsafe extern "C" fn __bf_round(
 }
 /* 'r' must be a finite number. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_normalize_and_round(
+pub unsafe fn bf_normalize_and_round(
     mut r: *mut bf_t,
     mut prec1: limb_t,
     mut flags: bf_flags_t,
@@ -909,7 +904,7 @@ the exact result r is such that |r-a| <= 2^(EXP(a)-k). */
 /* XXX: check the case where the exponent would be incremented by the
 rounding */
 #[no_mangle]
-pub unsafe extern "C" fn bf_can_round(
+pub unsafe fn bf_can_round(
     mut a: *const bf_t,
     mut prec: slimb_t,
     mut rnd_mode: bf_rnd_t,
@@ -960,11 +955,7 @@ pub unsafe extern "C" fn bf_can_round(
 }
 /* Cannot fail with BF_ST_MEM_ERROR. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_round(
-    mut r: *mut bf_t,
-    mut prec: limb_t,
-    mut flags: bf_flags_t,
-) -> i32 {
+pub unsafe fn bf_round(mut r: *mut bf_t, mut prec: limb_t, mut flags: bf_flags_t) -> i32 {
     if (*r).len == 0 as i32 as u64 {
         return 0 as i32;
     }
@@ -973,7 +964,7 @@ pub unsafe extern "C" fn bf_round(
 
 /*
 #[no_mangle]
-pub unsafe extern "C" fn mp_print_str(
+pub unsafe fn mp_print_str(
     mut str: *const std::os::raw::c_char,
     mut tab: *const limb_t,
     mut n: limb_t,
@@ -998,7 +989,7 @@ pub unsafe extern "C" fn mp_print_str(
 /*
 /* for debugging */
 #[no_mangle]
-pub unsafe extern "C" fn bf_print_str(mut str: *const std::os::raw::c_char, mut a: *const bf_t) {
+pub unsafe fn bf_print_str(mut str: *const std::os::raw::c_char, mut a: *const bf_t) {
     let mut i: slimb_t = 0;
     printf(b"%s=\x00" as *const u8 as *const std::os::raw::c_char, str);
     if (*a).expn == 9223372036854775807 as i64 {
@@ -1033,7 +1024,7 @@ pub unsafe extern "C" fn bf_print_str(mut str: *const std::os::raw::c_char, mut 
 /* compare the absolute value of 'a' and 'b'. Return < 0 if a < b, 0
 if a = b and > 0 otherwise. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_cmpu(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
+pub unsafe fn bf_cmpu(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     let mut i: slimb_t = 0;
     let mut len: limb_t = 0;
     let mut v1: limb_t = 0;
@@ -1063,7 +1054,7 @@ pub unsafe extern "C" fn bf_cmpu(mut a: *const bf_t, mut b: *const bf_t) -> i32 
 }
 /* Full order: -0 < 0, NaN == NaN and NaN is larger than all other numbers */
 #[no_mangle]
-pub unsafe extern "C" fn bf_cmp_full(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
+pub unsafe fn bf_cmp_full(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     let mut res: i32 = 0;
     if (*a).expn == 9223372036854775807 as i64 || (*b).expn == 9223372036854775807 as i64 {
         if (*a).expn == (*b).expn {
@@ -1087,7 +1078,7 @@ pub unsafe extern "C" fn bf_cmp_full(mut a: *const bf_t, mut b: *const bf_t) -> 
 is NaN (unordered) or -1, 0, 1 depending on the ordering assuming
 -0 == +0 */
 #[no_mangle]
-pub unsafe extern "C" fn bf_cmp(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
+pub unsafe fn bf_cmp(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     let mut res: i32 = 0;
     if (*a).expn == 9223372036854775807 as i64 || (*b).expn == 9223372036854775807 as i64 {
         res = 2 as i32
@@ -1116,7 +1107,7 @@ pub unsafe extern "C" fn bf_cmp(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
 
    Precondition: a > b and a.expn - b.expn = 0 or 1
 */
-unsafe extern "C" fn count_cancelled_bits(mut a: *const bf_t, mut b: *const bf_t) -> limb_t {
+unsafe fn count_cancelled_bits(mut a: *const bf_t, mut b: *const bf_t) -> limb_t {
     let mut current_block: u64;
     let mut bit_offset: slimb_t = 0;
     let mut b_offset: slimb_t = 0;
@@ -1191,7 +1182,7 @@ unsafe extern "C" fn count_cancelled_bits(mut a: *const bf_t, mut b: *const bf_t
     }
     return n as limb_t;
 }
-unsafe extern "C" fn bf_add_internal(
+unsafe fn bf_add_internal(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: *const bf_t,
@@ -1417,7 +1408,7 @@ unsafe extern "C" fn bf_add_internal(
     }
     return ret;
 }
-unsafe extern "C" fn __bf_add(
+unsafe fn __bf_add(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: *const bf_t,
@@ -1426,7 +1417,7 @@ unsafe extern "C" fn __bf_add(
 ) -> i32 {
     return bf_add_internal(r, a, b, prec, flags, 0 as i32);
 }
-unsafe extern "C" fn __bf_sub(
+unsafe fn __bf_sub(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: *const bf_t,
@@ -1436,7 +1427,7 @@ unsafe extern "C" fn __bf_sub(
     return bf_add_internal(r, a, b, prec, flags, 1 as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn mp_add(
+pub unsafe fn mp_add(
     mut res: *mut limb_t,
     mut op1: *const limb_t,
     mut op2: *const limb_t,
@@ -1462,7 +1453,7 @@ pub unsafe extern "C" fn mp_add(
     return k;
 }
 #[no_mangle]
-pub unsafe extern "C" fn mp_add_ui(mut tab: *mut limb_t, mut b: limb_t, mut n: u64) -> limb_t {
+pub unsafe fn mp_add_ui(mut tab: *mut limb_t, mut b: limb_t, mut n: u64) -> limb_t {
     let mut i: u64 = 0;
     let mut k: limb_t = 0;
     let mut a: limb_t = 0;
@@ -1480,7 +1471,7 @@ pub unsafe extern "C" fn mp_add_ui(mut tab: *mut limb_t, mut b: limb_t, mut n: u
     return k;
 }
 #[no_mangle]
-pub unsafe extern "C" fn mp_sub(
+pub unsafe fn mp_sub(
     mut res: *mut limb_t,
     mut op1: *const limb_t,
     mut op2: *const limb_t,
@@ -1504,7 +1495,7 @@ pub unsafe extern "C" fn mp_sub(
     return k;
 }
 /* compute 0 - op2 */
-unsafe extern "C" fn mp_neg(
+unsafe fn mp_neg(
     mut res: *mut limb_t,
     mut op2: *const limb_t,
     mut n: mp_size_t,
@@ -1529,11 +1520,7 @@ unsafe extern "C" fn mp_neg(
     return k;
 }
 #[no_mangle]
-pub unsafe extern "C" fn mp_sub_ui(
-    mut tab: *mut limb_t,
-    mut b: limb_t,
-    mut n: mp_size_t,
-) -> limb_t {
+pub unsafe fn mp_sub_ui(mut tab: *mut limb_t, mut b: limb_t, mut n: mp_size_t) -> limb_t {
     let mut i: mp_size_t = 0;
     let mut k: limb_t = 0;
     let mut a: limb_t = 0;
@@ -1554,7 +1541,7 @@ pub unsafe extern "C" fn mp_sub_ui(
 }
 /* r = (a + high*B^n) >> shift. Return the remainder r (0 <= r < 2^shift).
 1 <= shift <= LIMB_BITS - 1 */
-unsafe extern "C" fn mp_shr(
+unsafe fn mp_shr(
     mut tab_r: *mut limb_t,
     mut tab: *const limb_t,
     mut n: mp_size_t,
@@ -1579,7 +1566,7 @@ unsafe extern "C" fn mp_shr(
     return l & ((1 as i32 as limb_t) << shift).wrapping_sub(1 as i32 as u64);
 }
 /* tabr[] = taba[] * b + l. Return the high carry */
-unsafe extern "C" fn mp_mul1(
+unsafe fn mp_mul1(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
     mut n: limb_t,
@@ -1600,7 +1587,7 @@ unsafe extern "C" fn mp_mul1(
     return l;
 }
 /* tabr[] += taba[] * b, return the high word. */
-unsafe extern "C" fn mp_add_mul1(
+unsafe fn mp_add_mul1(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
     mut n: limb_t,
@@ -1623,7 +1610,7 @@ unsafe extern "C" fn mp_add_mul1(
     return l;
 }
 /* size of the result : op1_size + op2_size. */
-unsafe extern "C" fn mp_mul_basecase(
+unsafe fn mp_mul_basecase(
     mut result: *mut limb_t,
     mut op1: *const limb_t,
     mut op1_size: limb_t,
@@ -1654,7 +1641,7 @@ unsafe extern "C" fn mp_mul_basecase(
 /* return 0 if OK, -1 if memory error */
 /* XXX: change API so that result can be allocated */
 #[no_mangle]
-pub unsafe extern "C" fn mp_mul(
+pub unsafe fn mp_mul(
     mut s: *mut bf_context_t,
     mut result: *mut limb_t,
     mut op1: *const limb_t,
@@ -1692,7 +1679,7 @@ pub unsafe extern "C" fn mp_mul(
 }
 /* tabr[] -= taba[] * b. Return the value to substract to the high
 word. */
-unsafe extern "C" fn mp_sub_mul1(
+unsafe fn mp_sub_mul1(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
     mut n: limb_t,
@@ -1715,7 +1702,7 @@ unsafe extern "C" fn mp_sub_mul1(
 }
 /* WARNING: d must be >= 2^(LIMB_BITS-1) */
 #[inline]
-unsafe extern "C" fn udiv1norm_init(mut d: limb_t) -> limb_t {
+unsafe fn udiv1norm_init(mut d: limb_t) -> limb_t {
     let mut a0: limb_t = 0;
     let mut a1: limb_t = 0;
     a1 = d.wrapping_neg().wrapping_sub(1 as i32 as u64);
@@ -1726,7 +1713,7 @@ unsafe extern "C" fn udiv1norm_init(mut d: limb_t) -> limb_t {
 /* return the quotient and the remainder in '*pr'of 'a1*2^LIMB_BITS+a0
 / d' with 0 <= a1 < d. */
 #[inline]
-unsafe extern "C" fn udiv1norm(
+unsafe fn udiv1norm(
     mut pr: *mut limb_t,
     mut a1: limb_t,
     mut a0: limb_t,
@@ -1758,7 +1745,7 @@ unsafe extern "C" fn udiv1norm(
     return q;
 }
 /* b must be >= 1 << (LIMB_BITS - 1) */
-unsafe extern "C" fn mp_div1norm(
+unsafe fn mp_div1norm(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
     mut n: limb_t,
@@ -1790,7 +1777,7 @@ unsafe extern "C" fn mp_div1norm(
 - 1] must be >= 1 << (LIMB_BITS - 1). na - nb must be >= 0. 'taba'
 is modified and contains the remainder (nb limbs). tabq[0..na-nb]
 contains the quotient with tabq[na - nb] <= 1. */
-unsafe extern "C" fn mp_divnorm(
+unsafe fn mp_divnorm(
     mut s: *mut bf_context_t,
     mut tabq: *mut limb_t,
     mut taba: *mut limb_t,
@@ -1906,7 +1893,7 @@ has n limbs with a[n-1] >= B/2 and 'r' has n+1 limbs with r[n] = 1.
 See Modern Computer Arithmetic by Richard P. Brent and Paul
 Zimmermann, algorithm 3.5 */
 #[no_mangle]
-pub unsafe extern "C" fn mp_recip(
+pub unsafe fn mp_recip(
     mut s: *mut bf_context_t,
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
@@ -2062,11 +2049,7 @@ pub unsafe extern "C" fn mp_recip(
     };
 }
 /* return -1, 0 or 1 */
-unsafe extern "C" fn mp_cmp(
-    mut taba: *const limb_t,
-    mut tabb: *const limb_t,
-    mut n: mp_size_t,
-) -> i32 {
+unsafe fn mp_cmp(mut taba: *const limb_t, mut tabb: *const limb_t, mut n: mp_size_t) -> i32 {
     let mut i: mp_size_t = 0;
     i = n - 1;
     while i >= 0 {
@@ -2084,7 +2067,7 @@ unsafe extern "C" fn mp_cmp(
 //#define DEBUG_DIVNORM_LARGE
 //#define DEBUG_DIVNORM_LARGE2
 /* subquadratic divnorm */
-unsafe extern "C" fn mp_divnorm_large(
+unsafe fn mp_divnorm_large(
     mut s: *mut bf_context_t,
     mut tabq: *mut limb_t,
     mut taba: *mut limb_t,
@@ -2230,7 +2213,7 @@ unsafe extern "C" fn mp_divnorm_large(
     return -(1 as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_mul(
+pub unsafe fn bf_mul(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: *const bf_t,
@@ -2342,7 +2325,7 @@ pub unsafe extern "C" fn bf_mul(
 }
 /* multiply 'r' by 2^e */
 #[no_mangle]
-pub unsafe extern "C" fn bf_mul_2exp(
+pub unsafe fn bf_mul_2exp(
     mut r: *mut bf_t,
     mut e: slimb_t,
     mut prec: limb_t,
@@ -2362,7 +2345,7 @@ pub unsafe extern "C" fn bf_mul_2exp(
 /* Return e such as a=m*2^e with m odd integer. return 0 if a is zero,
 Infinite or Nan. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_get_exp_min(mut a: *const bf_t) -> slimb_t {
+pub unsafe fn bf_get_exp_min(mut a: *const bf_t) -> slimb_t {
     let mut i: slimb_t = 0;
     let mut v: limb_t = 0;
     let mut k: i32 = 0;
@@ -2385,12 +2368,7 @@ pub unsafe extern "C" fn bf_get_exp_min(mut a: *const bf_t) -> slimb_t {
 }
 /* a and b must be finite numbers with a >= 0 and b > 0. 'q' is the
 integer defined as floor(a/b) and r = a - q * b. */
-unsafe extern "C" fn bf_tdivremu(
-    mut q: *mut bf_t,
-    mut r: *mut bf_t,
-    mut a: *const bf_t,
-    mut b: *const bf_t,
-) {
+unsafe fn bf_tdivremu(mut q: *mut bf_t, mut r: *mut bf_t, mut a: *const bf_t, mut b: *const bf_t) {
     if bf_cmpu(a, b) < 0 as i32 {
         bf_set_ui(q, 0 as i32 as u64);
         bf_set(r, a);
@@ -2423,7 +2401,7 @@ unsafe extern "C" fn bf_tdivremu(
         );
     };
 }
-unsafe extern "C" fn __bf_div(
+unsafe fn __bf_div(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: *const bf_t,
@@ -2522,7 +2500,7 @@ unsafe extern "C" fn __bf_div(
    BF_PREC_INF).
 */
 #[no_mangle]
-pub unsafe extern "C" fn bf_divrem(
+pub unsafe fn bf_divrem(
     mut q: *mut bf_t,
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -2671,7 +2649,7 @@ pub unsafe extern "C" fn bf_divrem(
     return (1 as i32) << 5 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_rem(
+pub unsafe fn bf_rem(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: *const bf_t,
@@ -2694,15 +2672,11 @@ pub unsafe extern "C" fn bf_rem(
     return ret;
 }
 #[inline]
-unsafe extern "C" fn bf_get_limb(
-    mut pres: *mut slimb_t,
-    mut a: *const bf_t,
-    mut flags: i32,
-) -> i32 {
+unsafe fn bf_get_limb(mut pres: *mut slimb_t, mut a: *const bf_t, mut flags: i32) -> i32 {
     return bf_get_int64(pres, a, flags);
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_remquo(
+pub unsafe fn bf_remquo(
     mut pq: *mut slimb_t,
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -2922,7 +2896,7 @@ static mut sqrt_table: [u16; 192] = [
 ];
 /* a >= 2^(LIMB_BITS - 2).  Return (s, r) with s=floor(sqrt(a)) and
 r=a-s^2. 0 <= r <= 2 * s */
-unsafe extern "C" fn mp_sqrtrem1(mut pr: *mut limb_t, mut a: limb_t) -> limb_t {
+unsafe fn mp_sqrtrem1(mut pr: *mut limb_t, mut a: limb_t) -> limb_t {
     let mut s1: limb_t = 0;
     let mut r1: limb_t = 0;
     let mut s: limb_t = 0;
@@ -2982,7 +2956,7 @@ unsafe extern "C" fn mp_sqrtrem1(mut pr: *mut limb_t, mut a: limb_t) -> limb_t {
 }
 /* return floor(sqrt(a)) */
 #[no_mangle]
-pub unsafe extern "C" fn bf_isqrt(mut a: limb_t) -> limb_t {
+pub unsafe fn bf_isqrt(mut a: limb_t) -> limb_t {
     let mut s: limb_t = 0; /* special case when q=2^l */
     let mut r: limb_t = 0;
     let mut k: i32 = 0;
@@ -2994,7 +2968,7 @@ pub unsafe extern "C" fn bf_isqrt(mut a: limb_t) -> limb_t {
     s >>= k >> 1 as i32;
     return s;
 }
-unsafe extern "C" fn mp_sqrtrem2(mut tabs: *mut limb_t, mut taba: *mut limb_t) -> limb_t {
+unsafe fn mp_sqrtrem2(mut tabs: *mut limb_t, mut taba: *mut limb_t) -> limb_t {
     let mut s1: limb_t = 0;
     let mut r1: limb_t = 0;
     let mut s: limb_t = 0;
@@ -3036,7 +3010,7 @@ unsafe extern "C" fn mp_sqrtrem2(mut tabs: *mut limb_t, mut taba: *mut limb_t) -
 //#define DEBUG_SQRTREM
 /* tmp_buf must contain (n / 2 + 1 limbs). *prh contains the highest
 limb of the remainder. */
-unsafe extern "C" fn mp_sqrtrem_rec(
+unsafe fn mp_sqrtrem_rec(
     mut s: *mut bf_context_t,
     mut tabs: *mut limb_t,
     mut taba: *mut limb_t,
@@ -3148,7 +3122,7 @@ taba. Its r[n] is the returned value of the function. */
 /* Algorithm from the article "Karatsuba Square Root" by Paul Zimmermann and
 inspirated from its GMP implementation */
 #[no_mangle]
-pub unsafe extern "C" fn mp_sqrtrem(
+pub unsafe fn mp_sqrtrem(
     mut s: *mut bf_context_t,
     mut tabs: *mut limb_t,
     mut taba: *mut limb_t,
@@ -3185,11 +3159,7 @@ pub unsafe extern "C" fn mp_sqrtrem(
 floor(sqrt(a)) and rem = a - r^2.  BF_ST_INEXACT is set if the result
 is inexact. 'rem' can be NULL if the remainder is not needed. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_sqrtrem(
-    mut r: *mut bf_t,
-    mut rem1: *mut bf_t,
-    mut a: *const bf_t,
-) -> i32 {
+pub unsafe fn bf_sqrtrem(mut r: *mut bf_t, mut rem1: *mut bf_t, mut a: *const bf_t) -> i32 {
     let mut ret: i32 = 0;
     let mut current_block_30: u64;
     if (*a).len == 0 as i32 as u64 {
@@ -3282,7 +3252,7 @@ pub unsafe extern "C" fn bf_sqrtrem(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_sqrt(
+pub unsafe fn bf_sqrt(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -3393,7 +3363,7 @@ pub unsafe extern "C" fn bf_sqrt(
     return ret;
 }
 #[inline(never)]
-unsafe extern "C" fn bf_op2(
+unsafe fn bf_op2(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: *const bf_t,
@@ -3419,7 +3389,7 @@ unsafe extern "C" fn bf_op2(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_add(
+pub unsafe fn bf_add(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: *const bf_t,
@@ -3434,7 +3404,7 @@ pub unsafe extern "C" fn bf_add(
         flags,
         Some(
             __bf_add
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: *const bf_t,
@@ -3445,7 +3415,7 @@ pub unsafe extern "C" fn bf_add(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_sub(
+pub unsafe fn bf_sub(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: *const bf_t,
@@ -3460,7 +3430,7 @@ pub unsafe extern "C" fn bf_sub(
         flags,
         Some(
             __bf_sub
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: *const bf_t,
@@ -3471,7 +3441,7 @@ pub unsafe extern "C" fn bf_sub(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_div(
+pub unsafe fn bf_div(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: *const bf_t,
@@ -3486,7 +3456,7 @@ pub unsafe extern "C" fn bf_div(
         flags,
         Some(
             __bf_div
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: *const bf_t,
@@ -3497,7 +3467,7 @@ pub unsafe extern "C" fn bf_div(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_mul_ui(
+pub unsafe fn bf_mul_ui(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b1: u64,
@@ -3519,7 +3489,7 @@ pub unsafe extern "C" fn bf_mul_ui(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_mul_si(
+pub unsafe fn bf_mul_si(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b1: i64,
@@ -3541,7 +3511,7 @@ pub unsafe extern "C" fn bf_mul_si(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_add_si(
+pub unsafe fn bf_add_si(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b1: i64,
@@ -3562,7 +3532,7 @@ pub unsafe extern "C" fn bf_add_si(
     bf_delete(&mut b);
     return ret;
 }
-unsafe extern "C" fn bf_pow_ui(
+unsafe fn bf_pow_ui(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut b: limb_t,
@@ -3591,7 +3561,7 @@ unsafe extern "C" fn bf_pow_ui(
     }
     return ret;
 }
-unsafe extern "C" fn bf_pow_ui_ui(
+unsafe fn bf_pow_ui_ui(
     mut r: *mut bf_t,
     mut a1: limb_t,
     mut b: limb_t,
@@ -3620,7 +3590,7 @@ unsafe extern "C" fn bf_pow_ui_ui(
 }
 /* convert to integer (infinite precision) */
 #[no_mangle]
-pub unsafe extern "C" fn bf_rint(mut r: *mut bf_t, mut rnd_mode: i32) -> i32 {
+pub unsafe fn bf_rint(mut r: *mut bf_t, mut rnd_mode: i32) -> i32 {
     return bf_round(
         r,
         0 as i32 as limb_t,
@@ -3628,14 +3598,14 @@ pub unsafe extern "C" fn bf_rint(mut r: *mut bf_t, mut rnd_mode: i32) -> i32 {
     ); /* minus zero is considered as positive */
 }
 #[inline]
-unsafe extern "C" fn bf_logic_op1(mut a: limb_t, mut b: limb_t, mut op: i32) -> limb_t {
+unsafe fn bf_logic_op1(mut a: limb_t, mut b: limb_t, mut op: i32) -> limb_t {
     match op {
         0 => return a | b,
         1 => return a ^ b,
         2 | _ => return a & b,
     }; /* minus zero is considered as positive */
 }
-unsafe extern "C" fn bf_logic_op(
+unsafe fn bf_logic_op(
     mut r: *mut bf_t,
     mut a1: *const bf_t,
     mut b1: *const bf_t,
@@ -3838,33 +3808,21 @@ unsafe extern "C" fn bf_logic_op(
 }
 /* 'a' and 'b' must be integers. Return 0 or BF_ST_MEM_ERROR. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_logic_or(
-    mut r: *mut bf_t,
-    mut a: *const bf_t,
-    mut b: *const bf_t,
-) -> i32 {
+pub unsafe fn bf_logic_or(mut r: *mut bf_t, mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     return bf_logic_op(r, a, b, 0 as i32);
 }
 /* 'a' and 'b' must be integers. Return 0 or BF_ST_MEM_ERROR. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_logic_xor(
-    mut r: *mut bf_t,
-    mut a: *const bf_t,
-    mut b: *const bf_t,
-) -> i32 {
+pub unsafe fn bf_logic_xor(mut r: *mut bf_t, mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     return bf_logic_op(r, a, b, 1 as i32);
 }
 /* 'a' and 'b' must be integers. Return 0 or BF_ST_MEM_ERROR. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_logic_and(
-    mut r: *mut bf_t,
-    mut a: *const bf_t,
-    mut b: *const bf_t,
-) -> i32 {
+pub unsafe fn bf_logic_and(mut r: *mut bf_t, mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     return bf_logic_op(r, a, b, 2 as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_get_float64(
+pub unsafe fn bf_get_float64(
     mut a: *const bf_t,
     mut pres: *mut f64,
     mut rnd_mode: bf_rnd_t,
@@ -3919,7 +3877,7 @@ pub unsafe extern "C" fn bf_get_float64(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_set_float64(mut a: *mut bf_t, mut d: f64) -> i32 {
+pub unsafe fn bf_set_float64(mut a: *mut bf_t, mut d: f64) -> i32 {
     let mut current_block: u64;
     let mut u: Float64Union = Float64Union { d: 0. };
     let mut m: u64 = 0;
@@ -3972,11 +3930,7 @@ pub unsafe extern "C" fn bf_set_float64(mut a: *mut bf_t, mut d: f64) -> i32 {
 /* The rounding mode is always BF_RNDZ. Return BF_ST_INVALID_OP if there
 is an overflow and 0 otherwise. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_get_int32(
-    mut pres: *mut i32,
-    mut a: *const bf_t,
-    mut flags: i32,
-) -> i32 {
+pub unsafe fn bf_get_int32(mut pres: *mut i32, mut a: *const bf_t, mut flags: i32) -> i32 {
     let mut v: u32 = 0;
     let mut ret: i32 = 0;
     if (*a).expn >= 9223372036854775807 as i64 - 1 as i32 as i64 {
@@ -4035,11 +3989,7 @@ pub unsafe extern "C" fn bf_get_int32(
 /* The rounding mode is always BF_RNDZ. Return BF_ST_INVALID_OP if there
 is an overflow and 0 otherwise. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_get_int64(
-    mut pres: *mut i64,
-    mut a: *const bf_t,
-    mut flags: i32,
-) -> i32 {
+pub unsafe fn bf_get_int64(mut pres: *mut i64, mut a: *const bf_t, mut flags: i32) -> i32 {
     let mut v: u64 = 0;
     let mut ret: i32 = 0;
     if (*a).expn >= 9223372036854775807 as i64 - 1 as i32 as i64 {
@@ -4096,7 +4046,7 @@ pub unsafe extern "C" fn bf_get_int64(
 /* The rounding mode is always BF_RNDZ. Return BF_ST_INVALID_OP if there
 is an overflow and 0 otherwise. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_get_uint64(mut pres: *mut u64, mut a: *const bf_t) -> i32 {
+pub unsafe fn bf_get_uint64(mut pres: *mut u64, mut a: *const bf_t) -> i32 {
     let mut v: u64 = 0;
     let mut ret: i32 = 0;
     let mut current_block_10: u64;
@@ -4168,7 +4118,7 @@ static mut digits_per_limb_table: [u8; 35] = [
     12 as i32 as u8,
     12 as i32 as u8,
 ];
-unsafe extern "C" fn get_limb_radix(mut radix: i32) -> limb_t {
+unsafe fn get_limb_radix(mut radix: i32) -> limb_t {
     let mut i: i32 = 0;
     let mut k: i32 = 0;
     let mut radixl: limb_t = 0;
@@ -4182,7 +4132,7 @@ unsafe extern "C" fn get_limb_radix(mut radix: i32) -> limb_t {
     return radixl;
 }
 /* return != 0 if error */
-unsafe extern "C" fn bf_integer_from_radix_rec(
+unsafe fn bf_integer_from_radix_rec(
     mut r: *mut bf_t,
     mut tab: *const limb_t,
     mut n: limb_t,
@@ -4269,7 +4219,7 @@ unsafe extern "C" fn bf_integer_from_radix_rec(
     //    bf_print_str("  r=", r);
 }
 /* return 0 if OK != 0 if memory error */
-unsafe extern "C" fn bf_integer_from_radix(
+unsafe fn bf_integer_from_radix(
     mut r: *mut bf_t,
     mut tab: *const limb_t,
     mut n: limb_t,
@@ -4306,7 +4256,7 @@ unsafe extern "C" fn bf_integer_from_radix(
 }
 /* compute and round T * radix^expn. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_mul_pow_radix(
+pub unsafe fn bf_mul_pow_radix(
     mut r: *mut bf_t,
     mut T: *const bf_t,
     mut radix: limb_t,
@@ -4439,7 +4389,7 @@ pub unsafe extern "C" fn bf_mul_pow_radix(
     return ret;
 }
 #[inline]
-unsafe extern "C" fn to_digit(mut c: i32) -> i32 {
+unsafe fn to_digit(mut c: i32) -> i32 {
     if c >= '0' as i32 && c <= '9' as i32 {
         return c - '0' as i32;
     } else if c >= 'A' as i32 && c <= 'Z' as i32 {
@@ -4452,7 +4402,7 @@ unsafe extern "C" fn to_digit(mut c: i32) -> i32 {
 }
 /* add a limb at 'pos' and decrement pos. new space is created if
 needed. Return 0 if OK, -1 if memory error */
-unsafe extern "C" fn bf_add_limb(mut a: *mut bf_t, mut ppos: *mut slimb_t, mut v: limb_t) -> i32 {
+unsafe fn bf_add_limb(mut a: *mut bf_t, mut ppos: *mut slimb_t, mut v: limb_t) -> i32 {
     let mut pos: slimb_t = 0;
     pos = *ppos;
     if (pos < 0 as i32 as i64) as i32 as i64 != 0 {
@@ -4488,13 +4438,13 @@ unsafe extern "C" fn bf_add_limb(mut a: *mut bf_t, mut ppos: *mut slimb_t, mut v
     *ppos = pos;
     return 0 as i32;
 }
-unsafe extern "C" fn bf_tolower(mut c: i32) -> i32 {
+unsafe fn bf_tolower(mut c: i32) -> i32 {
     if c >= 'A' as i32 && c <= 'Z' as i32 {
         c = c - 'A' as i32 + 'a' as i32
     }
     return c;
 }
-unsafe extern "C" fn strcasestart(
+unsafe fn strcasestart(
     mut str: *const std::os::raw::c_char,
     mut val: *const std::os::raw::c_char,
     mut ptr: *mut *const std::os::raw::c_char,
@@ -4515,7 +4465,7 @@ unsafe extern "C" fn strcasestart(
     }
     return 1 as i32;
 }
-unsafe extern "C" fn bf_atof_internal(
+unsafe fn bf_atof_internal(
     mut r: *mut bf_t,
     mut pexponent: *mut slimb_t,
     mut str: *const std::os::raw::c_char,
@@ -4937,7 +4887,7 @@ unsafe extern "C" fn bf_atof_internal(
    (*pexponent)^radix. Otherwise *pexponent = 0.
 */
 #[no_mangle]
-pub unsafe extern "C" fn bf_atof2(
+pub unsafe fn bf_atof2(
     mut r: *mut bf_t,
     mut pexponent: *mut slimb_t,
     mut str: *const std::os::raw::c_char,
@@ -4949,7 +4899,7 @@ pub unsafe extern "C" fn bf_atof2(
     return bf_atof_internal(r, pexponent, str, pnext, radix, prec, flags, FALSE as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_atof(
+pub unsafe fn bf_atof(
     mut r: *mut bf_t,
     mut str: *const std::os::raw::c_char,
     mut pnext: *mut *const std::os::raw::c_char,
@@ -5176,7 +5126,7 @@ static mut log2_radix: [limb_t; 35] = [
 b=1/log2(radix). For is_inv = 0, strict accuracy is not guaranteed
 when radix is not a power of two. */
 #[no_mangle]
-pub unsafe extern "C" fn bf_mul_log2_radix(
+pub unsafe fn bf_mul_log2_radix(
     mut a1: slimb_t,
     mut radix: u32,
     mut is_inv: i32,
@@ -5235,7 +5185,7 @@ pub unsafe extern "C" fn bf_mul_log2_radix(
     return a as slimb_t;
 }
 /* 'n' is the number of output limbs */
-unsafe extern "C" fn bf_integer_to_radix_rec(
+unsafe fn bf_integer_to_radix_rec(
     mut pow_tab: *mut bf_t,
     mut out: *mut limb_t,
     mut a: *const bf_t,
@@ -5475,11 +5425,7 @@ unsafe extern "C" fn bf_integer_to_radix_rec(
     return 0 as i32;
 }
 /* return 0 if OK != 0 if memory error */
-unsafe extern "C" fn bf_integer_to_radix(
-    mut r: *mut bf_t,
-    mut a: *const bf_t,
-    mut radixl: limb_t,
-) -> i32 {
+unsafe fn bf_integer_to_radix(mut r: *mut bf_t, mut a: *const bf_t, mut radixl: limb_t) -> i32 {
     let mut s: *mut bf_context_t = (*r).ctx; /* XXX: check */
     let mut r_len: limb_t = 0;
     let mut pow_tab: *mut bf_t = 0 as *mut bf_t;
@@ -5521,7 +5467,7 @@ unsafe extern "C" fn bf_integer_to_radix(
 /* a must be >= 0. 'P' is the wanted number of digits in radix
 'radix'. 'r' is the mantissa represented as an integer. *pE
 contains the exponent. Return != 0 if memory error. */
-unsafe extern "C" fn bf_convert_to_radix(
+unsafe fn bf_convert_to_radix(
     mut r: *mut bf_t,
     mut pE: *mut slimb_t,
     mut a: *const bf_t,
@@ -5652,7 +5598,7 @@ unsafe extern "C" fn bf_convert_to_radix(
     *pE = E;
     return 0 as i32;
 }
-unsafe extern "C" fn limb_to_a(
+unsafe fn limb_to_a(
     mut buf: *mut std::os::raw::c_char,
     mut n: limb_t,
     mut radix: u32,
@@ -5685,7 +5631,7 @@ unsafe extern "C" fn limb_to_a(
     };
 }
 /* for power of 2 radixes */
-unsafe extern "C" fn limb_to_a2(
+unsafe fn limb_to_a2(
     mut buf: *mut std::os::raw::c_char,
     mut n: limb_t,
     mut radix_bits: u32,
@@ -5712,7 +5658,7 @@ unsafe extern "C" fn limb_to_a2(
 a power of two. A dot is added before the 'dot_pos' digit. dot_pos
 = n_digits does not display the dot. 0 <= dot_pos <=
 n_digits. n_digits >= 1. */
-unsafe extern "C" fn output_digits(
+unsafe fn output_digits(
     mut s: *mut DynBuf,
     mut a1: *const bf_t,
     mut radix: i32,
@@ -5828,7 +5774,7 @@ unsafe extern "C" fn output_digits(
         bf_delete(a);
     };
 }
-unsafe extern "C" fn bf_dbuf_realloc(
+unsafe fn bf_dbuf_realloc(
     mut opaque: *mut std::ffi::c_void,
     mut ptr: *mut std::ffi::c_void,
     mut size: usize,
@@ -5837,7 +5783,7 @@ unsafe extern "C" fn bf_dbuf_realloc(
     return bf_realloc(s, ptr, size);
 }
 /* return the length in bytes. A trailing '\0' is added */
-unsafe extern "C" fn bf_ftoa_internal(
+unsafe fn bf_ftoa_internal(
     mut plen: *mut u64,
     mut a2: *const bf_t,
     mut radix: i32,
@@ -5872,7 +5818,7 @@ unsafe extern "C" fn bf_ftoa_internal(
         ctx as *mut std::ffi::c_void,
         Some(
             bf_dbuf_realloc
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
                     _: usize,
@@ -6464,7 +6410,7 @@ unsafe extern "C" fn bf_ftoa_internal(
     return 0 as *mut std::os::raw::c_char;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_ftoa(
+pub unsafe fn bf_ftoa(
     mut plen: *mut u64,
     mut a: *const bf_t,
     mut radix: i32,
@@ -6476,7 +6422,7 @@ pub unsafe extern "C" fn bf_ftoa(
 /* **************************************************************/
 /* transcendental functions */
 /* Note: the algorithm is from MPFR */
-unsafe extern "C" fn bf_const_log2_rec(
+unsafe fn bf_const_log2_rec(
     mut T: *mut bf_t,
     mut P: *mut bf_t,
     mut Q: *mut bf_t,
@@ -6585,7 +6531,7 @@ unsafe extern "C" fn bf_const_log2_rec(
     };
 }
 /* compute log(2) with faithful rounding at precision 'prec' */
-unsafe extern "C" fn bf_const_log2_internal(mut T: *mut bf_t, mut prec: limb_t) {
+unsafe fn bf_const_log2_internal(mut T: *mut bf_t, mut prec: limb_t) {
     let mut w: limb_t = 0;
     let mut N: limb_t = 0;
     let mut P_s: bf_t = bf_t {
@@ -6615,7 +6561,7 @@ unsafe extern "C" fn bf_const_log2_internal(mut T: *mut bf_t, mut prec: limb_t) 
     bf_delete(P);
     bf_delete(Q);
 }
-unsafe extern "C" fn chud_bs(
+unsafe fn chud_bs(
     mut P: *mut bf_t,
     mut Q: *mut bf_t,
     mut G: *mut bf_t,
@@ -6739,7 +6685,7 @@ unsafe extern "C" fn chud_bs(
 }
 /* compute Pi with faithful rounding at precision 'prec' using the
 Chudnovsky formula */
-unsafe extern "C" fn bf_const_pi_internal(mut Q: *mut bf_t, mut prec: limb_t) {
+unsafe fn bf_const_pi_internal(mut Q: *mut bf_t, mut prec: limb_t) {
     let mut s: *mut bf_context_t = (*Q).ctx;
     let mut n: i64 = 0;
     let mut prec1: i64 = 0;
@@ -6809,12 +6755,12 @@ unsafe extern "C" fn bf_const_pi_internal(mut Q: *mut bf_t, mut prec: limb_t) {
     bf_delete(&mut P);
     bf_delete(&mut G);
 }
-unsafe extern "C" fn bf_const_get(
+unsafe fn bf_const_get(
     mut T: *mut bf_t,
     mut prec: limb_t,
     mut flags: bf_flags_t,
     mut c: *mut BFConstCache,
-    mut func: Option<unsafe extern "C" fn(_: *mut bf_t, _: limb_t) -> ()>,
+    mut func: Option<unsafe fn(_: *mut bf_t, _: limb_t) -> ()>,
     mut sign: i32,
 ) -> i32 {
     let mut ziv_extra_bits: limb_t = 0;
@@ -6847,28 +6793,24 @@ unsafe extern "C" fn bf_const_get(
     }
     return bf_round(T, prec, flags);
 }
-unsafe extern "C" fn bf_const_free(mut c: *mut BFConstCache) {
+unsafe fn bf_const_free(mut c: *mut BFConstCache) {
     bf_delete(&mut (*c).val);
     (c as *mut u8).write_bytes(0, std::mem::size_of::<BFConstCache>());
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_const_log2(
-    mut T: *mut bf_t,
-    mut prec: limb_t,
-    mut flags: bf_flags_t,
-) -> i32 {
+pub unsafe fn bf_const_log2(mut T: *mut bf_t, mut prec: limb_t, mut flags: bf_flags_t) -> i32 {
     let mut s: *mut bf_context_t = (*T).ctx;
     return bf_const_get(
         T,
         prec,
         flags,
         &mut (*s).log2_cache,
-        Some(bf_const_log2_internal as unsafe extern "C" fn(_: *mut bf_t, _: limb_t) -> ()),
+        Some(bf_const_log2_internal as unsafe fn(_: *mut bf_t, _: limb_t) -> ()),
         0 as i32,
     );
 }
 /* return rounded pi * (1 - 2 * sign) */
-unsafe extern "C" fn bf_const_pi_signed(
+unsafe fn bf_const_pi_signed(
     mut T: *mut bf_t,
     mut sign: i32,
     mut prec: limb_t,
@@ -6880,25 +6822,21 @@ unsafe extern "C" fn bf_const_pi_signed(
         prec,
         flags,
         &mut (*s).pi_cache,
-        Some(bf_const_pi_internal as unsafe extern "C" fn(_: *mut bf_t, _: limb_t) -> ()),
+        Some(bf_const_pi_internal as unsafe fn(_: *mut bf_t, _: limb_t) -> ()),
         sign,
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_const_pi(
-    mut T: *mut bf_t,
-    mut prec: limb_t,
-    mut flags: bf_flags_t,
-) -> i32 {
+pub unsafe fn bf_const_pi(mut T: *mut bf_t, mut prec: limb_t, mut flags: bf_flags_t) -> i32 {
     return bf_const_pi_signed(T, 0 as i32, prec, flags);
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_clear_cache(mut s: *mut bf_context_t) {
+pub unsafe fn bf_clear_cache(mut s: *mut bf_context_t) {
     fft_clear_cache(s);
     bf_const_free(&mut (*s).log2_cache);
     bf_const_free(&mut (*s).pi_cache);
 }
-unsafe extern "C" fn bf_ziv_rounding(
+unsafe fn bf_ziv_rounding(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -6947,7 +6885,7 @@ unsafe extern "C" fn bf_ziv_rounding(
 }
 /* if the result is exact, we can stop */
 /* add (1 - 2*e_sign) * 2^e */
-unsafe extern "C" fn bf_add_epsilon(
+unsafe fn bf_add_epsilon(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut e: slimb_t,
@@ -6975,7 +6913,7 @@ unsafe extern "C" fn bf_add_epsilon(
 }
 /* Compute the exponential using faithful rounding at precision 'prec'.
 Note: the algorithm is from MPFR */
-unsafe extern "C" fn bf_exp_internal(
+unsafe fn bf_exp_internal(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -7108,7 +7046,7 @@ unsafe extern "C" fn bf_exp_internal(
     return (1 as i32) << 4 as i32;
 }
 /* crude overflow and underflow tests for exp(a). a_low <= a <= a_high */
-unsafe extern "C" fn check_exp_underflow_overflow(
+unsafe fn check_exp_underflow_overflow(
     mut s: *mut bf_context_t,
     mut r: *mut bf_t,
     mut a_low: *const bf_t,
@@ -7196,7 +7134,7 @@ unsafe extern "C" fn check_exp_underflow_overflow(
     return 0 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_exp(
+pub unsafe fn bf_exp(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -7245,7 +7183,7 @@ pub unsafe extern "C" fn bf_exp(
         flags,
         Some(
             bf_exp_internal
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: limb_t,
@@ -7255,7 +7193,7 @@ pub unsafe extern "C" fn bf_exp(
         0 as *mut std::ffi::c_void,
     );
 }
-unsafe extern "C" fn bf_log_internal(
+unsafe fn bf_log_internal(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -7442,7 +7380,7 @@ unsafe extern "C" fn bf_log_internal(
     return (1 as i32) << 4 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_log(
+pub unsafe fn bf_log(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -7497,7 +7435,7 @@ pub unsafe extern "C" fn bf_log(
         flags,
         Some(
             bf_log_internal
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: limb_t,
@@ -7508,7 +7446,7 @@ pub unsafe extern "C" fn bf_log(
     );
 }
 /* x and y finite and x > 0 */
-unsafe extern "C" fn bf_pow_generic(
+unsafe fn bf_pow_generic(
     mut r: *mut bf_t,
     mut x: *const bf_t,
     mut prec: limb_t,
@@ -7550,7 +7488,7 @@ unsafe extern "C" fn bf_pow_generic(
     return (1 as i32) << 4 as i32;
 }
 /* x and y finite, x > 0, y integer and y fits on one limb */
-unsafe extern "C" fn bf_pow_int(
+unsafe fn bf_pow_int(
     mut r: *mut bf_t,
     mut x: *const bf_t,
     mut prec: limb_t,
@@ -7601,11 +7539,7 @@ unsafe extern "C" fn bf_pow_int(
 /* x must be a finite non zero float. Return TRUE if there is a
 floating point number r such as x=r^(2^n) and return this floating
 point number 'r'. Otherwise return FALSE and r is undefined. */
-unsafe extern "C" fn check_exact_power2n(
-    mut r: *mut bf_t,
-    mut x: *const bf_t,
-    mut n: slimb_t,
-) -> BOOL {
+unsafe fn check_exact_power2n(mut r: *mut bf_t, mut x: *const bf_t, mut n: slimb_t) -> BOOL {
     let mut s: *mut bf_context_t = (*r).ctx;
     let mut T_s: bf_t = bf_t {
         ctx: 0 as *mut bf_context_t,
@@ -7663,7 +7597,7 @@ unsafe extern "C" fn check_exact_power2n(
 }
 /* prec = BF_PREC_INF is accepted for x and y integers and y >= 0 */
 #[no_mangle]
-pub unsafe extern "C" fn bf_pow(
+pub unsafe fn bf_pow(
     mut r: *mut bf_t,
     mut x: *const bf_t,
     mut y: *const bf_t,
@@ -7908,7 +7842,7 @@ pub unsafe extern "C" fn bf_pow(
                                     flags,
                                     Some(
                                         bf_pow_int
-                                            as unsafe extern "C" fn(
+                                            as unsafe fn(
                                                 _: *mut bf_t,
                                                 _: *const bf_t,
                                                 _: limb_t,
@@ -7937,7 +7871,7 @@ pub unsafe extern "C" fn bf_pow(
                         flags,
                         Some(
                             bf_pow_generic
-                                as unsafe extern "C" fn(
+                                as unsafe fn(
                                     _: *mut bf_t,
                                     _: *const bf_t,
                                     _: limb_t,
@@ -7955,7 +7889,7 @@ pub unsafe extern "C" fn bf_pow(
     return ret;
 }
 /* compute sqrt(-2*x-x^2) to get |sin(x)| from cos(x) - 1. */
-unsafe extern "C" fn bf_sqrt_sin(mut r: *mut bf_t, mut x: *const bf_t, mut prec1: limb_t) {
+unsafe fn bf_sqrt_sin(mut r: *mut bf_t, mut x: *const bf_t, mut prec1: limb_t) {
     let mut s: *mut bf_context_t = (*r).ctx;
     let mut T_s: bf_t = bf_t {
         ctx: 0 as *mut bf_context_t,
@@ -7981,7 +7915,7 @@ unsafe extern "C" fn bf_sqrt_sin(mut r: *mut bf_t, mut x: *const bf_t, mut prec1
     bf_sqrt(r, T, prec1, BF_RNDF as i32 as bf_flags_t);
     bf_delete(T);
 }
-unsafe extern "C" fn bf_sincos(
+unsafe fn bf_sincos(
     mut s: *mut bf_t,
     mut c: *mut bf_t,
     mut a: *const bf_t,
@@ -8179,7 +8113,7 @@ unsafe extern "C" fn bf_sincos(
     bf_delete(r);
     return (1 as i32) << 4 as i32;
 }
-unsafe extern "C" fn bf_cos_internal(
+unsafe fn bf_cos_internal(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8188,7 +8122,7 @@ unsafe extern "C" fn bf_cos_internal(
     return bf_sincos(0 as *mut bf_t, r, a, prec);
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_cos(
+pub unsafe fn bf_cos(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8223,7 +8157,7 @@ pub unsafe extern "C" fn bf_cos(
         flags,
         Some(
             bf_cos_internal
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: limb_t,
@@ -8233,7 +8167,7 @@ pub unsafe extern "C" fn bf_cos(
         0 as *mut std::ffi::c_void,
     );
 }
-unsafe extern "C" fn bf_sin_internal(
+unsafe fn bf_sin_internal(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8242,7 +8176,7 @@ unsafe extern "C" fn bf_sin_internal(
     return bf_sincos(r, 0 as *mut bf_t, a, prec);
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_sin(
+pub unsafe fn bf_sin(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8284,7 +8218,7 @@ pub unsafe extern "C" fn bf_sin(
         flags,
         Some(
             bf_sin_internal
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: limb_t,
@@ -8294,7 +8228,7 @@ pub unsafe extern "C" fn bf_sin(
         0 as *mut std::ffi::c_void,
     );
 }
-unsafe extern "C" fn bf_tan_internal(
+unsafe fn bf_tan_internal(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8319,7 +8253,7 @@ unsafe extern "C" fn bf_tan_internal(
     return (1 as i32) << 4 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_tan(
+pub unsafe fn bf_tan(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8365,7 +8299,7 @@ pub unsafe extern "C" fn bf_tan(
         flags,
         Some(
             bf_tan_internal
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: limb_t,
@@ -8377,7 +8311,7 @@ pub unsafe extern "C" fn bf_tan(
 }
 /* if add_pi2 is true, add pi/2 to the result (used for acos(x) to
 avoid cancellation) */
-unsafe extern "C" fn bf_atan_internal(
+unsafe fn bf_atan_internal(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8532,7 +8466,7 @@ unsafe extern "C" fn bf_atan_internal(
     return (1 as i32) << 4 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_atan(
+pub unsafe fn bf_atan(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8610,7 +8544,7 @@ pub unsafe extern "C" fn bf_atan(
         flags,
         Some(
             bf_atan_internal
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: limb_t,
@@ -8620,7 +8554,7 @@ pub unsafe extern "C" fn bf_atan(
         0 as *mut std::ffi::c_void,
     );
 }
-unsafe extern "C" fn bf_atan2_internal(
+unsafe fn bf_atan2_internal(
     mut r: *mut bf_t,
     mut y: *const bf_t,
     mut prec: limb_t,
@@ -8669,7 +8603,7 @@ unsafe extern "C" fn bf_atan2_internal(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_atan2(
+pub unsafe fn bf_atan2(
     mut r: *mut bf_t,
     mut y: *const bf_t,
     mut x: *const bf_t,
@@ -8683,7 +8617,7 @@ pub unsafe extern "C" fn bf_atan2(
         flags,
         Some(
             bf_atan2_internal
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: limb_t,
@@ -8693,7 +8627,7 @@ pub unsafe extern "C" fn bf_atan2(
         x as *mut std::ffi::c_void,
     );
 }
-unsafe extern "C" fn bf_asin_internal(
+unsafe fn bf_asin_internal(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8738,7 +8672,7 @@ unsafe extern "C" fn bf_asin_internal(
     return (1 as i32) << 4 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_asin(
+pub unsafe fn bf_asin(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8798,7 +8732,7 @@ pub unsafe extern "C" fn bf_asin(
         flags,
         Some(
             bf_asin_internal
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: limb_t,
@@ -8809,7 +8743,7 @@ pub unsafe extern "C" fn bf_asin(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_acos(
+pub unsafe fn bf_acos(
     mut r: *mut bf_t,
     mut a: *const bf_t,
     mut prec: limb_t,
@@ -8865,7 +8799,7 @@ pub unsafe extern "C" fn bf_acos(
         flags,
         Some(
             bf_asin_internal
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bf_t,
                     _: *const bf_t,
                     _: limb_t,
@@ -8876,7 +8810,7 @@ pub unsafe extern "C" fn bf_acos(
     );
 }
 #[inline]
-unsafe extern "C" fn shld(mut a1: limb_t, mut a0: limb_t, mut shift: i64) -> limb_t {
+unsafe fn shld(mut a1: limb_t, mut a0: limb_t, mut shift: i64) -> limb_t {
     if shift != 0 as i32 as i64 {
         return a1 << shift | a0 >> ((1 as i32) << 6 as i32) as i64 - shift;
     } else {
@@ -8884,7 +8818,7 @@ unsafe extern "C" fn shld(mut a1: limb_t, mut a0: limb_t, mut shift: i64) -> lim
     };
 }
 #[inline]
-unsafe extern "C" fn fast_udiv(mut a: limb_t, mut s: *const FastDivData) -> limb_t {
+unsafe fn fast_udiv(mut a: limb_t, mut s: *const FastDivData) -> limb_t {
     let mut t0: limb_t = 0;
     let mut t1: limb_t = 0;
     let mut __t: u128 = 0;
@@ -9083,12 +9017,12 @@ static mut mp_pow_div: [FastDivData; 20] = [
 ];
 /* divide by 10^shift with 0 <= shift <= LIMB_DIGITS */
 #[inline]
-unsafe extern "C" fn fast_shr_dec(mut a: limb_t, mut shift: i32) -> limb_t {
+unsafe fn fast_shr_dec(mut a: limb_t, mut shift: i32) -> limb_t {
     return fast_udiv(a, &*mp_pow_div.as_ptr().offset(shift as isize));
 }
 /* division and remainder by 10^shift */
 #[no_mangle]
-pub unsafe extern "C" fn mp_add_dec(
+pub unsafe fn mp_add_dec(
     mut res: *mut limb_t,
     mut op1: *const limb_t,
     mut op2: *const limb_t,
@@ -9119,11 +9053,7 @@ pub unsafe extern "C" fn mp_add_dec(
     return k;
 }
 #[no_mangle]
-pub unsafe extern "C" fn mp_add_ui_dec(
-    mut tab: *mut limb_t,
-    mut b: limb_t,
-    mut n: mp_size_t,
-) -> limb_t {
+pub unsafe fn mp_add_ui_dec(mut tab: *mut limb_t, mut b: limb_t, mut n: mp_size_t) -> limb_t {
     let mut base: limb_t = 10000000000000000000 as u64;
     let mut i: mp_size_t = 0;
     let mut k: limb_t = 0;
@@ -9147,7 +9077,7 @@ pub unsafe extern "C" fn mp_add_ui_dec(
     return k;
 }
 #[no_mangle]
-pub unsafe extern "C" fn mp_sub_dec(
+pub unsafe fn mp_sub_dec(
     mut res: *mut limb_t,
     mut op1: *const limb_t,
     mut op2: *const limb_t,
@@ -9174,11 +9104,7 @@ pub unsafe extern "C" fn mp_sub_dec(
     return k;
 }
 #[no_mangle]
-pub unsafe extern "C" fn mp_sub_ui_dec(
-    mut tab: *mut limb_t,
-    mut b: limb_t,
-    mut n: mp_size_t,
-) -> limb_t {
+pub unsafe fn mp_sub_ui_dec(mut tab: *mut limb_t, mut b: limb_t, mut n: mp_size_t) -> limb_t {
     let mut base: limb_t = 10000000000000000000 as u64;
     let mut i: mp_size_t = 0;
     let mut k: limb_t = 0;
@@ -9203,7 +9129,7 @@ pub unsafe extern "C" fn mp_sub_ui_dec(
 }
 /* taba[] = taba[] * b + l. 0 <= b, l <= base - 1. Return the high carry */
 #[no_mangle]
-pub unsafe extern "C" fn mp_mul1_dec(
+pub unsafe fn mp_mul1_dec(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
     mut n: mp_size_t,
@@ -9263,7 +9189,7 @@ pub unsafe extern "C" fn mp_mul1_dec(
 /* tabr[] += taba[] * b. 0 <= b <= base - 1. Return the value to add
 to the high word */
 #[no_mangle]
-pub unsafe extern "C" fn mp_add_mul1_dec(
+pub unsafe fn mp_add_mul1_dec(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
     mut n: mp_size_t,
@@ -9327,7 +9253,7 @@ pub unsafe extern "C" fn mp_add_mul1_dec(
 /* tabr[] -= taba[] * b. 0 <= b <= base - 1. Return the value to
 substract to the high word. */
 #[no_mangle]
-pub unsafe extern "C" fn mp_sub_mul1_dec(
+pub unsafe fn mp_sub_mul1_dec(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
     mut n: mp_size_t,
@@ -9400,7 +9326,7 @@ pub unsafe extern "C" fn mp_sub_mul1_dec(
 }
 /* size of the result : op1_size + op2_size. */
 #[no_mangle]
-pub unsafe extern "C" fn mp_mul_basecase_dec(
+pub unsafe fn mp_mul_basecase_dec(
     mut result: *mut limb_t,
     mut op1: *const limb_t,
     mut op1_size: mp_size_t,
@@ -9431,7 +9357,7 @@ pub unsafe extern "C" fn mp_mul_basecase_dec(
 /* taba[] = (taba[] + r*base^na) / b. 0 <= b < base. 0 <= r <
 b. Return the remainder. */
 #[no_mangle]
-pub unsafe extern "C" fn mp_div1_dec(
+pub unsafe fn mp_div1_dec(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
     mut na: mp_size_t,
@@ -9542,7 +9468,7 @@ pub unsafe extern "C" fn mp_div1_dec(
    Return 0 if OK, -1 if memory alloc error
 */
 /* XXX: optimize */
-unsafe extern "C" fn mp_div_dec(
+unsafe fn mp_div_dec(
     mut s: *mut bf_context_t,
     mut tabq: *mut limb_t,
     mut taba: *mut limb_t,
@@ -9677,7 +9603,7 @@ unsafe extern "C" fn mp_div_dec(
     return 0 as i32;
 }
 /* divide by 10^shift */
-unsafe extern "C" fn mp_shr_dec(
+unsafe fn mp_shr_dec(
     mut tab_r: *mut limb_t,
     mut tab: *const limb_t,
     mut n: mp_size_t,
@@ -9708,7 +9634,7 @@ unsafe extern "C" fn mp_shr_dec(
     return l;
 }
 /* multiply by 10^shift */
-unsafe extern "C" fn mp_shl_dec(
+unsafe fn mp_shl_dec(
     mut tab_r: *mut limb_t,
     mut tab: *const limb_t,
     mut n: mp_size_t,
@@ -9738,7 +9664,7 @@ unsafe extern "C" fn mp_shl_dec(
     }
     return l;
 }
-unsafe extern "C" fn mp_sqrtrem2_dec(mut tabs: *mut limb_t, mut taba: *mut limb_t) -> limb_t {
+unsafe fn mp_sqrtrem2_dec(mut tabs: *mut limb_t, mut taba: *mut limb_t) -> limb_t {
     let mut k: i32 = 0;
     let mut a: dlimb_t = 0;
     let mut b: dlimb_t = 0;
@@ -9797,7 +9723,7 @@ unsafe extern "C" fn mp_sqrtrem2_dec(mut tabs: *mut limb_t, mut taba: *mut limb_
 }
 //#define DEBUG_SQRTREM_DEC
 /* tmp_buf must contain (n / 2 + 1 limbs) */
-unsafe extern "C" fn mp_sqrtrem_rec_dec(
+unsafe fn mp_sqrtrem_rec_dec(
     mut tabs: *mut limb_t,
     mut taba: *mut limb_t,
     mut n: limb_t,
@@ -9910,7 +9836,7 @@ r) with s=floor(sqrt(a)) and r=a-s^2. 0 <= r <= 2 * s. tabs has n
 limbs. r is returned in the lower n limbs of taba. Its r[n] is the
 returned value of the function. */
 #[no_mangle]
-pub unsafe extern "C" fn mp_sqrtrem_dec(
+pub unsafe fn mp_sqrtrem_dec(
     mut s: *mut bf_context_t,
     mut tabs: *mut limb_t,
     mut taba: *mut limb_t,
@@ -9943,7 +9869,7 @@ pub unsafe extern "C" fn mp_sqrtrem_dec(
     return 0 as i32;
 }
 /* return the number of leading zero digits, from 0 to LIMB_DIGITS */
-unsafe extern "C" fn clz_dec(mut a: limb_t) -> i32 {
+unsafe fn clz_dec(mut a: limb_t) -> i32 {
     if a == 0 as i32 as u64 {
         return 19 as i32;
     }
@@ -10266,7 +10192,7 @@ unsafe extern "C" fn clz_dec(mut a: limb_t) -> i32 {
 /*
 /* for debugging */
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_print_str(mut str: *const std::os::raw::c_char, mut a: *const bfdec_t) {
+pub unsafe fn bfdec_print_str(mut str: *const std::os::raw::c_char, mut a: *const bfdec_t) {
     let mut i: slimb_t = 0;
     printf(b"%s=\x00" as *const u8 as *const std::os::raw::c_char, str);
     if (*a).expn == 9223372036854775807 as i64 {
@@ -10301,7 +10227,7 @@ pub unsafe extern "C" fn bfdec_print_str(mut str: *const std::os::raw::c_char, m
 
 /* return != 0 if one digit between 0 and bit_pos inclusive is not zero. */
 #[inline]
-unsafe extern "C" fn scan_digit_nz(mut r: *const bfdec_t, mut bit_pos: slimb_t) -> limb_t {
+unsafe fn scan_digit_nz(mut r: *const bfdec_t, mut bit_pos: slimb_t) -> limb_t {
     let mut pos: slimb_t = 0;
     let mut v: limb_t = 0;
     let mut q: limb_t = 0;
@@ -10326,11 +10252,7 @@ unsafe extern "C" fn scan_digit_nz(mut r: *const bfdec_t, mut bit_pos: slimb_t) 
     }
     return 0 as i32 as limb_t;
 }
-unsafe extern "C" fn get_digit(
-    mut tab: *const limb_t,
-    mut len: limb_t,
-    mut pos: slimb_t,
-) -> limb_t {
+unsafe fn get_digit(mut tab: *const limb_t, mut len: limb_t, mut pos: slimb_t) -> limb_t {
     let mut i: slimb_t = 0;
     let mut shift: i32 = 0;
     i = floor_div(pos, 19 as i32 as slimb_t);
@@ -10341,7 +10263,7 @@ unsafe extern "C" fn get_digit(
     return fast_shr_dec(*tab.offset(i as isize), shift).wrapping_rem(10 as i32 as u64);
 }
 /* return the addend for rounding. Note that prec can be <= 0 for bf_rint() */
-unsafe extern "C" fn bfdec_get_rnd_add(
+unsafe fn bfdec_get_rnd_add(
     mut pret: *mut i32,
     mut r: *const bfdec_t,
     mut l: limb_t,
@@ -10418,7 +10340,7 @@ unsafe extern "C" fn bfdec_get_rnd_add(
   BF_PREC_INF. BF_FLAG_SUBNORMAL is not supported. Cannot fail with
   BF_ST_MEM_ERROR.
 */
-unsafe extern "C" fn __bfdec_round(
+unsafe fn __bfdec_round(
     mut r: *mut bfdec_t,
     mut prec1: limb_t,
     mut flags: bf_flags_t,
@@ -10569,11 +10491,7 @@ unsafe extern "C" fn __bfdec_round(
 }
 /* Cannot fail with BF_ST_MEM_ERROR. */
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_round(
-    mut r: *mut bfdec_t,
-    mut prec: limb_t,
-    mut flags: bf_flags_t,
-) -> i32 {
+pub unsafe fn bfdec_round(mut r: *mut bfdec_t, mut prec: limb_t, mut flags: bf_flags_t) -> i32 {
     if (*r).len == 0 as i32 as u64 {
         return 0 as i32;
     }
@@ -10581,7 +10499,7 @@ pub unsafe extern "C" fn bfdec_round(
 }
 /* 'r' must be a finite number. Cannot fail with BF_ST_MEM_ERROR.  */
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_normalize_and_round(
+pub unsafe fn bfdec_normalize_and_round(
     mut r: *mut bfdec_t,
     mut prec1: limb_t,
     mut flags: bf_flags_t,
@@ -10625,7 +10543,7 @@ pub unsafe extern "C" fn bfdec_normalize_and_round(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_set_ui(mut r: *mut bfdec_t, mut v: u64) -> i32 {
+pub unsafe fn bfdec_set_ui(mut r: *mut bfdec_t, mut v: u64) -> i32 {
     let mut current_block: u64;
     if v >= 10000000000000000000 as u64 {
         if bfdec_resize(r, 2 as i32 as limb_t) != 0 {
@@ -10661,7 +10579,7 @@ pub unsafe extern "C" fn bfdec_set_ui(mut r: *mut bfdec_t, mut v: u64) -> i32 {
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_set_si(mut r: *mut bfdec_t, mut v: i64) -> i32 {
+pub unsafe fn bfdec_set_si(mut r: *mut bfdec_t, mut v: i64) -> i32 {
     let mut ret: i32 = 0;
     if v < 0 as i32 as i64 {
         ret = bfdec_set_ui(r, -v as u64);
@@ -10671,7 +10589,7 @@ pub unsafe extern "C" fn bfdec_set_si(mut r: *mut bfdec_t, mut v: i64) -> i32 {
     }
     return ret;
 }
-unsafe extern "C" fn bfdec_add_internal(
+unsafe fn bfdec_add_internal(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b: *const bfdec_t,
@@ -10885,7 +10803,7 @@ unsafe extern "C" fn bfdec_add_internal(
     }
     return ret;
 }
-unsafe extern "C" fn __bfdec_add(
+unsafe fn __bfdec_add(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b: *const bfdec_t,
@@ -10894,7 +10812,7 @@ unsafe extern "C" fn __bfdec_add(
 ) -> i32 {
     return bfdec_add_internal(r, a, b, prec, flags, 0 as i32);
 }
-unsafe extern "C" fn __bfdec_sub(
+unsafe fn __bfdec_sub(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b: *const bfdec_t,
@@ -10904,7 +10822,7 @@ unsafe extern "C" fn __bfdec_sub(
     return bfdec_add_internal(r, a, b, prec, flags, 1 as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_add(
+pub unsafe fn bfdec_add(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b: *const bfdec_t,
@@ -10919,7 +10837,7 @@ pub unsafe extern "C" fn bfdec_add(
         flags,
         ::std::mem::transmute::<
             Option<
-                unsafe extern "C" fn(
+                unsafe fn(
                     _: *mut bfdec_t,
                     _: *const bfdec_t,
                     _: *const bfdec_t,
@@ -10930,7 +10848,7 @@ pub unsafe extern "C" fn bfdec_add(
             Option<bf_op2_func_t>,
         >(Some(
             __bfdec_add
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bfdec_t,
                     _: *const bfdec_t,
                     _: *const bfdec_t,
@@ -10941,7 +10859,7 @@ pub unsafe extern "C" fn bfdec_add(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_sub(
+pub unsafe fn bfdec_sub(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b: *const bfdec_t,
@@ -10956,7 +10874,7 @@ pub unsafe extern "C" fn bfdec_sub(
         flags,
         ::std::mem::transmute::<
             Option<
-                unsafe extern "C" fn(
+                unsafe fn(
                     _: *mut bfdec_t,
                     _: *const bfdec_t,
                     _: *const bfdec_t,
@@ -10967,7 +10885,7 @@ pub unsafe extern "C" fn bfdec_sub(
             Option<bf_op2_func_t>,
         >(Some(
             __bfdec_sub
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bfdec_t,
                     _: *const bfdec_t,
                     _: *const bfdec_t,
@@ -10978,7 +10896,7 @@ pub unsafe extern "C" fn bfdec_sub(
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_mul(
+pub unsafe fn bfdec_mul(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b: *const bfdec_t,
@@ -11060,7 +10978,7 @@ pub unsafe extern "C" fn bfdec_mul(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_mul_si(
+pub unsafe fn bfdec_mul_si(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b1: i64,
@@ -11082,7 +11000,7 @@ pub unsafe extern "C" fn bfdec_mul_si(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_add_si(
+pub unsafe fn bfdec_add_si(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b1: i64,
@@ -11103,7 +11021,7 @@ pub unsafe extern "C" fn bfdec_add_si(
     bfdec_delete(&mut b);
     return ret;
 }
-unsafe extern "C" fn __bfdec_div(
+unsafe fn __bfdec_div(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b: *const bfdec_t,
@@ -11238,7 +11156,7 @@ unsafe extern "C" fn __bfdec_div(
     return (1 as i32) << 5 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_div(
+pub unsafe fn bfdec_div(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b: *const bfdec_t,
@@ -11253,7 +11171,7 @@ pub unsafe extern "C" fn bfdec_div(
         flags,
         ::std::mem::transmute::<
             Option<
-                unsafe extern "C" fn(
+                unsafe fn(
                     _: *mut bfdec_t,
                     _: *const bfdec_t,
                     _: *const bfdec_t,
@@ -11264,7 +11182,7 @@ pub unsafe extern "C" fn bfdec_div(
             Option<bf_op2_func_t>,
         >(Some(
             __bfdec_div
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut bfdec_t,
                     _: *const bfdec_t,
                     _: *const bfdec_t,
@@ -11276,7 +11194,7 @@ pub unsafe extern "C" fn bfdec_div(
 }
 /* a and b must be finite numbers with a >= 0 and b > 0. 'q' is the
 integer defined as floor(a/b) and r = a - q * b. */
-unsafe extern "C" fn bfdec_tdivremu(
+unsafe fn bfdec_tdivremu(
     mut s: *mut bf_context_t,
     mut q: *mut bfdec_t,
     mut r: *mut bfdec_t,
@@ -11323,7 +11241,7 @@ unsafe extern "C" fn bfdec_tdivremu(
    BF_PREC_INF).
 */
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_divrem(
+pub unsafe fn bfdec_divrem(
     mut q: *mut bfdec_t,
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
@@ -11502,7 +11420,7 @@ pub unsafe extern "C" fn bfdec_divrem(
     return (1 as i32) << 5 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_rem(
+pub unsafe fn bfdec_rem(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut b: *const bfdec_t,
@@ -11526,7 +11444,7 @@ pub unsafe extern "C" fn bfdec_rem(
 }
 /* convert to integer (infinite precision) */
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_rint(mut r: *mut bfdec_t, mut rnd_mode: i32) -> i32 {
+pub unsafe fn bfdec_rint(mut r: *mut bfdec_t, mut rnd_mode: i32) -> i32 {
     return bfdec_round(
         r,
         0 as i32 as limb_t,
@@ -11534,7 +11452,7 @@ pub unsafe extern "C" fn bfdec_rint(mut r: *mut bfdec_t, mut rnd_mode: i32) -> i
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_sqrt(
+pub unsafe fn bfdec_sqrt(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
     mut prec: limb_t,
@@ -11689,7 +11607,7 @@ pub unsafe extern "C" fn bfdec_sqrt(
 /* The rounding mode is always BF_RNDZ. Return BF_ST_OVERFLOW if there
 is an overflow and 0 otherwise. No memory error is possible. */
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_get_int32(mut pres: *mut i32, mut a: *const bfdec_t) -> i32 {
+pub unsafe fn bfdec_get_int32(mut pres: *mut i32, mut a: *const bfdec_t) -> i32 {
     let mut v: u32 = 0;
     let mut ret: i32 = 0;
     if (*a).expn >= 9223372036854775807 as i64 - 1 as i32 as i64 {
@@ -11743,11 +11661,7 @@ pub unsafe extern "C" fn bfdec_get_int32(mut pres: *mut i32, mut a: *const bfdec
 }
 /* power to an integer with infinite precision */
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_pow_ui(
-    mut r: *mut bfdec_t,
-    mut a: *const bfdec_t,
-    mut b: limb_t,
-) -> i32 {
+pub unsafe fn bfdec_pow_ui(mut r: *mut bfdec_t, mut a: *const bfdec_t, mut b: limb_t) -> i32 {
     let mut ret: i32 = 0;
     let mut n_bits: i32 = 0;
     let mut i: i32 = 0;
@@ -11787,7 +11701,7 @@ pub unsafe extern "C" fn bfdec_pow_ui(
     return ret;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_ftoa(
+pub unsafe fn bfdec_ftoa(
     mut plen: *mut u64,
     mut a: *const bfdec_t,
     mut prec: limb_t,
@@ -11796,7 +11710,7 @@ pub unsafe extern "C" fn bfdec_ftoa(
     return bf_ftoa_internal(plen, a as *const bf_t, 10 as i32, prec, flags, TRUE as i32);
 }
 #[no_mangle]
-pub unsafe extern "C" fn bfdec_atof(
+pub unsafe fn bfdec_atof(
     mut r: *mut bfdec_t,
     mut str: *const std::os::raw::c_char,
     mut pnext: *mut *const std::os::raw::c_char,
@@ -11820,12 +11734,7 @@ pub unsafe extern "C" fn bfdec_atof(
 /* Integer multiplication with FFT */
 /* or LIMB_BITS at bit position 'pos' in tab */
 #[inline]
-unsafe extern "C" fn put_bits(
-    mut tab: *mut limb_t,
-    mut len: limb_t,
-    mut pos: slimb_t,
-    mut val: limb_t,
-) {
+unsafe fn put_bits(mut tab: *mut limb_t, mut len: limb_t, mut pos: slimb_t, mut val: limb_t) {
     let mut i: limb_t = 0;
     let mut p: i32 = 0;
     i = (pos >> 6 as i32) as limb_t;
@@ -11880,7 +11789,7 @@ static mut ntt_mods_cr: [limb_t; 10] = [
 ];
 /* add modulo with up to (LIMB_BITS-1) bit modulo */
 #[inline]
-unsafe extern "C" fn add_mod(mut a: limb_t, mut b: limb_t, mut m: limb_t) -> limb_t {
+unsafe fn add_mod(mut a: limb_t, mut b: limb_t, mut m: limb_t) -> limb_t {
     let mut r: limb_t = 0;
     r = a.wrapping_add(b);
     if r >= m {
@@ -11890,7 +11799,7 @@ unsafe extern "C" fn add_mod(mut a: limb_t, mut b: limb_t, mut m: limb_t) -> lim
 }
 /* sub modulo with up to LIMB_BITS bit modulo */
 #[inline]
-unsafe extern "C" fn sub_mod(mut a: limb_t, mut b: limb_t, mut m: limb_t) -> limb_t {
+unsafe fn sub_mod(mut a: limb_t, mut b: limb_t, mut m: limb_t) -> limb_t {
     let mut r: limb_t = 0;
     r = a.wrapping_sub(b);
     if r > a {
@@ -11902,7 +11811,7 @@ unsafe extern "C" fn sub_mod(mut a: limb_t, mut b: limb_t, mut m: limb_t) -> lim
    precondition: 0 <= r0+r1*B < 2^(64+NTT_MOD_LOG2_MIN)
 */
 #[inline]
-unsafe extern "C" fn mod_fast(mut r: dlimb_t, mut m: limb_t, mut m_inv: limb_t) -> limb_t {
+unsafe fn mod_fast(mut r: dlimb_t, mut m: limb_t, mut m_inv: limb_t) -> limb_t {
     let mut a1: limb_t = 0;
     let mut q: limb_t = 0;
     let mut t0: limb_t = 0;
@@ -11924,18 +11833,13 @@ unsafe extern "C" fn mod_fast(mut r: dlimb_t, mut m: limb_t, mut m_inv: limb_t) 
 /* faster version using precomputed modulo inverse.
 precondition: 0 <= a * b < 2^(64+NTT_MOD_LOG2_MIN) */
 #[inline]
-unsafe extern "C" fn mul_mod_fast(
-    mut a: limb_t,
-    mut b: limb_t,
-    mut m: limb_t,
-    mut m_inv: limb_t,
-) -> limb_t {
+unsafe fn mul_mod_fast(mut a: limb_t, mut b: limb_t, mut m: limb_t, mut m_inv: limb_t) -> limb_t {
     let mut r: dlimb_t = 0;
     r = (a as dlimb_t).wrapping_mul(b as dlimb_t);
     return mod_fast(r, m, m_inv);
 }
 #[inline]
-unsafe extern "C" fn init_mul_mod_fast(mut m: limb_t) -> limb_t {
+unsafe fn init_mul_mod_fast(mut m: limb_t) -> limb_t {
     let mut t: dlimb_t = 0;
     if m < (1 as i32 as limb_t) << 62 as i32 {
     } else {
@@ -11951,12 +11855,7 @@ unsafe extern "C" fn init_mul_mod_fast(mut m: limb_t) -> limb_t {
 /* Faster version used when the multiplier is constant. 0 <= a < 2^64,
 0 <= b < m. */
 #[inline]
-unsafe extern "C" fn mul_mod_fast2(
-    mut a: limb_t,
-    mut b: limb_t,
-    mut m: limb_t,
-    mut b_inv: limb_t,
-) -> limb_t {
+unsafe fn mul_mod_fast2(mut a: limb_t, mut b: limb_t, mut m: limb_t, mut b_inv: limb_t) -> limb_t {
     let mut r: limb_t = 0;
     let mut q: limb_t = 0;
     q = ((a as dlimb_t).wrapping_mul(b_inv as dlimb_t) >> ((1 as i32) << 6 as i32)) as limb_t;
@@ -11970,12 +11869,7 @@ unsafe extern "C" fn mul_mod_fast2(
 0 <= b < m. Let r = a * b mod m. The return value is 'r' or 'r +
 m'. */
 #[inline]
-unsafe extern "C" fn mul_mod_fast3(
-    mut a: limb_t,
-    mut b: limb_t,
-    mut m: limb_t,
-    mut b_inv: limb_t,
-) -> limb_t {
+unsafe fn mul_mod_fast3(mut a: limb_t, mut b: limb_t, mut m: limb_t, mut b_inv: limb_t) -> limb_t {
     let mut r: limb_t = 0;
     let mut q: limb_t = 0;
     q = ((a as dlimb_t).wrapping_mul(b_inv as dlimb_t) >> ((1 as i32) << 6 as i32)) as limb_t;
@@ -11983,28 +11877,28 @@ unsafe extern "C" fn mul_mod_fast3(
     return r;
 }
 #[inline]
-unsafe extern "C" fn init_mul_mod_fast2(mut b: limb_t, mut m: limb_t) -> limb_t {
+unsafe fn init_mul_mod_fast2(mut b: limb_t, mut m: limb_t) -> limb_t {
     return ((b as dlimb_t) << ((1 as i32) << 6 as i32)).wrapping_div(m as u128) as limb_t;
 }
-unsafe extern "C" fn ntt_malloc(mut s: *mut BFNTTState, mut size: usize) -> *mut std::ffi::c_void {
+unsafe fn ntt_malloc(mut s: *mut BFNTTState, mut size: usize) -> *mut std::ffi::c_void {
     return bf_malloc((*s).ctx, size);
 }
-unsafe extern "C" fn ntt_free(mut s: *mut BFNTTState, mut ptr: *mut std::ffi::c_void) {
+unsafe fn ntt_free(mut s: *mut BFNTTState, mut ptr: *mut std::ffi::c_void) {
     bf_free((*s).ctx, ptr);
 }
 #[inline]
-unsafe extern "C" fn ntt_limb_to_int(mut a: NTTLimb, mut m: limb_t) -> limb_t {
+unsafe fn ntt_limb_to_int(mut a: NTTLimb, mut m: limb_t) -> limb_t {
     if a >= m {
         a = (a as u64).wrapping_sub(m) as NTTLimb as NTTLimb
     }
     return a;
 }
 #[inline]
-unsafe extern "C" fn int_to_ntt_limb(mut a: slimb_t, mut m: limb_t) -> NTTLimb {
+unsafe fn int_to_ntt_limb(mut a: slimb_t, mut m: limb_t) -> NTTLimb {
     return a as NTTLimb;
 }
 #[inline(never)]
-unsafe extern "C" fn ntt_fft(
+unsafe fn ntt_fft(
     mut s: *mut BFNTTState,
     mut out_buf: *mut NTTLimb,
     mut in_buf: *mut NTTLimb,
@@ -12092,7 +11986,7 @@ unsafe extern "C" fn ntt_fft(
     }
     return 0 as i32;
 }
-unsafe extern "C" fn ntt_vec_mul(
+unsafe fn ntt_vec_mul(
     mut s: *mut BFNTTState,
     mut tab1: *mut NTTLimb,
     mut tab2: *mut NTTLimb,
@@ -12127,7 +12021,7 @@ unsafe extern "C" fn ntt_vec_mul(
     }
 }
 #[inline(never)]
-unsafe extern "C" fn mul_trig(
+unsafe fn mul_trig(
     mut buf: *mut NTTLimb,
     mut n: limb_t,
     mut c_mul: limb_t,
@@ -12148,7 +12042,7 @@ unsafe extern "C" fn mul_trig(
 }
 /* !AVX2 */
 #[inline(never)]
-unsafe extern "C" fn get_trig(
+unsafe fn get_trig(
     mut s: *mut BFNTTState,
     mut k: i32,
     mut inverse: i32,
@@ -12196,7 +12090,7 @@ unsafe extern "C" fn get_trig(
     (*s).ntt_trig[m_idx as usize][inverse as usize][k as usize] = tab;
     return tab;
 }
-unsafe extern "C" fn fft_clear_cache(mut s1: *mut bf_context_t) {
+unsafe fn fft_clear_cache(mut s1: *mut bf_context_t) {
     let mut m_idx: i32 = 0;
     let mut inverse: i32 = 0;
     let mut k: i32 = 0;
@@ -12228,7 +12122,7 @@ unsafe extern "C" fn fft_clear_cache(mut s1: *mut bf_context_t) {
     };
 }
 /* dst = buf1, src = buf2 */
-unsafe extern "C" fn ntt_fft_partial(
+unsafe fn ntt_fft_partial(
     mut s: *mut BFNTTState,
     mut buf1: *mut NTTLimb,
     mut k1: i32,
@@ -12369,7 +12263,7 @@ unsafe extern "C" fn ntt_fft_partial(
     return -(1 as i32);
 }
 /* dst = buf1, src = buf2, tmp = buf3 */
-unsafe extern "C" fn ntt_conv(
+unsafe fn ntt_conv(
     mut s: *mut BFNTTState,
     mut buf1: *mut NTTLimb,
     mut buf2: *mut NTTLimb,
@@ -12419,7 +12313,7 @@ unsafe extern "C" fn ntt_conv(
     return 0 as i32;
 }
 #[inline(never)]
-unsafe extern "C" fn limb_to_ntt(
+unsafe fn limb_to_ntt(
     mut s: *mut BFNTTState,
     mut tabr: *mut NTTLimb,
     mut fft_len: limb_t,
@@ -12512,7 +12406,7 @@ unsafe extern "C" fn limb_to_ntt(
     }
 }
 #[inline(never)]
-unsafe extern "C" fn ntt_to_limb(
+unsafe fn ntt_to_limb(
     mut s: *mut BFNTTState,
     mut tabr: *mut limb_t,
     mut r_len: limb_t,
@@ -12669,7 +12563,7 @@ unsafe extern "C" fn ntt_to_limb(
         i += 1
     }
 }
-unsafe extern "C" fn ntt_static_init(mut s1: *mut bf_context_t) -> i32 {
+unsafe fn ntt_static_init(mut s1: *mut bf_context_t) -> i32 {
     let mut s: *mut BFNTTState = 0 as *mut BFNTTState;
     let mut inverse: i32 = 0;
     let mut i: i32 = 0;
@@ -12738,11 +12632,7 @@ unsafe extern "C" fn ntt_static_init(mut s1: *mut bf_context_t) -> i32 {
     return 0 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn bf_get_fft_size(
-    mut pdpl: *mut i32,
-    mut pnb_mods: *mut i32,
-    mut len: limb_t,
-) -> i32 {
+pub unsafe fn bf_get_fft_size(mut pdpl: *mut i32, mut pnb_mods: *mut i32, mut len: limb_t) -> i32 {
     let mut dpl: i32 = 0;
     let mut fft_len_log2: i32 = 0;
     let mut n_bits: i32 = 0;
@@ -12811,7 +12701,7 @@ pub unsafe extern "C" fn bf_get_fft_size(
 }
 /* return 0 if OK, -1 if memory error */
 #[inline(never)]
-unsafe extern "C" fn fft_mul(
+unsafe fn fft_mul(
     mut s1: *mut bf_context_t,
     mut res: *mut bf_t,
     mut a_tab: *mut limb_t,

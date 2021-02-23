@@ -19,7 +19,7 @@ extern "C" {
     #[no_mangle]
     fn free(__ptr: *mut std::ffi::c_void);
     #[no_mangle]
-    fn atexit(__func: Option<unsafe extern "C" fn() -> ()>) -> i32;
+    fn atexit(__func: Option<unsafe fn() -> ()>) -> i32;
     #[no_mangle]
     fn exit(_: i32) -> !;
     #[no_mangle]
@@ -853,7 +853,7 @@ pub struct stat {
     pub st_ctim: timespec,
     pub __glibc_reserved: [__syscall_slong_t; 3],
 }
-pub type __sighandler_t = Option<unsafe extern "C" fn(_: i32) -> ()>;
+pub type __sighandler_t = Option<unsafe fn(_: i32) -> ()>;
 pub type sighandler_t = __sighandler_t;
 
 #[repr(C)]
@@ -895,7 +895,7 @@ pub type BOOL = i32;
 pub type C2RustUnnamed_0 = u32;
 pub const TRUE: C2RustUnnamed_0 = 1;
 pub const FALSE: C2RustUnnamed_0 = 0;
-pub type DynBufReallocFunc = unsafe extern "C" fn(
+pub type DynBufReallocFunc = unsafe fn(
     _: *mut std::ffi::c_void,
     _: *mut std::ffi::c_void,
     _: size_t,
@@ -960,8 +960,8 @@ pub struct JSValue {
     pub tag: int64_t,
 }
 pub type JSCFunction =
-    unsafe extern "C" fn(_: *mut JSContext, _: JSValue, _: i32, _: *mut JSValue) -> JSValue;
-pub type JS_MarkFunc = unsafe extern "C" fn(_: *mut JSRuntime, _: *mut JSGCObjectHeader) -> ();
+    unsafe fn(_: *mut JSContext, _: JSValue, _: i32, _: *mut JSValue) -> JSValue;
+pub type JS_MarkFunc = unsafe fn(_: *mut JSRuntime, _: *mut JSGCObjectHeader) -> ();
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -983,7 +983,7 @@ pub struct JSPropertyDescriptor {
 #[derive(Copy, Clone)]
 pub struct JSClassExoticMethods {
     pub get_own_property: Option<
-        unsafe extern "C" fn(
+        unsafe fn(
             _: *mut JSContext,
             _: *mut JSPropertyDescriptor,
             _: JSValue,
@@ -991,7 +991,7 @@ pub struct JSClassExoticMethods {
         ) -> i32,
     >,
     pub get_own_property_names: Option<
-        unsafe extern "C" fn(
+        unsafe fn(
             _: *mut JSContext,
             _: *mut *mut JSPropertyEnum,
             _: *mut uint32_t,
@@ -999,9 +999,9 @@ pub struct JSClassExoticMethods {
         ) -> i32,
     >,
     pub delete_property:
-        Option<unsafe extern "C" fn(_: *mut JSContext, _: JSValue, _: JSAtom) -> i32>,
+        Option<unsafe fn(_: *mut JSContext, _: JSValue, _: JSAtom) -> i32>,
     pub define_own_property: Option<
-        unsafe extern "C" fn(
+        unsafe fn(
             _: *mut JSContext,
             _: JSValue,
             _: JSAtom,
@@ -1011,12 +1011,12 @@ pub struct JSClassExoticMethods {
             _: i32,
         ) -> i32,
     >,
-    pub has_property: Option<unsafe extern "C" fn(_: *mut JSContext, _: JSValue, _: JSAtom) -> i32>,
+    pub has_property: Option<unsafe fn(_: *mut JSContext, _: JSValue, _: JSAtom) -> i32>,
     pub get_property: Option<
-        unsafe extern "C" fn(_: *mut JSContext, _: JSValue, _: JSAtom, _: JSValue) -> JSValue,
+        unsafe fn(_: *mut JSContext, _: JSValue, _: JSAtom, _: JSValue) -> JSValue,
     >,
     pub set_property: Option<
-        unsafe extern "C" fn(
+        unsafe fn(
             _: *mut JSContext,
             _: JSValue,
             _: JSAtom,
@@ -1026,10 +1026,10 @@ pub struct JSClassExoticMethods {
         ) -> i32,
     >,
 }
-pub type JSClassFinalizer = unsafe extern "C" fn(_: *mut JSRuntime, _: JSValue) -> ();
+pub type JSClassFinalizer = unsafe fn(_: *mut JSRuntime, _: JSValue) -> ();
 pub type JSClassGCMark =
-    unsafe extern "C" fn(_: *mut JSRuntime, _: JSValue, _: Option<JS_MarkFunc>) -> ();
-pub type JSClassCall = unsafe extern "C" fn(
+    unsafe fn(_: *mut JSRuntime, _: JSValue, _: Option<JS_MarkFunc>) -> ();
+pub type JSClassCall = unsafe fn(
     _: *mut JSContext,
     _: JSValue,
     _: JSValue,
@@ -1048,7 +1048,7 @@ pub struct JSClassDef {
     pub exotic: *mut JSClassExoticMethods,
 }
 pub type JSInterruptHandler =
-    unsafe extern "C" fn(_: *mut JSRuntime, _: *mut std::ffi::c_void) -> i32;
+    unsafe fn(_: *mut JSRuntime, _: *mut std::ffi::c_void) -> i32;
 pub type JSCFunctionEnum = u32;
 pub const JS_CFUNC_iterator_next: JSCFunctionEnum = 12;
 pub const JS_CFUNC_setter_magic: JSCFunctionEnum = 11;
@@ -1069,7 +1069,7 @@ pub const JS_CFUNC_generic: JSCFunctionEnum = 0;
 pub union JSCFunctionType {
     pub generic: Option<JSCFunction>,
     pub generic_magic: Option<
-        unsafe extern "C" fn(
+        unsafe fn(
             _: *mut JSContext,
             _: JSValue,
             _: i32,
@@ -1079,7 +1079,7 @@ pub union JSCFunctionType {
     >,
     pub constructor: Option<JSCFunction>,
     pub constructor_magic: Option<
-        unsafe extern "C" fn(
+        unsafe fn(
             _: *mut JSContext,
             _: JSValue,
             _: i32,
@@ -1088,16 +1088,16 @@ pub union JSCFunctionType {
         ) -> JSValue,
     >,
     pub constructor_or_func: Option<JSCFunction>,
-    pub f_f: Option<unsafe extern "C" fn(_: f64) -> f64>,
-    pub f_f_f: Option<unsafe extern "C" fn(_: f64, _: f64) -> f64>,
-    pub getter: Option<unsafe extern "C" fn(_: *mut JSContext, _: JSValue) -> JSValue>,
-    pub setter: Option<unsafe extern "C" fn(_: *mut JSContext, _: JSValue, _: JSValue) -> JSValue>,
+    pub f_f: Option<unsafe fn(_: f64) -> f64>,
+    pub f_f_f: Option<unsafe fn(_: f64, _: f64) -> f64>,
+    pub getter: Option<unsafe fn(_: *mut JSContext, _: JSValue) -> JSValue>,
+    pub setter: Option<unsafe fn(_: *mut JSContext, _: JSValue, _: JSValue) -> JSValue>,
     pub getter_magic:
-        Option<unsafe extern "C" fn(_: *mut JSContext, _: JSValue, _: i32) -> JSValue>,
+        Option<unsafe fn(_: *mut JSContext, _: JSValue, _: i32) -> JSValue>,
     pub setter_magic:
-        Option<unsafe extern "C" fn(_: *mut JSContext, _: JSValue, _: JSValue, _: i32) -> JSValue>,
+        Option<unsafe fn(_: *mut JSContext, _: JSValue, _: JSValue, _: i32) -> JSValue>,
     pub iterator_next: Option<
-        unsafe extern "C" fn(
+        unsafe fn(
             _: *mut JSContext,
             _: JSValue,
             _: i32,
@@ -1159,7 +1159,7 @@ pub struct C2RustUnnamed_6 {
     pub cproto: uint8_t,
     pub cfunc: JSCFunctionType,
 }
-pub type JSModuleInitFunc = unsafe extern "C" fn(_: *mut JSContext, _: *mut JSModuleDef) -> i32;
+pub type JSModuleInitFunc = unsafe fn(_: *mut JSContext, _: *mut JSModuleDef) -> i32;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1223,9 +1223,9 @@ pub struct JSWorkerMessageHandler {
     pub on_message_func: JSValue,
 }
 pub type JSInitModuleFunc =
-    unsafe extern "C" fn(_: *mut JSContext, _: *const std::os::raw::c_char) -> *mut JSModuleDef;
+    unsafe fn(_: *mut JSContext, _: *const std::os::raw::c_char) -> *mut JSModuleDef;
 #[inline]
-unsafe extern "C" fn atoi(mut __nptr: *const std::os::raw::c_char) -> i32 {
+unsafe fn atoi(mut __nptr: *const std::os::raw::c_char) -> i32 {
     return strtol(
         __nptr,
         0 as *mut std::ffi::c_void as *mut *mut std::os::raw::c_char,
@@ -1233,25 +1233,25 @@ unsafe extern "C" fn atoi(mut __nptr: *const std::os::raw::c_char) -> i32 {
     ) as i32;
 }
 #[inline]
-unsafe extern "C" fn putchar(mut __c: i32) -> i32 {
+unsafe fn putchar(mut __c: i32) -> i32 {
     return putc(__c, stdout);
 }
 #[inline]
-unsafe extern "C" fn stat(
+unsafe fn stat(
     mut __path: *const std::os::raw::c_char,
     mut __statbuf: *mut stat,
 ) -> i32 {
     return __xstat(1 as i32, __path, __statbuf);
 }
 #[inline]
-unsafe extern "C" fn lstat(
+unsafe fn lstat(
     mut __path: *const std::os::raw::c_char,
     mut __statbuf: *mut stat,
 ) -> i32 {
     return __lxstat(1 as i32, __path, __statbuf);
 }
 #[inline]
-unsafe extern "C" fn max_int(mut a: i32, mut b: i32) -> i32 {
+unsafe fn max_int(mut a: i32, mut b: i32) -> i32 {
     if a > b {
         return a;
     } else {
@@ -1259,16 +1259,16 @@ unsafe extern "C" fn max_int(mut a: i32, mut b: i32) -> i32 {
     };
 }
 #[inline]
-unsafe extern "C" fn dbuf_error(mut s: *mut DynBuf) -> BOOL {
+unsafe fn dbuf_error(mut s: *mut DynBuf) -> BOOL {
     return (*s).error;
 }
 #[inline]
-unsafe extern "C" fn init_list_head(mut head: *mut list_head) {
+unsafe fn init_list_head(mut head: *mut list_head) {
     (*head).prev = head;
     (*head).next = head;
 }
 #[inline]
-unsafe extern "C" fn __list_add(
+unsafe fn __list_add(
     mut el: *mut list_head,
     mut prev: *mut list_head,
     mut next: *mut list_head,
@@ -1279,11 +1279,11 @@ unsafe extern "C" fn __list_add(
     (*next).prev = el;
 }
 #[inline]
-unsafe extern "C" fn list_add_tail(mut el: *mut list_head, mut head: *mut list_head) {
+unsafe fn list_add_tail(mut el: *mut list_head, mut head: *mut list_head) {
     __list_add(el, (*head).prev, head);
 }
 #[inline]
-unsafe extern "C" fn list_del(mut el: *mut list_head) {
+unsafe fn list_del(mut el: *mut list_head) {
     let mut prev: *mut list_head = 0 as *mut list_head;
     let mut next: *mut list_head = 0 as *mut list_head;
     prev = (*el).prev;
@@ -1294,11 +1294,11 @@ unsafe extern "C" fn list_del(mut el: *mut list_head) {
     (*el).next = 0 as *mut list_head;
 }
 #[inline]
-unsafe extern "C" fn list_empty(mut el: *mut list_head) -> i32 {
+unsafe fn list_empty(mut el: *mut list_head) -> i32 {
     return ((*el).next == el) as i32;
 }
 #[inline]
-unsafe extern "C" fn __JS_NewFloat64(mut ctx: *mut JSContext, mut d: f64) -> JSValue {
+unsafe fn __JS_NewFloat64(mut ctx: *mut JSContext, mut d: f64) -> JSValue {
     let mut v: JSValue = JSValue {
         u: JSValueUnion { int32: 0 },
         tag: 0,
@@ -1308,7 +1308,7 @@ unsafe extern "C" fn __JS_NewFloat64(mut ctx: *mut JSContext, mut d: f64) -> JSV
     return v;
 }
 #[inline(always)]
-unsafe extern "C" fn JS_NewBool(mut ctx: *mut JSContext, mut val: i32) -> JSValue {
+unsafe fn JS_NewBool(mut ctx: *mut JSContext, mut val: i32) -> JSValue {
     return {
         let mut init = JSValue {
             u: JSValueUnion {
@@ -1320,7 +1320,7 @@ unsafe extern "C" fn JS_NewBool(mut ctx: *mut JSContext, mut val: i32) -> JSValu
     };
 }
 #[inline(always)]
-unsafe extern "C" fn JS_NewInt32(mut ctx: *mut JSContext, mut val: int32_t) -> JSValue {
+unsafe fn JS_NewInt32(mut ctx: *mut JSContext, mut val: int32_t) -> JSValue {
     return {
         let mut init = JSValue {
             u: JSValueUnion { int32: val },
@@ -1330,7 +1330,7 @@ unsafe extern "C" fn JS_NewInt32(mut ctx: *mut JSContext, mut val: int32_t) -> J
     };
 }
 #[inline(always)]
-unsafe extern "C" fn JS_NewInt64(mut ctx: *mut JSContext, mut val: int64_t) -> JSValue {
+unsafe fn JS_NewInt64(mut ctx: *mut JSContext, mut val: int64_t) -> JSValue {
     let mut v: JSValue = JSValue {
         u: JSValueUnion { int32: 0 },
         tag: 0,
@@ -1343,28 +1343,28 @@ unsafe extern "C" fn JS_NewInt64(mut ctx: *mut JSContext, mut val: int64_t) -> J
     return v;
 }
 #[inline]
-unsafe extern "C" fn JS_IsBigInt(mut ctx: *mut JSContext, mut v: JSValue) -> i32 {
+unsafe fn JS_IsBigInt(mut ctx: *mut JSContext, mut v: JSValue) -> i32 {
     let mut tag: i32 = v.tag as int32_t;
     return (tag == JS_TAG_BIG_INT as i32) as i32;
 }
 #[inline]
-unsafe extern "C" fn JS_IsNull(mut v: JSValue) -> i32 {
+unsafe fn JS_IsNull(mut v: JSValue) -> i32 {
     return (v.tag as int32_t == JS_TAG_NULL as i32) as i32;
 }
 #[inline]
-unsafe extern "C" fn JS_IsUndefined(mut v: JSValue) -> i32 {
+unsafe fn JS_IsUndefined(mut v: JSValue) -> i32 {
     return (v.tag as int32_t == JS_TAG_UNDEFINED as i32) as i32;
 }
 #[inline]
-unsafe extern "C" fn JS_IsException(mut v: JSValue) -> i32 {
+unsafe fn JS_IsException(mut v: JSValue) -> i32 {
     return (v.tag as int32_t == JS_TAG_EXCEPTION as i32) as i32 as i64 as i32;
 }
 #[inline]
-unsafe extern "C" fn JS_IsString(mut v: JSValue) -> i32 {
+unsafe fn JS_IsString(mut v: JSValue) -> i32 {
     return (v.tag as int32_t == JS_TAG_STRING as i32) as i32;
 }
 #[inline]
-unsafe extern "C" fn JS_FreeValue(mut ctx: *mut JSContext, mut v: JSValue) {
+unsafe fn JS_FreeValue(mut ctx: *mut JSContext, mut v: JSValue) {
     if v.tag as int32_t as u32 >= JS_TAG_FIRST as i32 as u32 {
         let mut p: *mut JSRefCountHeader = v.u.ptr as *mut JSRefCountHeader;
         (*p).ref_count -= 1;
@@ -1374,7 +1374,7 @@ unsafe extern "C" fn JS_FreeValue(mut ctx: *mut JSContext, mut v: JSValue) {
     };
 }
 #[inline]
-unsafe extern "C" fn JS_FreeValueRT(mut rt: *mut JSRuntime, mut v: JSValue) {
+unsafe fn JS_FreeValueRT(mut rt: *mut JSRuntime, mut v: JSValue) {
     if v.tag as int32_t as u32 >= JS_TAG_FIRST as i32 as u32 {
         let mut p: *mut JSRefCountHeader = v.u.ptr as *mut JSRefCountHeader;
         (*p).ref_count -= 1;
@@ -1384,7 +1384,7 @@ unsafe extern "C" fn JS_FreeValueRT(mut rt: *mut JSRuntime, mut v: JSValue) {
     };
 }
 #[inline]
-unsafe extern "C" fn JS_DupValue(mut ctx: *mut JSContext, mut v: JSValue) -> JSValue {
+unsafe fn JS_DupValue(mut ctx: *mut JSContext, mut v: JSValue) -> JSValue {
     if v.tag as int32_t as u32 >= JS_TAG_FIRST as i32 as u32 {
         let mut p: *mut JSRefCountHeader = v.u.ptr as *mut JSRefCountHeader;
         (*p).ref_count += 1
@@ -1392,7 +1392,7 @@ unsafe extern "C" fn JS_DupValue(mut ctx: *mut JSContext, mut v: JSValue) -> JSV
     return v;
 }
 #[inline]
-unsafe extern "C" fn JS_ToUint32(
+unsafe fn JS_ToUint32(
     mut ctx: *mut JSContext,
     mut pres: *mut uint32_t,
     mut val: JSValue,
@@ -1400,7 +1400,7 @@ unsafe extern "C" fn JS_ToUint32(
     return JS_ToInt32(ctx, pres as *mut int32_t, val);
 }
 #[inline]
-unsafe extern "C" fn JS_ToCStringLen(
+unsafe fn JS_ToCStringLen(
     mut ctx: *mut JSContext,
     mut plen: *mut size_t,
     mut val1: JSValue,
@@ -1408,14 +1408,14 @@ unsafe extern "C" fn JS_ToCStringLen(
     return JS_ToCStringLen2(ctx, plen, val1, 0 as i32);
 }
 #[inline]
-unsafe extern "C" fn JS_ToCString(
+unsafe fn JS_ToCString(
     mut ctx: *mut JSContext,
     mut val1: JSValue,
 ) -> *const std::os::raw::c_char {
     return JS_ToCStringLen2(ctx, 0 as *mut size_t, val1, 0 as i32);
 }
 #[inline(always)]
-unsafe extern "C" fn JS_GetProperty(
+unsafe fn JS_GetProperty(
     mut ctx: *mut JSContext,
     mut this_obj: JSValue,
     mut prop: JSAtom,
@@ -1423,7 +1423,7 @@ unsafe extern "C" fn JS_GetProperty(
     return JS_GetPropertyInternal(ctx, this_obj, prop, this_obj, 0 as i32);
 }
 #[inline]
-unsafe extern "C" fn JS_NewCFunction(
+unsafe fn JS_NewCFunction(
     mut ctx: *mut JSContext,
     mut func: Option<JSCFunction>,
     mut name: *const std::os::raw::c_char,
@@ -1432,14 +1432,14 @@ unsafe extern "C" fn JS_NewCFunction(
     return JS_NewCFunction2(ctx, func, name, length, JS_CFUNC_generic, 0 as i32);
 }
 static mut os_pending_signals: uint64_t = 0;
-static mut os_poll_func: Option<unsafe extern "C" fn(_: *mut JSContext) -> i32> = None;
-unsafe extern "C" fn js_std_dbuf_init(mut ctx: *mut JSContext, mut s: *mut DynBuf) {
+static mut os_poll_func: Option<unsafe fn(_: *mut JSContext) -> i32> = None;
+unsafe fn js_std_dbuf_init(mut ctx: *mut JSContext, mut s: *mut DynBuf) {
     dbuf_init2(
         s,
         JS_GetRuntime(ctx) as *mut std::ffi::c_void,
         ::std::mem::transmute::<
             Option<
-                unsafe extern "C" fn(
+                unsafe fn(
                     _: *mut JSRuntime,
                     _: *mut std::ffi::c_void,
                     _: size_t,
@@ -1448,7 +1448,7 @@ unsafe extern "C" fn js_std_dbuf_init(mut ctx: *mut JSContext, mut s: *mut DynBu
             Option<DynBufReallocFunc>,
         >(Some(
             js_realloc_rt
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut JSRuntime,
                     _: *mut std::ffi::c_void,
                     _: size_t,
@@ -1456,10 +1456,10 @@ unsafe extern "C" fn js_std_dbuf_init(mut ctx: *mut JSContext, mut s: *mut DynBu
         )),
     );
 }
-unsafe extern "C" fn my_isdigit(mut c: i32) -> BOOL {
+unsafe fn my_isdigit(mut c: i32) -> BOOL {
     return (c >= '0' as i32 && c <= '9' as i32) as i32;
 }
-unsafe extern "C" fn js_printf_internal(
+unsafe fn js_printf_internal(
     mut ctx: *mut JSContext,
     mut argc: i32,
     mut argv: *mut JSValue,
@@ -1496,16 +1496,16 @@ unsafe extern "C" fn js_printf_internal(
     let mut string_arg: *const std::os::raw::c_char = 0 as *const std::os::raw::c_char;
     /* Use indirect call to dbuf_printf to prevent gcc warning */
     let mut dbuf_printf_fun: Option<
-        unsafe extern "C" fn(_: *mut DynBuf, _: *const std::os::raw::c_char, _: ...) -> i32,
+        unsafe fn(_: *mut DynBuf, _: *const std::os::raw::c_char, _: ...) -> i32,
     > = ::std::mem::transmute::<
         *mut std::ffi::c_void,
-        Option<unsafe extern "C" fn(_: *mut DynBuf, _: *const std::os::raw::c_char, _: ...) -> i32>,
+        Option<unsafe fn(_: *mut DynBuf, _: *const std::os::raw::c_char, _: ...) -> i32>,
     >(::std::mem::transmute::<
-        Option<unsafe extern "C" fn(_: *mut DynBuf, _: *const std::os::raw::c_char, _: ...) -> i32>,
+        Option<unsafe fn(_: *mut DynBuf, _: *const std::os::raw::c_char, _: ...) -> i32>,
         *mut std::ffi::c_void,
     >(Some(
         dbuf_printf
-            as unsafe extern "C" fn(_: *mut DynBuf, _: *const std::os::raw::c_char, _: ...) -> i32,
+            as unsafe fn(_: *mut DynBuf, _: *const std::os::raw::c_char, _: ...) -> i32,
     ))); /* copy '%' */
     js_std_dbuf_init(ctx, &mut dbuf);
     if argc > 0 as i32 {
@@ -3013,7 +3013,7 @@ unsafe extern "C" fn js_printf_internal(
     return res;
 }
 #[no_mangle]
-pub unsafe extern "C" fn js_load_file(
+pub unsafe fn js_load_file(
     mut ctx: *mut JSContext,
     mut pbuf_len: *mut size_t,
     mut filename: *const std::os::raw::c_char,
@@ -3068,7 +3068,7 @@ pub unsafe extern "C" fn js_load_file(
     return 0 as *mut uint8_t;
 }
 /* load and evaluate a file */
-unsafe extern "C" fn js_loadScript(
+unsafe fn js_loadScript(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3119,7 +3119,7 @@ unsafe extern "C" fn js_loadScript(
     return ret;
 }
 /* load a file as a UTF-8 encoded string */
-unsafe extern "C" fn js_std_loadFile(
+unsafe fn js_std_loadFile(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3157,7 +3157,7 @@ unsafe extern "C" fn js_std_loadFile(
     js_free(ctx, buf as *mut std::ffi::c_void);
     return ret;
 }
-unsafe extern "C" fn js_module_loader_so(
+unsafe fn js_module_loader_so(
     mut ctx: *mut JSContext,
     mut module_name: *const std::os::raw::c_char,
 ) -> *mut JSModuleDef {
@@ -3230,7 +3230,7 @@ unsafe extern "C" fn js_module_loader_so(
 }
 /* !_WIN32 */
 #[no_mangle]
-pub unsafe extern "C" fn js_module_set_import_meta(
+pub unsafe fn js_module_set_import_meta(
     mut ctx: *mut JSContext,
     mut func_val: JSValue,
     mut use_realpath: i32,
@@ -3322,7 +3322,7 @@ pub unsafe extern "C" fn js_module_set_import_meta(
     return 0 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn js_module_loader(
+pub unsafe fn js_module_loader(
     mut ctx: *mut JSContext,
     mut module_name: *const std::os::raw::c_char,
     mut opaque: *mut std::ffi::c_void,
@@ -3371,7 +3371,7 @@ pub unsafe extern "C" fn js_module_loader(
     }
     return m;
 }
-unsafe extern "C" fn js_std_exit(
+unsafe fn js_std_exit(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3383,7 +3383,7 @@ unsafe extern "C" fn js_std_exit(
     }
     exit(status);
 }
-unsafe extern "C" fn js_std_getenv(
+unsafe fn js_std_getenv(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3416,7 +3416,7 @@ unsafe extern "C" fn js_std_getenv(
     };
 }
 /* _WIN32 */
-unsafe extern "C" fn js_std_setenv(
+unsafe fn js_std_setenv(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3456,7 +3456,7 @@ unsafe extern "C" fn js_std_setenv(
         init
     };
 }
-unsafe extern "C" fn js_std_unsetenv(
+unsafe fn js_std_unsetenv(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3485,7 +3485,7 @@ unsafe extern "C" fn js_std_unsetenv(
 }
 /* return an object containing the list of the available environment
 variables. */
-unsafe extern "C" fn js_std_getenviron(
+unsafe fn js_std_getenviron(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3560,7 +3560,7 @@ unsafe extern "C" fn js_std_getenviron(
         }
     };
 }
-unsafe extern "C" fn js_std_gc(
+unsafe fn js_std_gc(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3575,13 +3575,13 @@ unsafe extern "C" fn js_std_gc(
         init
     };
 }
-unsafe extern "C" fn interrupt_handler(
+unsafe fn interrupt_handler(
     mut rt: *mut JSRuntime,
     mut opaque: *mut std::ffi::c_void,
 ) -> i32 {
     return (os_pending_signals >> 2 as i32 & 1 as i32 as u64) as i32;
 }
-unsafe extern "C" fn get_bool_option(
+unsafe fn get_bool_option(
     mut ctx: *mut JSContext,
     mut pbool: *mut BOOL,
     mut obj: JSValue,
@@ -3601,7 +3601,7 @@ unsafe extern "C" fn get_bool_option(
     JS_FreeValue(ctx, val);
     return 0 as i32;
 }
-unsafe extern "C" fn js_evalScript(
+unsafe fn js_evalScript(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3658,7 +3658,7 @@ unsafe extern "C" fn js_evalScript(
             JS_GetRuntime(ctx),
             Some(
                 interrupt_handler
-                    as unsafe extern "C" fn(_: *mut JSRuntime, _: *mut std::ffi::c_void) -> i32,
+                    as unsafe fn(_: *mut JSRuntime, _: *mut std::ffi::c_void) -> i32,
             ),
             0 as *mut std::ffi::c_void,
         );
@@ -3691,7 +3691,7 @@ unsafe extern "C" fn js_evalScript(
     return ret;
 }
 static mut js_std_file_class_id: JSClassID = 0;
-unsafe extern "C" fn js_std_file_finalizer(mut rt: *mut JSRuntime, mut val: JSValue) {
+unsafe fn js_std_file_finalizer(mut rt: *mut JSRuntime, mut val: JSValue) {
     let mut s: *mut JSSTDFile = JS_GetOpaque(val, js_std_file_class_id) as *mut JSSTDFile;
     if !s.is_null() {
         if !(*s).f.is_null() && (*s).close_in_finalizer != 0 {
@@ -3704,13 +3704,13 @@ unsafe extern "C" fn js_std_file_finalizer(mut rt: *mut JSRuntime, mut val: JSVa
         js_free_rt(rt, s as *mut std::ffi::c_void);
     };
 }
-unsafe extern "C" fn js_get_errno(mut ret: ssize_t) -> ssize_t {
+unsafe fn js_get_errno(mut ret: ssize_t) -> ssize_t {
     if ret == -(1 as i32) as i64 {
         ret = -*__errno_location() as ssize_t
     }
     return ret;
 }
-unsafe extern "C" fn js_std_strerror(
+unsafe fn js_std_strerror(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3728,7 +3728,7 @@ unsafe extern "C" fn js_std_strerror(
     }
     return JS_NewString(ctx, strerror(err));
 }
-unsafe extern "C" fn js_std_parseExtJSON(
+unsafe fn js_std_parseExtJSON(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3760,7 +3760,7 @@ unsafe extern "C" fn js_std_parseExtJSON(
     JS_FreeCString(ctx, str);
     return obj;
 }
-unsafe extern "C" fn js_new_std_file(
+unsafe fn js_new_std_file(
     mut ctx: *mut JSContext,
     mut f: *mut FILE,
     mut close_in_finalizer: BOOL,
@@ -3792,7 +3792,7 @@ unsafe extern "C" fn js_new_std_file(
     JS_SetOpaque(obj, s as *mut std::ffi::c_void);
     return obj;
 }
-unsafe extern "C" fn js_set_error_object(mut ctx: *mut JSContext, mut obj: JSValue, mut err: i32) {
+unsafe fn js_set_error_object(mut ctx: *mut JSContext, mut obj: JSValue, mut err: i32) {
     if JS_IsUndefined(obj) == 0 {
         JS_SetPropertyStr(
             ctx,
@@ -3802,7 +3802,7 @@ unsafe extern "C" fn js_set_error_object(mut ctx: *mut JSContext, mut obj: JSVal
         );
     };
 }
-unsafe extern "C" fn js_std_open(
+unsafe fn js_std_open(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3861,7 +3861,7 @@ unsafe extern "C" fn js_std_open(
         init
     };
 }
-unsafe extern "C" fn js_std_popen(
+unsafe fn js_std_popen(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3919,7 +3919,7 @@ unsafe extern "C" fn js_std_popen(
         init
     };
 }
-unsafe extern "C" fn js_std_fdopen(
+unsafe fn js_std_fdopen(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -3982,7 +3982,7 @@ unsafe extern "C" fn js_std_fdopen(
         init
     };
 }
-unsafe extern "C" fn js_std_tmpfile(
+unsafe fn js_std_tmpfile(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4012,7 +4012,7 @@ unsafe extern "C" fn js_std_tmpfile(
     }
     return js_new_std_file(ctx, f, TRUE as i32, FALSE as i32);
 }
-unsafe extern "C" fn js_std_sprintf(
+unsafe fn js_std_sprintf(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4020,7 +4020,7 @@ unsafe extern "C" fn js_std_sprintf(
 ) -> JSValue {
     return js_printf_internal(ctx, argc, argv, 0 as *mut FILE);
 }
-unsafe extern "C" fn js_std_printf(
+unsafe fn js_std_printf(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4028,7 +4028,7 @@ unsafe extern "C" fn js_std_printf(
 ) -> JSValue {
     return js_printf_internal(ctx, argc, argv, stdout);
 }
-unsafe extern "C" fn js_std_file_get(mut ctx: *mut JSContext, mut obj: JSValue) -> *mut FILE {
+unsafe fn js_std_file_get(mut ctx: *mut JSContext, mut obj: JSValue) -> *mut FILE {
     let mut s: *mut JSSTDFile = JS_GetOpaque2(ctx, obj, js_std_file_class_id) as *mut JSSTDFile;
     if s.is_null() {
         return 0 as *mut FILE;
@@ -4042,7 +4042,7 @@ unsafe extern "C" fn js_std_file_get(mut ctx: *mut JSContext, mut obj: JSValue) 
     }
     return (*s).f;
 }
-unsafe extern "C" fn js_std_file_puts(
+unsafe fn js_std_file_puts(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4091,7 +4091,7 @@ unsafe extern "C" fn js_std_file_puts(
         init
     };
 }
-unsafe extern "C" fn js_std_file_close(
+unsafe fn js_std_file_close(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4123,7 +4123,7 @@ unsafe extern "C" fn js_std_file_close(
     (*s).f = 0 as *mut FILE;
     return JS_NewInt32(ctx, err);
 }
-unsafe extern "C" fn js_std_file_printf(
+unsafe fn js_std_file_printf(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4141,7 +4141,7 @@ unsafe extern "C" fn js_std_file_printf(
     }
     return js_printf_internal(ctx, argc, argv, f);
 }
-unsafe extern "C" fn js_std_file_flush(
+unsafe fn js_std_file_flush(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4166,7 +4166,7 @@ unsafe extern "C" fn js_std_file_flush(
         init
     };
 }
-unsafe extern "C" fn js_std_file_tell(
+unsafe fn js_std_file_tell(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4191,7 +4191,7 @@ unsafe extern "C" fn js_std_file_tell(
         return JS_NewInt64(ctx, pos);
     };
 }
-unsafe extern "C" fn js_std_file_seek(
+unsafe fn js_std_file_seek(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4234,7 +4234,7 @@ unsafe extern "C" fn js_std_file_seek(
     }
     return JS_NewInt32(ctx, ret);
 }
-unsafe extern "C" fn js_std_file_eof(
+unsafe fn js_std_file_eof(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4252,7 +4252,7 @@ unsafe extern "C" fn js_std_file_eof(
     }
     return JS_NewBool(ctx, feof(f));
 }
-unsafe extern "C" fn js_std_file_error(
+unsafe fn js_std_file_error(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4270,7 +4270,7 @@ unsafe extern "C" fn js_std_file_error(
     }
     return JS_NewBool(ctx, ferror(f));
 }
-unsafe extern "C" fn js_std_file_clearerr(
+unsafe fn js_std_file_clearerr(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4295,7 +4295,7 @@ unsafe extern "C" fn js_std_file_clearerr(
         init
     };
 }
-unsafe extern "C" fn js_std_file_fileno(
+unsafe fn js_std_file_fileno(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4313,7 +4313,7 @@ unsafe extern "C" fn js_std_file_fileno(
     }
     return JS_NewInt32(ctx, fileno(f));
 }
-unsafe extern "C" fn js_std_file_read_write(
+unsafe fn js_std_file_read_write(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4387,7 +4387,7 @@ unsafe extern "C" fn js_std_file_read_write(
     return JS_NewInt64(ctx, ret as int64_t);
 }
 /* XXX: could use less memory and go faster */
-unsafe extern "C" fn js_std_file_getline(
+unsafe fn js_std_file_getline(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4447,7 +4447,7 @@ unsafe extern "C" fn js_std_file_getline(
     return obj;
 }
 /* XXX: could use less memory and go faster */
-unsafe extern "C" fn js_std_file_readAsString(
+unsafe fn js_std_file_readAsString(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4530,7 +4530,7 @@ unsafe extern "C" fn js_std_file_readAsString(
     dbuf_free(&mut dbuf);
     return obj;
 }
-unsafe extern "C" fn js_std_file_getByte(
+unsafe fn js_std_file_getByte(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4548,7 +4548,7 @@ unsafe extern "C" fn js_std_file_getByte(
     }
     return JS_NewInt32(ctx, fgetc(f));
 }
-unsafe extern "C" fn js_std_file_putByte(
+unsafe fn js_std_file_putByte(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4577,7 +4577,7 @@ unsafe extern "C" fn js_std_file_putByte(
     c = fputc(c, f);
     return JS_NewInt32(ctx, c);
 }
-unsafe extern "C" fn http_get_header_line(
+unsafe fn http_get_header_line(
     mut f: *mut FILE,
     mut buf: *mut std::os::raw::c_char,
     mut buf_size: size_t,
@@ -4606,7 +4606,7 @@ unsafe extern "C" fn http_get_header_line(
     *p = '\u{0}' as i32 as std::os::raw::c_char;
     return 0 as i32;
 }
-unsafe extern "C" fn http_get_status(mut buf: *const std::os::raw::c_char) -> i32 {
+unsafe fn http_get_status(mut buf: *const std::os::raw::c_char) -> i32 {
     let mut p: *const std::os::raw::c_char = buf;
     while *p as i32 != ' ' as i32 && *p as i32 != '\u{0}' as i32 {
         p = p.offset(1)
@@ -4619,7 +4619,7 @@ unsafe extern "C" fn http_get_status(mut buf: *const std::os::raw::c_char) -> i3
     }
     return atoi(p);
 }
-unsafe extern "C" fn js_std_urlGet(
+unsafe fn js_std_urlGet(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -4937,7 +4937,7 @@ static mut js_std_file_class: JSClassDef = unsafe {
         let mut init = JSClassDef {
             class_name: b"FILE\x00" as *const u8 as *const std::os::raw::c_char,
             finalizer: Some(
-                js_std_file_finalizer as unsafe extern "C" fn(_: *mut JSRuntime, _: JSValue) -> (),
+                js_std_file_finalizer as unsafe fn(_: *mut JSRuntime, _: JSValue) -> (),
             ),
             gc_mark: None,
             call: None,
@@ -5088,7 +5088,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_close
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5118,7 +5118,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_std_file_puts
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5149,7 +5149,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_printf
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5179,7 +5179,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_flush
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5209,7 +5209,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_std_file_tell
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5240,7 +5240,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_std_file_tell
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5271,7 +5271,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_seek
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5301,7 +5301,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_eof
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5331,7 +5331,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_fileno
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5361,7 +5361,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_error
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5391,7 +5391,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_clearerr
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5421,7 +5421,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_std_file_read_write
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5452,7 +5452,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_std_file_read_write
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5483,7 +5483,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_getline
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5513,7 +5513,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_readAsString
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5543,7 +5543,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_getByte
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5573,7 +5573,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_file_putByte
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -5591,7 +5591,7 @@ static mut js_std_file_proto_funcs: [JSCFunctionListEntry; 17] = unsafe {
         },
     ]
 };
-unsafe extern "C" fn js_std_init(mut ctx: *mut JSContext, mut m: *mut JSModuleDef) -> i32 {
+unsafe fn js_std_init(mut ctx: *mut JSContext, mut m: *mut JSModuleDef) -> i32 {
     let mut proto: JSValue = JSValue {
         u: JSValueUnion { int32: 0 },
         tag: 0,
@@ -5642,7 +5642,7 @@ unsafe extern "C" fn js_std_init(mut ctx: *mut JSContext, mut m: *mut JSModuleDe
     return 0 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn js_init_module_std(
+pub unsafe fn js_init_module_std(
     mut ctx: *mut JSContext,
     mut module_name: *const std::os::raw::c_char,
 ) -> *mut JSModuleDef {
@@ -5650,7 +5650,7 @@ pub unsafe extern "C" fn js_init_module_std(
     m = JS_NewCModule(
         ctx,
         module_name,
-        Some(js_std_init as unsafe extern "C" fn(_: *mut JSContext, _: *mut JSModuleDef) -> i32),
+        Some(js_std_init as unsafe fn(_: *mut JSContext, _: *mut JSModuleDef) -> i32),
     );
     if m.is_null() {
         return 0 as *mut JSModuleDef;
@@ -5681,7 +5681,7 @@ pub unsafe extern "C" fn js_init_module_std(
 }
 /* *********************************************************/
 /* 'os' object */
-unsafe extern "C" fn js_os_open(
+unsafe fn js_os_open(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -5731,7 +5731,7 @@ unsafe extern "C" fn js_os_open(
         init
     };
 }
-unsafe extern "C" fn js_os_close(
+unsafe fn js_os_close(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -5751,7 +5751,7 @@ unsafe extern "C" fn js_os_close(
     ret = js_get_errno(close(fd) as ssize_t) as i32;
     return JS_NewInt32(ctx, ret);
 }
-unsafe extern "C" fn js_os_seek(
+unsafe fn js_os_seek(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -5800,7 +5800,7 @@ unsafe extern "C" fn js_os_seek(
         return JS_NewInt64(ctx, ret);
     };
 }
-unsafe extern "C" fn js_os_read_write(
+unsafe fn js_os_read_write(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -5871,7 +5871,7 @@ unsafe extern "C" fn js_os_read_write(
     }
     return JS_NewInt64(ctx, ret);
 }
-unsafe extern "C" fn js_os_isatty(
+unsafe fn js_os_isatty(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -5889,7 +5889,7 @@ unsafe extern "C" fn js_os_isatty(
     }
     return JS_NewBool(ctx, (isatty(fd) == 1 as i32) as i32);
 }
-unsafe extern "C" fn js_os_ttyGetWinSize(
+unsafe fn js_os_ttyGetWinSize(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -5958,11 +5958,11 @@ static mut oldtty: termios = termios {
     c_ispeed: 0,
     c_ospeed: 0,
 };
-unsafe extern "C" fn term_exit() {
+unsafe fn term_exit() {
     tcsetattr(0 as i32, 0 as i32, &mut oldtty);
 }
 /* XXX: should add a way to go back to normal mode */
-unsafe extern "C" fn js_os_ttySetRaw(
+unsafe fn js_os_ttySetRaw(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6010,7 +6010,7 @@ unsafe extern "C" fn js_os_ttySetRaw(
     tty.c_cc[6 as i32 as usize] = 1 as i32 as cc_t;
     tty.c_cc[5 as i32 as usize] = 0 as i32 as cc_t;
     tcsetattr(fd, 0 as i32, &mut tty);
-    atexit(Some(term_exit as unsafe extern "C" fn() -> ()));
+    atexit(Some(term_exit as unsafe fn() -> ()));
     return {
         let mut init = JSValue {
             u: JSValueUnion { int32: 0 as i32 },
@@ -6020,7 +6020,7 @@ unsafe extern "C" fn js_os_ttySetRaw(
     };
 }
 /* !_WIN32 */
-unsafe extern "C" fn js_os_remove(
+unsafe fn js_os_remove(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6042,7 +6042,7 @@ unsafe extern "C" fn js_os_remove(
     JS_FreeCString(ctx, filename);
     return JS_NewInt32(ctx, ret);
 }
-unsafe extern "C" fn js_os_rename(
+unsafe fn js_os_rename(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6077,11 +6077,11 @@ unsafe extern "C" fn js_os_rename(
     JS_FreeCString(ctx, newpath);
     return JS_NewInt32(ctx, ret);
 }
-unsafe extern "C" fn is_main_thread(mut rt: *mut JSRuntime) -> BOOL {
+unsafe fn is_main_thread(mut rt: *mut JSRuntime) -> BOOL {
     let mut ts: *mut JSThreadState = JS_GetRuntimeOpaque(rt) as *mut JSThreadState;
     return (*ts).recv_pipe.is_null() as i32;
 }
-unsafe extern "C" fn find_rh(mut ts: *mut JSThreadState, mut fd: i32) -> *mut JSOSRWHandler {
+unsafe fn find_rh(mut ts: *mut JSThreadState, mut fd: i32) -> *mut JSOSRWHandler {
     let mut rh: *mut JSOSRWHandler = 0 as *mut JSOSRWHandler;
     let mut el: *mut list_head = 0 as *mut list_head;
     el = (*ts).os_rw_handlers.next;
@@ -6096,7 +6096,7 @@ unsafe extern "C" fn find_rh(mut ts: *mut JSThreadState, mut fd: i32) -> *mut JS
     }
     return 0 as *mut JSOSRWHandler;
 }
-unsafe extern "C" fn free_rw_handler(mut rt: *mut JSRuntime, mut rh: *mut JSOSRWHandler) {
+unsafe fn free_rw_handler(mut rt: *mut JSRuntime, mut rh: *mut JSOSRWHandler) {
     let mut i: i32 = 0;
     list_del(&mut (*rh).link);
     i = 0 as i32;
@@ -6106,7 +6106,7 @@ unsafe extern "C" fn free_rw_handler(mut rt: *mut JSRuntime, mut rh: *mut JSOSRW
     }
     js_free_rt(rt, rh as *mut std::ffi::c_void);
 }
-unsafe extern "C" fn js_os_setReadHandler(
+unsafe fn js_os_setReadHandler(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6197,7 +6197,7 @@ unsafe extern "C" fn js_os_setReadHandler(
         init
     };
 }
-unsafe extern "C" fn find_sh(
+unsafe fn find_sh(
     mut ts: *mut JSThreadState,
     mut sig_num: i32,
 ) -> *mut JSOSSignalHandler {
@@ -6215,15 +6215,15 @@ unsafe extern "C" fn find_sh(
     }
     return 0 as *mut JSOSSignalHandler;
 }
-unsafe extern "C" fn free_sh(mut rt: *mut JSRuntime, mut sh: *mut JSOSSignalHandler) {
+unsafe fn free_sh(mut rt: *mut JSRuntime, mut sh: *mut JSOSSignalHandler) {
     list_del(&mut (*sh).link);
     JS_FreeValueRT(rt, (*sh).func);
     js_free_rt(rt, sh as *mut std::ffi::c_void);
 }
-unsafe extern "C" fn os_signal_handler(mut sig_num: i32) {
+unsafe fn os_signal_handler(mut sig_num: i32) {
     os_pending_signals |= (1 as i32 as uint64_t) << sig_num;
 }
-unsafe extern "C" fn js_os_signal(
+unsafe fn js_os_signal(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6300,7 +6300,7 @@ unsafe extern "C" fn js_os_signal(
         (*sh).func = JS_DupValue(ctx, func);
         signal(
             sig_num as i32,
-            Some(os_signal_handler as unsafe extern "C" fn(_: i32) -> ()),
+            Some(os_signal_handler as unsafe fn(_: i32) -> ()),
         );
     }
     return {
@@ -6311,7 +6311,7 @@ unsafe extern "C" fn js_os_signal(
         init
     };
 }
-unsafe extern "C" fn get_time_ms() -> int64_t {
+unsafe fn get_time_ms() -> int64_t {
     let mut ts: timespec = timespec {
         tv_sec: 0,
         tv_nsec: 0,
@@ -6321,19 +6321,19 @@ unsafe extern "C" fn get_time_ms() -> int64_t {
         .wrapping_mul(1000 as i32 as u64)
         .wrapping_add((ts.tv_nsec / 1000000 as i32 as i64) as u64) as int64_t;
 }
-unsafe extern "C" fn unlink_timer(mut rt: *mut JSRuntime, mut th: *mut JSOSTimer) {
+unsafe fn unlink_timer(mut rt: *mut JSRuntime, mut th: *mut JSOSTimer) {
     if !(*th).link.prev.is_null() {
         list_del(&mut (*th).link);
         (*th).link.next = 0 as *mut list_head;
         (*th).link.prev = (*th).link.next
     };
 }
-unsafe extern "C" fn free_timer(mut rt: *mut JSRuntime, mut th: *mut JSOSTimer) {
+unsafe fn free_timer(mut rt: *mut JSRuntime, mut th: *mut JSOSTimer) {
     JS_FreeValueRT(rt, (*th).func);
     js_free_rt(rt, th as *mut std::ffi::c_void);
 }
 static mut js_os_timer_class_id: JSClassID = 0;
-unsafe extern "C" fn js_os_timer_finalizer(mut rt: *mut JSRuntime, mut val: JSValue) {
+unsafe fn js_os_timer_finalizer(mut rt: *mut JSRuntime, mut val: JSValue) {
     let mut th: *mut JSOSTimer = JS_GetOpaque(val, js_os_timer_class_id) as *mut JSOSTimer;
     if !th.is_null() {
         (*th).has_object = FALSE as i32;
@@ -6342,7 +6342,7 @@ unsafe extern "C" fn js_os_timer_finalizer(mut rt: *mut JSRuntime, mut val: JSVa
         }
     };
 }
-unsafe extern "C" fn js_os_timer_mark(
+unsafe fn js_os_timer_mark(
     mut rt: *mut JSRuntime,
     mut val: JSValue,
     mut mark_func: Option<JS_MarkFunc>,
@@ -6352,7 +6352,7 @@ unsafe extern "C" fn js_os_timer_mark(
         JS_MarkValue(rt, (*th).func, mark_func);
     };
 }
-unsafe extern "C" fn js_os_setTimeout(
+unsafe fn js_os_setTimeout(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6408,7 +6408,7 @@ unsafe extern "C" fn js_os_setTimeout(
     JS_SetOpaque(obj, th as *mut std::ffi::c_void);
     return obj;
 }
-unsafe extern "C" fn js_os_clearTimeout(
+unsafe fn js_os_clearTimeout(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6439,11 +6439,11 @@ static mut js_os_timer_class: JSClassDef = unsafe {
         let mut init = JSClassDef {
             class_name: b"OSTimer\x00" as *const u8 as *const std::os::raw::c_char,
             finalizer: Some(
-                js_os_timer_finalizer as unsafe extern "C" fn(_: *mut JSRuntime, _: JSValue) -> (),
+                js_os_timer_finalizer as unsafe fn(_: *mut JSRuntime, _: JSValue) -> (),
             ),
             gc_mark: Some(
                 js_os_timer_mark
-                    as unsafe extern "C" fn(
+                    as unsafe fn(
                         _: *mut JSRuntime,
                         _: JSValue,
                         _: Option<JS_MarkFunc>,
@@ -6455,7 +6455,7 @@ static mut js_os_timer_class: JSClassDef = unsafe {
         init
     }
 };
-unsafe extern "C" fn call_handler(mut ctx: *mut JSContext, mut func: JSValue) {
+unsafe fn call_handler(mut ctx: *mut JSContext, mut func: JSValue) {
     let mut ret: JSValue = JSValue {
         u: JSValueUnion { int32: 0 },
         tag: 0,
@@ -6486,14 +6486,14 @@ unsafe extern "C" fn call_handler(mut ctx: *mut JSContext, mut func: JSValue) {
     }
     JS_FreeValue(ctx, ret);
 }
-unsafe extern "C" fn handle_posted_message(
+unsafe fn handle_posted_message(
     mut rt: *mut JSRuntime,
     mut ctx: *mut JSContext,
     mut port: *mut JSWorkerMessageHandler,
 ) -> i32 {
     return 0 as i32;
 }
-unsafe extern "C" fn js_os_poll(mut ctx: *mut JSContext) -> i32 {
+unsafe fn js_os_poll(mut ctx: *mut JSContext) -> i32 {
     let mut current_block: u64;
     let mut rt: *mut JSRuntime = JS_GetRuntime(ctx);
     let mut ts: *mut JSThreadState = JS_GetRuntimeOpaque(rt) as *mut JSThreadState;
@@ -6728,7 +6728,7 @@ unsafe extern "C" fn js_os_poll(mut ctx: *mut JSContext) -> i32 {
     return 0 as i32;
 }
 /* !_WIN32 */
-unsafe extern "C" fn make_obj_error(
+unsafe fn make_obj_error(
     mut ctx: *mut JSContext,
     mut obj: JSValue,
     mut err: i32,
@@ -6766,7 +6766,7 @@ unsafe extern "C" fn make_obj_error(
     );
     return arr;
 }
-unsafe extern "C" fn make_string_error(
+unsafe fn make_string_error(
     mut ctx: *mut JSContext,
     mut buf: *const std::os::raw::c_char,
     mut err: i32,
@@ -6774,7 +6774,7 @@ unsafe extern "C" fn make_string_error(
     return make_obj_error(ctx, JS_NewString(ctx, buf), err);
 }
 /* return [cwd, errorcode] */
-unsafe extern "C" fn js_os_getcwd(
+unsafe fn js_os_getcwd(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6795,7 +6795,7 @@ unsafe extern "C" fn js_os_getcwd(
     }
     return make_string_error(ctx, buf.as_mut_ptr(), err);
 }
-unsafe extern "C" fn js_os_chdir(
+unsafe fn js_os_chdir(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6817,7 +6817,7 @@ unsafe extern "C" fn js_os_chdir(
     JS_FreeCString(ctx, target);
     return JS_NewInt32(ctx, err);
 }
-unsafe extern "C" fn js_os_mkdir(
+unsafe fn js_os_mkdir(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6854,7 +6854,7 @@ unsafe extern "C" fn js_os_mkdir(
     return JS_NewInt32(ctx, ret);
 }
 /* return [array, errorcode] */
-unsafe extern "C" fn js_os_readdir(
+unsafe fn js_os_readdir(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -6921,11 +6921,11 @@ unsafe extern "C" fn js_os_readdir(
     }
     return make_obj_error(ctx, obj, err);
 }
-unsafe extern "C" fn timespec_to_ms(mut tv: *const timespec) -> int64_t {
+unsafe fn timespec_to_ms(mut tv: *const timespec) -> int64_t {
     return (*tv).tv_sec * 1000 as i32 as i64 + (*tv).tv_nsec / 1000000 as i32 as i64;
 }
 /* return [obj, errcode] */
-unsafe extern "C" fn js_os_stat(
+unsafe fn js_os_stat(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -7089,13 +7089,13 @@ unsafe extern "C" fn js_os_stat(
     }
     return make_obj_error(ctx, obj, err);
 }
-unsafe extern "C" fn ms_to_timeval(mut tv: *mut timeval, mut v: uint64_t) {
+unsafe fn ms_to_timeval(mut tv: *mut timeval, mut v: uint64_t) {
     (*tv).tv_sec = v.wrapping_div(1000 as i32 as u64) as __time_t;
     (*tv).tv_usec = v
         .wrapping_rem(1000 as i32 as u64)
         .wrapping_mul(1000 as i32 as u64) as __suseconds_t;
 }
-unsafe extern "C" fn js_os_utimes(
+unsafe fn js_os_utimes(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -7150,7 +7150,7 @@ unsafe extern "C" fn js_os_utimes(
     return JS_NewInt32(ctx, ret);
 }
 /* return [path, errorcode] */
-unsafe extern "C" fn js_os_realpath(
+unsafe fn js_os_realpath(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -7180,7 +7180,7 @@ unsafe extern "C" fn js_os_realpath(
     }
     return make_string_error(ctx, buf.as_mut_ptr(), err);
 }
-unsafe extern "C" fn js_os_symlink(
+unsafe fn js_os_symlink(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -7216,7 +7216,7 @@ unsafe extern "C" fn js_os_symlink(
     return JS_NewInt32(ctx, err);
 }
 /* return [path, errorcode] */
-unsafe extern "C" fn js_os_readlink(
+unsafe fn js_os_readlink(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -7252,7 +7252,7 @@ unsafe extern "C" fn js_os_readlink(
     JS_FreeCString(ctx, path);
     return make_string_error(ctx, buf.as_mut_ptr(), err);
 }
-unsafe extern "C" fn build_envp(
+unsafe fn build_envp(
     mut ctx: *mut JSContext,
     mut obj: JSValue,
 ) -> *mut *mut std::os::raw::c_char {
@@ -7370,7 +7370,7 @@ unsafe extern "C" fn build_envp(
     return envp;
 }
 /* execvpe is not available on non GNU systems */
-unsafe extern "C" fn my_execvpe(
+unsafe fn my_execvpe(
     mut filename: *const std::os::raw::c_char,
     mut argv: *mut *mut std::os::raw::c_char,
     mut envp: *mut *mut std::os::raw::c_char,
@@ -7454,7 +7454,7 @@ unsafe extern "C" fn my_execvpe(
     return -(1 as i32);
 }
 /* exec(args[, options]) -> exitcode */
-unsafe extern "C" fn js_os_exec(
+unsafe fn js_os_exec(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -7904,7 +7904,7 @@ unsafe extern "C" fn js_os_exec(
     return ret_val;
 }
 /* waitpid(pid, block) -> [pid, status] */
-unsafe extern "C" fn js_os_waitpid(
+unsafe fn js_os_waitpid(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -7962,7 +7962,7 @@ unsafe extern "C" fn js_os_waitpid(
     return obj;
 }
 /* pipe() -> [read_fd, write_fd] or null if error */
-unsafe extern "C" fn js_os_pipe(
+unsafe fn js_os_pipe(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -8005,7 +8005,7 @@ unsafe extern "C" fn js_os_pipe(
     return obj;
 }
 /* kill(pid, sig) */
-unsafe extern "C" fn js_os_kill(
+unsafe fn js_os_kill(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -8036,7 +8036,7 @@ unsafe extern "C" fn js_os_kill(
     return JS_NewInt32(ctx, ret);
 }
 /* sleep(delay_ms) */
-unsafe extern "C" fn js_os_sleep(
+unsafe fn js_os_sleep(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -8063,7 +8063,7 @@ unsafe extern "C" fn js_os_sleep(
     return JS_NewInt32(ctx, ret);
 }
 /* dup(fd) */
-unsafe extern "C" fn js_os_dup(
+unsafe fn js_os_dup(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -8084,7 +8084,7 @@ unsafe extern "C" fn js_os_dup(
     return JS_NewInt32(ctx, ret);
 }
 /* dup2(fd) */
-unsafe extern "C" fn js_os_dup2(
+unsafe fn js_os_dup2(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -8117,8 +8117,8 @@ unsafe extern "C" fn js_os_dup2(
 /* !_WIN32 */
 /* USE_WORKER */
 #[no_mangle]
-pub unsafe extern "C" fn js_std_set_worker_new_context_func(
-    mut func: Option<unsafe extern "C" fn(_: *mut JSRuntime) -> *mut JSContext>,
+pub unsafe fn js_std_set_worker_new_context_func(
+    mut func: Option<unsafe fn(_: *mut JSRuntime) -> *mut JSContext>,
 ) {
 }
 static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
@@ -8137,7 +8137,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_open
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8245,7 +8245,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_close
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8275,7 +8275,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_seek
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8305,7 +8305,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_os_read_write
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8336,7 +8336,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_os_read_write
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8367,7 +8367,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_isatty
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8397,7 +8397,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_ttyGetWinSize
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8427,7 +8427,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_ttySetRaw
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8457,7 +8457,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_remove
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8487,7 +8487,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_rename
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8517,7 +8517,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_os_setReadHandler
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8548,7 +8548,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_os_setReadHandler
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8579,7 +8579,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_signal
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8779,7 +8779,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_setTimeout
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8809,7 +8809,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_clearTimeout
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8851,7 +8851,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_getcwd
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8881,7 +8881,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_chdir
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8911,7 +8911,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_mkdir
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -8941,7 +8941,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_readdir
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9091,7 +9091,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_os_stat
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9122,7 +9122,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_utimes
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9152,7 +9152,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_os_stat
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9183,7 +9183,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_realpath
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9213,7 +9213,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_symlink
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9243,7 +9243,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_readlink
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9273,7 +9273,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_exec
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9303,7 +9303,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_waitpid
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9343,7 +9343,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_pipe
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9373,7 +9373,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_kill
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9403,7 +9403,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_sleep
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9433,7 +9433,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_dup
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9463,7 +9463,7 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_os_dup2
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9481,8 +9481,8 @@ static mut js_os_funcs: [JSCFunctionListEntry; 68] = unsafe {
         },
     ]
 };
-unsafe extern "C" fn js_os_init(mut ctx: *mut JSContext, mut m: *mut JSModuleDef) -> i32 {
-    os_poll_func = Some(js_os_poll as unsafe extern "C" fn(_: *mut JSContext) -> i32);
+unsafe fn js_os_init(mut ctx: *mut JSContext, mut m: *mut JSModuleDef) -> i32 {
+    os_poll_func = Some(js_os_poll as unsafe fn(_: *mut JSContext) -> i32);
     /* OSTimer class */
     JS_NewClassID(&mut js_os_timer_class_id);
     JS_NewClass(
@@ -9500,7 +9500,7 @@ unsafe extern "C" fn js_os_init(mut ctx: *mut JSContext, mut m: *mut JSModuleDef
     );
 }
 #[no_mangle]
-pub unsafe extern "C" fn js_init_module_os(
+pub unsafe fn js_init_module_os(
     mut ctx: *mut JSContext,
     mut module_name: *const std::os::raw::c_char,
 ) -> *mut JSModuleDef {
@@ -9508,7 +9508,7 @@ pub unsafe extern "C" fn js_init_module_os(
     m = JS_NewCModule(
         ctx,
         module_name,
-        Some(js_os_init as unsafe extern "C" fn(_: *mut JSContext, _: *mut JSModuleDef) -> i32),
+        Some(js_os_init as unsafe fn(_: *mut JSContext, _: *mut JSModuleDef) -> i32),
     );
     if m.is_null() {
         return 0 as *mut JSModuleDef;
@@ -9523,7 +9523,7 @@ pub unsafe extern "C" fn js_init_module_os(
     return m;
 }
 /* *********************************************************/
-unsafe extern "C" fn js_print(
+unsafe fn js_print(
     mut ctx: *mut JSContext,
     mut this_val: JSValue,
     mut argc: i32,
@@ -9561,7 +9561,7 @@ unsafe extern "C" fn js_print(
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn js_std_add_helpers(
+pub unsafe fn js_std_add_helpers(
     mut ctx: *mut JSContext,
     mut argc: i32,
     mut argv: *mut *mut std::os::raw::c_char,
@@ -9590,7 +9590,7 @@ pub unsafe extern "C" fn js_std_add_helpers(
             ctx,
             Some(
                 js_print
-                    as unsafe extern "C" fn(
+                    as unsafe fn(
                         _: *mut JSContext,
                         _: JSValue,
                         _: i32,
@@ -9635,7 +9635,7 @@ pub unsafe extern "C" fn js_std_add_helpers(
             ctx,
             Some(
                 js_print
-                    as unsafe extern "C" fn(
+                    as unsafe fn(
                         _: *mut JSContext,
                         _: JSValue,
                         _: i32,
@@ -9654,7 +9654,7 @@ pub unsafe extern "C" fn js_std_add_helpers(
             ctx,
             Some(
                 js_loadScript
-                    as unsafe extern "C" fn(
+                    as unsafe fn(
                         _: *mut JSContext,
                         _: JSValue,
                         _: i32,
@@ -9668,7 +9668,7 @@ pub unsafe extern "C" fn js_std_add_helpers(
     JS_FreeValue(ctx, global_obj);
 }
 #[no_mangle]
-pub unsafe extern "C" fn js_std_init_handlers(mut rt: *mut JSRuntime) {
+pub unsafe fn js_std_init_handlers(mut rt: *mut JSRuntime) {
     let mut ts: *mut JSThreadState = 0 as *mut JSThreadState;
     ts = malloc(::std::mem::size_of::<JSThreadState>() as u64) as *mut JSThreadState;
     if ts.is_null() {
@@ -9691,7 +9691,7 @@ pub unsafe extern "C" fn js_std_init_handlers(mut rt: *mut JSRuntime) {
     JS_SetRuntimeOpaque(rt, ts as *mut std::ffi::c_void);
 }
 #[no_mangle]
-pub unsafe extern "C" fn js_std_free_handlers(mut rt: *mut JSRuntime) {
+pub unsafe fn js_std_free_handlers(mut rt: *mut JSRuntime) {
     let mut ts: *mut JSThreadState = JS_GetRuntimeOpaque(rt) as *mut JSThreadState;
     let mut el: *mut list_head = 0 as *mut list_head;
     let mut el1: *mut list_head = 0 as *mut list_head;
@@ -9732,7 +9732,7 @@ pub unsafe extern "C" fn js_std_free_handlers(mut rt: *mut JSRuntime) {
     JS_SetRuntimeOpaque(rt, 0 as *mut std::ffi::c_void);
     /* fail safe */
 }
-unsafe extern "C" fn js_dump_obj(mut ctx: *mut JSContext, mut f: *mut FILE, mut val: JSValue) {
+unsafe fn js_dump_obj(mut ctx: *mut JSContext, mut f: *mut FILE, mut val: JSValue) {
     let mut str: *const std::os::raw::c_char = 0 as *const std::os::raw::c_char;
     str = JS_ToCString(ctx, val);
     if !str.is_null() {
@@ -9749,7 +9749,7 @@ unsafe extern "C" fn js_dump_obj(mut ctx: *mut JSContext, mut f: *mut FILE, mut 
         );
     };
 }
-unsafe extern "C" fn js_std_dump_error1(mut ctx: *mut JSContext, mut exception_val: JSValue) {
+unsafe fn js_std_dump_error1(mut ctx: *mut JSContext, mut exception_val: JSValue) {
     let mut val: JSValue = JSValue {
         u: JSValueUnion { int32: 0 },
         tag: 0,
@@ -9770,7 +9770,7 @@ unsafe extern "C" fn js_std_dump_error1(mut ctx: *mut JSContext, mut exception_v
     };
 }
 #[no_mangle]
-pub unsafe extern "C" fn js_std_dump_error(mut ctx: *mut JSContext) {
+pub unsafe fn js_std_dump_error(mut ctx: *mut JSContext) {
     let mut exception_val: JSValue = JSValue {
         u: JSValueUnion { int32: 0 },
         tag: 0,
@@ -9780,7 +9780,7 @@ pub unsafe extern "C" fn js_std_dump_error(mut ctx: *mut JSContext) {
     JS_FreeValue(ctx, exception_val);
 }
 #[no_mangle]
-pub unsafe extern "C" fn js_std_promise_rejection_tracker(
+pub unsafe fn js_std_promise_rejection_tracker(
     mut ctx: *mut JSContext,
     mut promise: JSValue,
     mut reason: JSValue,
@@ -9798,7 +9798,7 @@ pub unsafe extern "C" fn js_std_promise_rejection_tracker(
 }
 /* main loop which calls the user JS callbacks */
 #[no_mangle]
-pub unsafe extern "C" fn js_std_loop(mut ctx: *mut JSContext) {
+pub unsafe fn js_std_loop(mut ctx: *mut JSContext) {
     let mut ctx1: *mut JSContext = 0 as *mut JSContext;
     let mut err: i32 = 0;
     loop {
@@ -9820,7 +9820,7 @@ pub unsafe extern "C" fn js_std_loop(mut ctx: *mut JSContext) {
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn js_std_eval_binary(
+pub unsafe fn js_std_eval_binary(
     mut ctx: *mut JSContext,
     mut buf: *const uint8_t,
     mut buf_len: size_t,
@@ -9877,7 +9877,7 @@ pub unsafe extern "C" fn js_std_eval_binary(
     js_std_dump_error(ctx);
     exit(1 as i32);
 }
-unsafe extern "C" fn run_static_initializers() {
+unsafe fn run_static_initializers() {
     js_std_funcs = [
         {
             let mut init = JSCFunctionListEntry {
@@ -9893,7 +9893,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_exit
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9923,7 +9923,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_gc
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9953,7 +9953,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_evalScript
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -9983,7 +9983,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_loadScript
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10013,7 +10013,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_getenv
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10043,7 +10043,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_setenv
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10073,7 +10073,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_unsetenv
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10103,7 +10103,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_getenviron
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10133,7 +10133,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_urlGet
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10163,7 +10163,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_loadFile
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10193,7 +10193,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_strerror
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10223,7 +10223,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_parseExtJSON
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10253,7 +10253,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_open
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10283,7 +10283,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_popen
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10313,7 +10313,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_fdopen
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10343,7 +10343,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_tmpfile
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10373,7 +10373,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic_magic: Some(
                                     js_std_file_puts
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10404,7 +10404,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_printf
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10434,7 +10434,7 @@ unsafe extern "C" fn run_static_initializers() {
                             cfunc: JSCFunctionType {
                                 generic: Some(
                                     js_std_sprintf
-                                        as unsafe extern "C" fn(
+                                        as unsafe fn(
                                             _: *mut JSContext,
                                             _: JSValue,
                                             _: i32,
@@ -10506,4 +10506,4 @@ unsafe extern "C" fn run_static_initializers() {
 #[cfg_attr(target_os = "linux", link_section = ".init_array")]
 #[cfg_attr(target_os = "windows", link_section = ".CRT$XIB")]
 #[cfg_attr(target_os = "macos", link_section = "__DATA,__mod_init_func")]
-static INIT_ARRAY: [unsafe extern "C" fn(); 1] = [run_static_initializers];
+static INIT_ARRAY: [unsafe fn(); 1] = [run_static_initializers];

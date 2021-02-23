@@ -21,7 +21,7 @@ pub type va_list = __builtin_va_list;
 pub type BOOL = i32;
 pub const TRUE: BOOL = 1;
 pub const FALSE: BOOL = 0;
-pub type DynBufReallocFunc = unsafe extern "C" fn(
+pub type DynBufReallocFunc = unsafe fn(
     _: *mut std::ffi::c_void,
     _: *mut std::ffi::c_void,
     _: usize,
@@ -36,7 +36,7 @@ pub unsafe extern "C" fn cstr_snprintf(
     cstr_vsnprintf(buf, buf_size, format_str, args.as_va_list())
 }
 
-pub unsafe extern "C" fn cstr_vsnprintf(
+pub unsafe fn cstr_vsnprintf(
     buf: *mut c_char,
     buf_size: usize,
     format_str: *const c_char,
@@ -245,15 +245,14 @@ pub struct DynBuf {
     pub opaque: *mut std::ffi::c_void,
 }
 pub type cmp_f = Option<
-    unsafe extern "C" fn(
+    unsafe fn(
         _: *const std::ffi::c_void,
         _: *const std::ffi::c_void,
         _: *mut std::ffi::c_void,
     ) -> i32,
 >;
-pub type exchange_f = Option<
-    unsafe extern "C" fn(_: *mut std::ffi::c_void, _: *mut std::ffi::c_void, _: usize) -> (),
->;
+pub type exchange_f =
+    Option<unsafe fn(_: *mut std::ffi::c_void, _: *mut std::ffi::c_void, _: usize) -> ()>;
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -287,7 +286,7 @@ pub struct StackItem {
  * THE SOFTWARE.
  */
 #[no_mangle]
-pub unsafe extern "C" fn pstrcpy(
+pub unsafe fn pstrcpy(
     mut buf: *mut std::os::raw::c_char,
     mut buf_size: i32,
     mut str: *const std::os::raw::c_char,
@@ -312,7 +311,7 @@ pub unsafe extern "C" fn pstrcpy(
 }
 /* strcat and truncate. */
 #[no_mangle]
-pub unsafe extern "C" fn pstrcat(
+pub unsafe fn pstrcat(
     mut buf: *mut std::os::raw::c_char,
     mut buf_size: i32,
     mut s: *const std::os::raw::c_char,
@@ -325,7 +324,7 @@ pub unsafe extern "C" fn pstrcat(
     return buf;
 }
 #[no_mangle]
-pub unsafe extern "C" fn strstart(
+pub unsafe fn strstart(
     mut str: *const std::os::raw::c_char,
     mut val: *const std::os::raw::c_char,
     mut ptr: *mut *const std::os::raw::c_char,
@@ -347,7 +346,7 @@ pub unsafe extern "C" fn strstart(
     return 1 as i32;
 }
 #[no_mangle]
-pub unsafe extern "C" fn has_suffix(
+pub unsafe fn has_suffix(
     mut str: *const std::os::raw::c_char,
     mut suffix: *const std::os::raw::c_char,
 ) -> i32 {
@@ -362,17 +361,17 @@ pub unsafe extern "C" fn has_suffix(
 }
 
 #[inline]
-pub unsafe extern "C" fn dbuf_error(mut s: *mut DynBuf) -> BOOL {
+pub unsafe fn dbuf_error(mut s: *mut DynBuf) -> BOOL {
     return (*s).error;
 }
 
 #[inline]
-pub unsafe extern "C" fn dbuf_set_error(mut s: *mut DynBuf) {
+pub unsafe fn dbuf_set_error(mut s: *mut DynBuf) {
     (*s).error = TRUE as i32;
 }
 
 /* Dynamic buffer package */
-unsafe extern "C" fn dbuf_default_realloc(
+unsafe fn dbuf_default_realloc(
     mut opaque: *mut std::ffi::c_void,
     mut ptr: *mut std::ffi::c_void,
     mut size: usize,
@@ -381,7 +380,7 @@ unsafe extern "C" fn dbuf_default_realloc(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn dbuf_init2(
+pub unsafe fn dbuf_init2(
     mut s: *mut DynBuf,
     mut opaque: *mut std::ffi::c_void,
     mut realloc_func: Option<DynBufReallocFunc>,
@@ -391,7 +390,7 @@ pub unsafe extern "C" fn dbuf_init2(
     if realloc_func.is_none() {
         realloc_func = Some(
             dbuf_default_realloc
-                as unsafe extern "C" fn(
+                as unsafe fn(
                     _: *mut std::ffi::c_void,
                     _: *mut std::ffi::c_void,
                     _: usize,
@@ -402,12 +401,12 @@ pub unsafe extern "C" fn dbuf_init2(
     (*s).realloc_func = realloc_func;
 }
 #[no_mangle]
-pub unsafe extern "C" fn dbuf_init(mut s: *mut DynBuf) {
+pub unsafe fn dbuf_init(mut s: *mut DynBuf) {
     dbuf_init2(s, 0 as *mut std::ffi::c_void, None);
 }
 /* return < 0 if error */
 #[no_mangle]
-pub unsafe extern "C" fn dbuf_realloc(mut s: *mut DynBuf, mut new_size: usize) -> i32 {
+pub unsafe fn dbuf_realloc(mut s: *mut DynBuf, mut new_size: usize) -> i32 {
     let mut size: usize = 0;
     let mut new_buf: *mut u8 = 0 as *mut u8;
     if new_size > (*s).allocated_size {
@@ -434,17 +433,17 @@ pub unsafe extern "C" fn dbuf_realloc(mut s: *mut DynBuf, mut new_size: usize) -
 }
 
 #[inline]
-pub unsafe extern "C" fn dbuf_put_u16(mut s: *mut DynBuf, mut val: u16) -> i32 {
+pub unsafe fn dbuf_put_u16(mut s: *mut DynBuf, mut val: u16) -> i32 {
     return dbuf_put(s, &mut val as *mut u16 as *mut u8, 2);
 }
 
 #[inline]
-pub unsafe extern "C" fn dbuf_put_u32(mut s: *mut DynBuf, mut val: u32) -> i32 {
+pub unsafe fn dbuf_put_u32(mut s: *mut DynBuf, mut val: u32) -> i32 {
     return dbuf_put(s, &mut val as *mut u32 as *mut u8, 4);
 }
 
 #[inline]
-pub unsafe extern "C" fn dbuf_put_u64(mut s: *mut DynBuf, mut val: u64) -> i32 {
+pub unsafe fn dbuf_put_u64(mut s: *mut DynBuf, mut val: u64) -> i32 {
     return dbuf_put(s, &mut val as *mut u64 as *mut u8, 8);
 }
 
@@ -472,7 +471,7 @@ pub unsafe fn dbuf_write(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn dbuf_put(mut s: *mut DynBuf, mut data: *const u8, mut len: usize) -> i32 {
+pub unsafe fn dbuf_put(mut s: *mut DynBuf, mut data: *const u8, mut len: usize) -> i32 {
     if ((*s).size.wrapping_add(len as usize) > (*s).allocated_size) {
         if dbuf_realloc(s, (*s).size.wrapping_add(len as usize)) != 0 {
             return -1;
@@ -486,11 +485,7 @@ pub unsafe extern "C" fn dbuf_put(mut s: *mut DynBuf, mut data: *const u8, mut l
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn dbuf_put_self(
-    mut s: *mut DynBuf,
-    mut offset: usize,
-    mut len: usize,
-) -> i32 {
+pub unsafe fn dbuf_put_self(mut s: *mut DynBuf, mut offset: usize, mut len: usize) -> i32 {
     if ((*s).size.wrapping_add(len) > (*s).allocated_size) as i32 as i64 != 0 {
         if dbuf_realloc(s, (*s).size.wrapping_add(len)) != 0 {
             return -1;
@@ -504,14 +499,11 @@ pub unsafe extern "C" fn dbuf_put_self(
     0
 }
 #[no_mangle]
-pub unsafe extern "C" fn dbuf_putc(mut s: *mut DynBuf, mut c: u8) -> i32 {
+pub unsafe fn dbuf_putc(mut s: *mut DynBuf, mut c: u8) -> i32 {
     return dbuf_put(s, &mut c, 1);
 }
 #[no_mangle]
-pub unsafe extern "C" fn dbuf_putstr(
-    mut s: *mut DynBuf,
-    mut str: *const std::os::raw::c_char,
-) -> i32 {
+pub unsafe fn dbuf_putstr(mut s: *mut DynBuf, mut str: *const std::os::raw::c_char) -> i32 {
     return dbuf_put(s, str as *const u8, cstr_len(str));
 }
 #[no_mangle]
@@ -549,7 +541,7 @@ pub unsafe extern "C" fn dbuf_printf(
     0
 }
 #[no_mangle]
-pub unsafe extern "C" fn dbuf_free(mut s: *mut DynBuf) {
+pub unsafe fn dbuf_free(mut s: *mut DynBuf) {
     /* we test s->buf as a fail safe to avoid crashing if dbuf_free()
     is called twice */
     if !(*s).buf.is_null() {
@@ -562,7 +554,7 @@ pub unsafe extern "C" fn dbuf_free(mut s: *mut DynBuf) {
     (s as *mut u8).write_bytes(0, std::mem::size_of::<DynBuf>());
 }
 
-unsafe extern "C" fn exchange_bytes(
+unsafe fn exchange_bytes(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut size: usize,
@@ -584,7 +576,7 @@ unsafe extern "C" fn exchange_bytes(
         *fresh17 = t
     }
 }
-unsafe extern "C" fn exchange_one_byte(
+unsafe fn exchange_one_byte(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut size: usize,
@@ -595,7 +587,7 @@ unsafe extern "C" fn exchange_one_byte(
     *ap = *bp;
     *bp = t;
 }
-unsafe extern "C" fn exchange_int16s(
+unsafe fn exchange_int16s(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut size: usize,
@@ -618,7 +610,7 @@ unsafe extern "C" fn exchange_int16s(
         *fresh20 = t
     }
 }
-unsafe extern "C" fn exchange_one_int16(
+unsafe fn exchange_one_int16(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut size: usize,
@@ -629,7 +621,7 @@ unsafe extern "C" fn exchange_one_int16(
     *ap = *bp;
     *bp = t;
 }
-unsafe extern "C" fn exchange_int32s(
+unsafe fn exchange_int32s(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut size: usize,
@@ -652,7 +644,7 @@ unsafe extern "C" fn exchange_int32s(
         *fresh23 = t
     }
 }
-unsafe extern "C" fn exchange_one_int32(
+unsafe fn exchange_one_int32(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut size: usize,
@@ -663,7 +655,7 @@ unsafe extern "C" fn exchange_one_int32(
     *ap = *bp;
     *bp = t;
 }
-unsafe extern "C" fn exchange_int64s(
+unsafe fn exchange_int64s(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut size: usize,
@@ -686,7 +678,7 @@ unsafe extern "C" fn exchange_int64s(
         *fresh26 = t
     }
 }
-unsafe extern "C" fn exchange_one_int64(
+unsafe fn exchange_one_int64(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut size: usize,
@@ -697,7 +689,7 @@ unsafe extern "C" fn exchange_one_int64(
     *ap = *bp;
     *bp = t;
 }
-unsafe extern "C" fn exchange_int128s(
+unsafe fn exchange_int128s(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut size: usize,
@@ -723,7 +715,7 @@ unsafe extern "C" fn exchange_int128s(
         bp = bp.offset(2 as i32 as isize)
     }
 }
-unsafe extern "C" fn exchange_one_int128(
+unsafe fn exchange_one_int128(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut size: usize,
@@ -738,16 +730,13 @@ unsafe extern "C" fn exchange_one_int128(
     *bp.offset(1 as i32 as isize) = u;
 }
 #[inline]
-unsafe extern "C" fn exchange_func(
-    mut base: *const std::ffi::c_void,
-    mut size: usize,
-) -> exchange_f {
+unsafe fn exchange_func(mut base: *const std::ffi::c_void, mut size: usize) -> exchange_f {
     match (base as usize | size) & 15 {
         0 => {
             if size == (::std::mem::size_of::<u64>()).wrapping_mul(2) {
                 return Some(
                     exchange_one_int128
-                        as unsafe extern "C" fn(
+                        as unsafe fn(
                             _: *mut std::ffi::c_void,
                             _: *mut std::ffi::c_void,
                             _: usize,
@@ -756,7 +745,7 @@ unsafe extern "C" fn exchange_func(
             } else {
                 return Some(
                     exchange_int128s
-                        as unsafe extern "C" fn(
+                        as unsafe fn(
                             _: *mut std::ffi::c_void,
                             _: *mut std::ffi::c_void,
                             _: usize,
@@ -768,7 +757,7 @@ unsafe extern "C" fn exchange_func(
             if size == ::std::mem::size_of::<u64>() {
                 return Some(
                     exchange_one_int64
-                        as unsafe extern "C" fn(
+                        as unsafe fn(
                             _: *mut std::ffi::c_void,
                             _: *mut std::ffi::c_void,
                             _: usize,
@@ -777,7 +766,7 @@ unsafe extern "C" fn exchange_func(
             } else {
                 return Some(
                     exchange_int64s
-                        as unsafe extern "C" fn(
+                        as unsafe fn(
                             _: *mut std::ffi::c_void,
                             _: *mut std::ffi::c_void,
                             _: usize,
@@ -789,7 +778,7 @@ unsafe extern "C" fn exchange_func(
             if size == ::std::mem::size_of::<u32>() {
                 return Some(
                     exchange_one_int32
-                        as unsafe extern "C" fn(
+                        as unsafe fn(
                             _: *mut std::ffi::c_void,
                             _: *mut std::ffi::c_void,
                             _: usize,
@@ -798,7 +787,7 @@ unsafe extern "C" fn exchange_func(
             } else {
                 return Some(
                     exchange_int32s
-                        as unsafe extern "C" fn(
+                        as unsafe fn(
                             _: *mut std::ffi::c_void,
                             _: *mut std::ffi::c_void,
                             _: usize,
@@ -810,7 +799,7 @@ unsafe extern "C" fn exchange_func(
             if size == ::std::mem::size_of::<u16>() {
                 return Some(
                     exchange_one_int16
-                        as unsafe extern "C" fn(
+                        as unsafe fn(
                             _: *mut std::ffi::c_void,
                             _: *mut std::ffi::c_void,
                             _: usize,
@@ -819,7 +808,7 @@ unsafe extern "C" fn exchange_func(
             } else {
                 return Some(
                     exchange_int16s
-                        as unsafe extern "C" fn(
+                        as unsafe fn(
                             _: *mut std::ffi::c_void,
                             _: *mut std::ffi::c_void,
                             _: usize,
@@ -831,7 +820,7 @@ unsafe extern "C" fn exchange_func(
             if size == 1 {
                 return Some(
                     exchange_one_byte
-                        as unsafe extern "C" fn(
+                        as unsafe fn(
                             _: *mut std::ffi::c_void,
                             _: *mut std::ffi::c_void,
                             _: usize,
@@ -840,7 +829,7 @@ unsafe extern "C" fn exchange_func(
             } else {
                 return Some(
                     exchange_bytes
-                        as unsafe extern "C" fn(
+                        as unsafe fn(
                             _: *mut std::ffi::c_void,
                             _: *mut std::ffi::c_void,
                             _: usize,
@@ -850,7 +839,7 @@ unsafe extern "C" fn exchange_func(
         }
     };
 }
-unsafe extern "C" fn heapsortx(
+unsafe fn heapsortx(
     mut base: *mut std::ffi::c_void,
     mut nmemb: usize,
     mut size: usize,
@@ -941,7 +930,7 @@ unsafe extern "C" fn heapsortx(
     };
 }
 #[inline]
-unsafe extern "C" fn med3(
+unsafe fn med3(
     mut a: *mut std::ffi::c_void,
     mut b: *mut std::ffi::c_void,
     mut c: *mut std::ffi::c_void,
@@ -966,7 +955,7 @@ unsafe extern "C" fn med3(
 }
 /* pointer based version with local stack and insertion sort threshhold */
 #[no_mangle]
-pub unsafe extern "C" fn rqsort(
+pub unsafe fn rqsort(
     mut base: *mut std::ffi::c_void,
     mut nmemb: usize,
     mut size: usize,

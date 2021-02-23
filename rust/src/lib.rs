@@ -21,11 +21,11 @@ extern crate c2rust_bitfields;
 #[macro_use]
 extern crate c2rust_asm_casts;
 
-pub mod cutils;
-pub mod libbf;
-pub mod libregexp;
-pub mod libunicode;
+mod cutils;
+mod libbf;
+mod libregexp;
+mod libunicode;
 pub mod quickjs;
 
-#[cfg(not(target_arch = "wasm32"))]
-pub mod quickjs_libc;
+// #[cfg(not(target_arch = "wasm32"))]
+// pub mod quickjs_libc;
