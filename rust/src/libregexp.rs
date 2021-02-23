@@ -3,9 +3,9 @@ use ::c2rust_bitfields;
 use std::process::abort;
 
 use crate::cutils::{
-    __builtin_va_list, __va_list_tag, cstr_compare, cstr_find_char, cstr_len, dbuf_error,
-    dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self, dbuf_put_u16, dbuf_put_u32, dbuf_putc,
-    dbuf_realloc, pstrcpy, ptr_compare, DynBuf, PtrExt, BOOL, FALSE, TRUE,
+    __builtin_va_list, __va_list_tag, cstr_append_sized, cstr_compare, cstr_find_char, cstr_len,
+    dbuf_error, dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self, dbuf_put_u16, dbuf_put_u32,
+    dbuf_putc, dbuf_realloc, pstrcpy, ptr_compare, DynBuf, PtrExt, BOOL, FALSE, TRUE,
 };
 
 use crate::libunicode::{
@@ -48,12 +48,12 @@ pub struct REParseState {
     pub has_named_captures: i32,
     pub opaque: *mut std::ffi::c_void,
     pub group_names: DynBuf,
-    pub u: C2RustUnnamed_1,
+    pub u: REParseStateUnion,
 }
 
 #[repr(C)]
 #[derive(Copy, Clone)]
-pub union C2RustUnnamed_1 {
+pub union REParseStateUnion {
     pub error_msg: [std::os::raw::c_char; 128],
     pub tmp_buf: [std::os::raw::c_char; 128],
 }
@@ -641,27 +641,15 @@ unsafe fn re_emit_op_u16(mut s: *mut REParseState, mut op: i32, mut val: u32) {
     dbuf_putc(&mut (*s).byte_code, op as u8);
     dbuf_put_u16(&mut (*s).byte_code, val as u16);
 }
-unsafe extern "C" fn re_parse_error(
-    mut s: *mut REParseState,
-    mut fmt: *const std::os::raw::c_char,
-    mut args: ...
-) -> i32 {
-    let mut ap: ::std::ffi::VaListImpl;
-    ap = args.clone();
-    crate::cutils::cstr_vsnprintf(
-        (*s).u.error_msg.as_mut_ptr(),
-        ::std::mem::size_of::<[std::os::raw::c_char; 128]>(),
-        fmt,
-        ap.as_va_list(),
-    );
-    return -(1 as i32);
+unsafe fn re_parse_error(mut s: *mut REParseState, msg: &str) -> i32 {
+    cstr_append_sized((*s).u.error_msg.as_mut_ptr(), 128, msg);
+    -1
 }
+
 unsafe fn re_parse_out_of_memory(mut s: *mut REParseState) -> i32 {
-    return re_parse_error(
-        s,
-        b"out of memory\x00" as *const u8 as *const std::os::raw::c_char,
-    );
+    return re_parse_error(s, "out of memory");
 }
+
 /* If allow_overflow is false, return -1 in case of
 overflow. Otherwise return INT32_MAX. */
 unsafe fn parse_digits(mut pp: *mut *const u8, mut allow_overflow: BOOL) -> i32 {
@@ -697,8 +685,10 @@ unsafe fn re_parse_expect(mut s: *mut REParseState, mut pp: *mut *const u8, mut 
     if *p as i32 != c {
         return re_parse_error(
             s,
-            b"expecting \'%c\'\x00" as *const u8 as *const std::os::raw::c_char,
-            c,
+            &format!(
+                "expecting '{}'",
+                std::char::from_u32(c as u32).unwrap_or('?')
+            ),
         );
     }
     p = p.offset(1);
@@ -849,10 +839,7 @@ unsafe fn parse_unicode_property(
     let mut ret: i32 = 0;
     p = *pp;
     if *p as i32 != '{' as i32 {
-        return re_parse_error(
-            s,
-            b"expecting \'{\' after \\p\x00" as *const u8 as *const std::os::raw::c_char,
-        );
+        return re_parse_error(s, "expecting \'{\' after \\p");
     }
     p = p.offset(1);
     q = name.as_mut_ptr();
@@ -885,11 +872,7 @@ unsafe fn parse_unicode_property(
                         >= (::std::mem::size_of::<[std::os::raw::c_char; 64]>() as u64)
                             .wrapping_sub(1 as i32 as u64)
                     {
-                        return re_parse_error(
-                            s,
-                            b"unknown unicode property value\x00" as *const u8
-                                as *const std::os::raw::c_char,
-                        );
+                        return re_parse_error(s, "unknown unicode property value");
                     }
                     let fresh8 = p;
                     p = p.offset(1);
@@ -900,10 +883,7 @@ unsafe fn parse_unicode_property(
             }
             *q = '\u{0}' as i32 as std::os::raw::c_char;
             if *p as i32 != '}' as i32 {
-                return re_parse_error(
-                    s,
-                    b"expecting \'}\'\x00" as *const u8 as *const std::os::raw::c_char,
-                );
+                return re_parse_error(s, "expecting \'}\'");
             }
             p = p.offset(1);
             //    printf("name=%s value=%s\n", name, value);
@@ -948,11 +928,7 @@ unsafe fn parse_unicode_property(
                 if ret != 0 {
                     cr_free(cr);
                     if ret == -(2 as i32) {
-                        return re_parse_error(
-                            s,
-                            b"unknown unicode general category\x00" as *const u8
-                                as *const std::os::raw::c_char,
-                        );
+                        return re_parse_error(s, "unknown unicode general category");
                     } else {
                         current_block = 13855183787650136026;
                     }
@@ -1016,11 +992,7 @@ unsafe fn parse_unicode_property(
                             if ret != 0 {
                                 cr_free(cr);
                                 if ret == -(2 as i32) {
-                                    return re_parse_error(
-                                        s,
-                                        b"unknown unicode script\x00" as *const u8
-                                            as *const std::os::raw::c_char,
-                                    );
+                                    return re_parse_error(s, "unknown unicode script");
                                 } else {
                                     current_block = 13855183787650136026;
                                 }
@@ -1048,10 +1020,7 @@ unsafe fn parse_unicode_property(
         }
         _ => {}
     }
-    return re_parse_error(
-        s,
-        b"unknown unicode property name\x00" as *const u8 as *const std::os::raw::c_char,
-    );
+    return re_parse_error(s, "unknown unicode property name");
 }
 /* CONFIG_ALL_UNICODE */
 /* return -1 if error otherwise the character or a class range
@@ -1191,9 +1160,7 @@ unsafe fn get_class_atom(
                             _ => {
                                 return re_parse_error(
                                     s,
-                                    b"invalid escape sequence in regular expression\x00"
-                                        as *const u8
-                                        as *const std::os::raw::c_char,
+                                    "invalid escape sequence in regular expression",
                                 )
                             }
                         }
@@ -1221,21 +1188,13 @@ unsafe fn get_class_atom(
                 c = unicode_from_utf8(p, 6 as i32, &mut p) as u32;
                 if c > 0xffff as i32 as u32 && (*s).is_utf16 == 0 {
                     /* XXX: should handle non BMP-1 code points */
-                    return re_parse_error(
-                        s,
-                        b"malformed unicode char\x00" as *const u8 as *const std::os::raw::c_char,
-                    );
+                    return re_parse_error(s, "malformed unicode char");
                 }
             } else {
                 p = p.offset(1)
             }
         }
-        15043249707509330652 => {
-            return re_parse_error(
-                s,
-                b"unexpected end\x00" as *const u8 as *const std::os::raw::c_char,
-            )
-        }
+        15043249707509330652 => return re_parse_error(s, "unexpected end"),
         _ => {}
     }
     *pp = p;
@@ -1247,10 +1206,7 @@ unsafe fn re_emit_range(mut s: *mut REParseState, mut cr: *const CharRange) -> i
     let mut high: u32 = 0;
     len = ((*cr).len as u32).wrapping_div(2 as i32 as u32) as i32;
     if len >= 65535 as i32 {
-        return re_parse_error(
-            s,
-            b"too many ranges\x00" as *const u8 as *const std::os::raw::c_char,
-        );
+        return re_parse_error(s, "too many ranges");
     }
     if len == 0 as i32 {
         /* not sure it can really happen. Emit a match that is always
@@ -1380,10 +1336,7 @@ unsafe fn re_parse_char_class(mut s: *mut REParseState, mut pp: *mut *const u8) 
             match current_block {
                 3183214240085336568 => {}
                 _ => {
-                    re_parse_error(
-                        s,
-                        b"invalid class range\x00" as *const u8 as *const std::os::raw::c_char,
-                    );
+                    re_parse_error(s, "invalid class range");
                     current_block = 10339678743498588791;
                     break;
                 }
@@ -1820,10 +1773,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
         }
         123 => {
             if (*s).is_utf16 != 0 {
-                return re_parse_error(
-                    s,
-                    b"syntax error\x00" as *const u8 as *const std::os::raw::c_char,
-                );
+                return re_parse_error(s, "syntax error");
             } else if is_digit(*p.offset(1 as i32 as isize) as i32) == 0 {
                 current_block = 14272147528220428300;
             } else {
@@ -1891,18 +1841,10 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 (*s).is_utf16,
                             ) != 0
                             {
-                                return re_parse_error(
-                                    s,
-                                    b"invalid group name\x00" as *const u8
-                                        as *const std::os::raw::c_char,
-                                );
+                                return re_parse_error(s, "invalid group name");
                             }
                             if find_group_name(s, (*s).u.tmp_buf.as_mut_ptr()) > 0 as i32 {
-                                return re_parse_error(
-                                    s,
-                                    b"duplicate group name\x00" as *const u8
-                                        as *const std::os::raw::c_char,
-                                );
+                                return re_parse_error(s, "duplicate group name");
                             }
                             /* group name with a trailing zero */
                             dbuf_put(
@@ -1912,10 +1854,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                             );
                             (*s).has_named_captures = 1 as i32
                         } else {
-                            return re_parse_error(
-                                s,
-                                b"invalid group\x00" as *const u8 as *const std::os::raw::c_char,
-                            );
+                            return re_parse_error(s, "invalid group");
                         }
                         current_block_82 = 2791873586345300331;
                     }
@@ -1963,10 +1902,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
             match current_block_82 {
                 2791873586345300331 => {
                     if (*s).capture_count >= 255 as i32 {
-                        return re_parse_error(
-                            s,
-                            b"too many captures\x00" as *const u8 as *const std::os::raw::c_char,
-                        );
+                        return re_parse_error(s, "too many captures");
                     }
                     last_atom_start = (*s).byte_code.size as i32;
                     last_capture_count = (*s).capture_count;
@@ -2017,9 +1953,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 if is_digit(*p as i32) != 0 {
                                     return re_parse_error(
                                         s,
-                                        b"invalid decimal escape in regular expression\x00"
-                                            as *const u8
-                                            as *const std::os::raw::c_char,
+                                        "invalid decimal escape in regular expression",
                                     );
                                 }
                             } else if *p as i32 >= '0' as i32 && *p as i32 <= '7' as i32 {
@@ -2044,11 +1978,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 unicode mode if there is no named capture
                                 definition */
                                 if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                    return re_parse_error(
-                                        s,
-                                        b"expecting group name\x00" as *const u8
-                                            as *const std::os::raw::c_char,
-                                    );
+                                    return re_parse_error(s, "expecting group name");
                                 } else {
                                     current_block = 14272147528220428300;
                                 }
@@ -2063,11 +1993,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 ) != 0
                                 {
                                     if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                        return re_parse_error(
-                                            s,
-                                            b"invalid group name\x00" as *const u8
-                                                as *const std::os::raw::c_char,
-                                        );
+                                        return re_parse_error(s, "invalid group name");
                                     } else {
                                         current_block = 14272147528220428300;
                                     }
@@ -2083,11 +2009,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                         );
                                         if c < 0 as i32 {
                                             if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                                return re_parse_error(
-                                                    s,
-                                                    b"group name not defined\x00" as *const u8
-                                                        as *const std::os::raw::c_char,
-                                                );
+                                                return re_parse_error(s, "group name not defined");
                                             } else {
                                                 current_block = 14272147528220428300;
                                             }
@@ -2141,9 +2063,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 } else {
                                     return re_parse_error(
                                         s,
-                                        b"back reference out of range in regular expression\x00"
-                                            as *const u8
-                                            as *const std::os::raw::c_char,
+                                        "back reference out of range in regular expression",
                                     );
                                 }
                                 current_block = 6173299948494125894;
@@ -2187,9 +2107,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 if is_digit(*p as i32) != 0 {
                                     return re_parse_error(
                                         s,
-                                        b"invalid decimal escape in regular expression\x00"
-                                            as *const u8
-                                            as *const std::os::raw::c_char,
+                                        "invalid decimal escape in regular expression",
                                     );
                                 }
                             } else if *p as i32 >= '0' as i32 && *p as i32 <= '7' as i32 {
@@ -2210,11 +2128,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                             p1_0 = p;
                             if *p1_0.offset(2 as i32 as isize) as i32 != '<' as i32 {
                                 if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                    return re_parse_error(
-                                        s,
-                                        b"expecting group name\x00" as *const u8
-                                            as *const std::os::raw::c_char,
-                                    );
+                                    return re_parse_error(s, "expecting group name");
                                 } else {
                                     current_block = 14272147528220428300;
                                 }
@@ -2229,11 +2143,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 ) != 0
                                 {
                                     if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                        return re_parse_error(
-                                            s,
-                                            b"invalid group name\x00" as *const u8
-                                                as *const std::os::raw::c_char,
-                                        );
+                                        return re_parse_error(s, "invalid group name");
                                     } else {
                                         current_block = 14272147528220428300;
                                     }
@@ -2247,11 +2157,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                         );
                                         if c < 0 as i32 {
                                             if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                                return re_parse_error(
-                                                    s,
-                                                    b"group name not defined\x00" as *const u8
-                                                        as *const std::os::raw::c_char,
-                                                );
+                                                return re_parse_error(s, "group name not defined");
                                             } else {
                                                 current_block = 14272147528220428300;
                                             }
@@ -2304,9 +2210,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 } else {
                                     return re_parse_error(
                                         s,
-                                        b"back reference out of range in regular expression\x00"
-                                            as *const u8
-                                            as *const std::os::raw::c_char,
+                                        "back reference out of range in regular expression",
                                     );
                                 }
                                 current_block = 6173299948494125894;
@@ -2350,9 +2254,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 if is_digit(*p as i32) != 0 {
                                     return re_parse_error(
                                         s,
-                                        b"invalid decimal escape in regular expression\x00"
-                                            as *const u8
-                                            as *const std::os::raw::c_char,
+                                        "invalid decimal escape in regular expression",
                                     );
                                 }
                             } else if *p as i32 >= '0' as i32 && *p as i32 <= '7' as i32 {
@@ -2373,11 +2275,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                             p1_0 = p;
                             if *p1_0.offset(2 as i32 as isize) as i32 != '<' as i32 {
                                 if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                    return re_parse_error(
-                                        s,
-                                        b"expecting group name\x00" as *const u8
-                                            as *const std::os::raw::c_char,
-                                    );
+                                    return re_parse_error(s, "expecting group name");
                                 } else {
                                     current_block = 14272147528220428300;
                                 }
@@ -2392,11 +2290,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 ) != 0
                                 {
                                     if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                        return re_parse_error(
-                                            s,
-                                            b"invalid group name\x00" as *const u8
-                                                as *const std::os::raw::c_char,
-                                        );
+                                        return re_parse_error(s, "invalid group name");
                                     } else {
                                         current_block = 14272147528220428300;
                                     }
@@ -2410,11 +2304,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                         );
                                         if c < 0 as i32 {
                                             if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                                return re_parse_error(
-                                                    s,
-                                                    b"group name not defined\x00" as *const u8
-                                                        as *const std::os::raw::c_char,
-                                                );
+                                                return re_parse_error(s, "group name not defined");
                                             } else {
                                                 current_block = 14272147528220428300;
                                             }
@@ -2467,9 +2357,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 } else {
                                     return re_parse_error(
                                         s,
-                                        b"back reference out of range in regular expression\x00"
-                                            as *const u8
-                                            as *const std::os::raw::c_char,
+                                        "back reference out of range in regular expression",
                                     );
                                 }
                                 current_block = 6173299948494125894;
@@ -2513,9 +2401,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 if is_digit(*p as i32) != 0 {
                                     return re_parse_error(
                                         s,
-                                        b"invalid decimal escape in regular expression\x00"
-                                            as *const u8
-                                            as *const std::os::raw::c_char,
+                                        "invalid decimal escape in regular expression",
                                     );
                                 }
                             } else if *p as i32 >= '0' as i32 && *p as i32 <= '7' as i32 {
@@ -2536,11 +2422,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                             p1_0 = p;
                             if *p1_0.offset(2 as i32 as isize) as i32 != '<' as i32 {
                                 if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                    return re_parse_error(
-                                        s,
-                                        b"expecting group name\x00" as *const u8
-                                            as *const std::os::raw::c_char,
-                                    );
+                                    return re_parse_error(s, "expecting group name");
                                 } else {
                                     current_block = 14272147528220428300;
                                 }
@@ -2555,11 +2437,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 ) != 0
                                 {
                                     if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                        return re_parse_error(
-                                            s,
-                                            b"invalid group name\x00" as *const u8
-                                                as *const std::os::raw::c_char,
-                                        );
+                                        return re_parse_error(s, "invalid group name");
                                     } else {
                                         current_block = 14272147528220428300;
                                     }
@@ -2573,11 +2451,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                         );
                                         if c < 0 as i32 {
                                             if (*s).is_utf16 != 0 || re_has_named_captures(s) != 0 {
-                                                return re_parse_error(
-                                                    s,
-                                                    b"group name not defined\x00" as *const u8
-                                                        as *const std::os::raw::c_char,
-                                                );
+                                                return re_parse_error(s, "group name not defined");
                                             } else {
                                                 current_block = 14272147528220428300;
                                             }
@@ -2630,9 +2504,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                                 } else {
                                     return re_parse_error(
                                         s,
-                                        b"back reference out of range in regular expression\x00"
-                                            as *const u8
-                                            as *const std::os::raw::c_char,
+                                        "back reference out of range in regular expression",
                                     );
                                 }
                                 current_block = 6173299948494125894;
@@ -2678,10 +2550,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
         }
         93 | 125 => {
             if (*s).is_utf16 != 0 {
-                return re_parse_error(
-                    s,
-                    b"syntax error\x00" as *const u8 as *const std::os::raw::c_char,
-                );
+                return re_parse_error(s, "syntax error");
             }
             current_block = 14272147528220428300;
         }
@@ -2703,10 +2572,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
         13992302657118620366 =>
         /* fall thru */
         {
-            return re_parse_error(
-                s,
-                b"nothing to repeat\x00" as *const u8 as *const std::os::raw::c_char,
-            )
+            return re_parse_error(s, "nothing to repeat")
         }
         _ => {}
     }
@@ -2816,13 +2682,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                         match current_block {
                             16210164921736915844 => {}
                             3543436503030046430 => {}
-                            _ => {
-                                return re_parse_error(
-                                    s,
-                                    b"invalid repetition count\x00" as *const u8
-                                        as *const std::os::raw::c_char,
-                                )
-                            }
+                            _ => return re_parse_error(s, "invalid repetition count"),
                         }
                     }
                 }
@@ -2835,11 +2695,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                             greedy = FALSE as i32
                         }
                         if last_atom_start < 0 as i32 {
-                            return re_parse_error(
-                                s,
-                                b"nothing to repeat\x00" as *const u8
-                                    as *const std::os::raw::c_char,
-                            );
+                            return re_parse_error(s, "nothing to repeat");
                         }
                         if greedy != 0 {
                             let mut len: i32 = 0;
@@ -3297,13 +3153,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                         match current_block {
                             16210164921736915844 => {}
                             3543436503030046430 => {}
-                            _ => {
-                                return re_parse_error(
-                                    s,
-                                    b"invalid repetition count\x00" as *const u8
-                                        as *const std::os::raw::c_char,
-                                )
-                            }
+                            _ => return re_parse_error(s, "invalid repetition count"),
                         }
                     }
                 }
@@ -3316,11 +3166,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                             greedy = FALSE as i32
                         }
                         if last_atom_start < 0 as i32 {
-                            return re_parse_error(
-                                s,
-                                b"nothing to repeat\x00" as *const u8
-                                    as *const std::os::raw::c_char,
-                            );
+                            return re_parse_error(s, "nothing to repeat");
                         }
                         if greedy != 0 {
                             let mut len: i32 = 0;
@@ -3767,13 +3613,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                         match current_block {
                             16210164921736915844 => {}
                             3543436503030046430 => {}
-                            _ => {
-                                return re_parse_error(
-                                    s,
-                                    b"invalid repetition count\x00" as *const u8
-                                        as *const std::os::raw::c_char,
-                                )
-                            }
+                            _ => return re_parse_error(s, "invalid repetition count"),
                         }
                     }
                 }
@@ -3786,11 +3626,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                             greedy = FALSE as i32
                         }
                         if last_atom_start < 0 as i32 {
-                            return re_parse_error(
-                                s,
-                                b"nothing to repeat\x00" as *const u8
-                                    as *const std::os::raw::c_char,
-                            );
+                            return re_parse_error(s, "nothing to repeat");
                         }
                         if greedy != 0 {
                             let mut len: i32 = 0;
@@ -4237,13 +4073,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                         match current_block {
                             16210164921736915844 => {}
                             3543436503030046430 => {}
-                            _ => {
-                                return re_parse_error(
-                                    s,
-                                    b"invalid repetition count\x00" as *const u8
-                                        as *const std::os::raw::c_char,
-                                )
-                            }
+                            _ => return re_parse_error(s, "invalid repetition count"),
                         }
                     }
                 }
@@ -4256,11 +4086,7 @@ unsafe fn re_parse_term(mut s: *mut REParseState, mut is_backward_dir: BOOL) -> 
                             greedy = FALSE as i32
                         }
                         if last_atom_start < 0 as i32 {
-                            return re_parse_error(
-                                s,
-                                b"nothing to repeat\x00" as *const u8
-                                    as *const std::os::raw::c_char,
-                            );
+                            return re_parse_error(s, "nothing to repeat");
                         }
                         if greedy != 0 {
                             let mut len: i32 = 0;
@@ -4697,10 +4523,7 @@ unsafe fn re_parse_disjunction(mut s: *mut REParseState, mut is_backward_dir: BO
     let mut len: i32 = 0;
     let mut pos: i32 = 0;
     if lre_check_stack_overflow((*s).opaque, 0 as i32 as usize) != 0 {
-        return re_parse_error(
-            s,
-            b"stack overflow\x00" as *const u8 as *const std::os::raw::c_char,
-        );
+        return re_parse_error(s, "stack overflow");
     }
     start = (*s).byte_code.size as i32;
     if re_parse_alternative(s, is_backward_dir) != 0 {
@@ -4828,7 +4651,7 @@ pub unsafe fn lre_compile(
             realloc_func: None,
             opaque: 0 as *mut std::ffi::c_void,
         },
-        u: C2RustUnnamed_1 {
+        u: REParseStateUnion {
             error_msg: [0; 128],
         },
     }; /* first element is the flags */
@@ -4900,20 +4723,13 @@ pub unsafe fn lre_compile(
         re_emit_op_u8(s, REOP_save_end as i32, 0 as i32 as u32);
         re_emit_op(s, REOP_match as i32);
         if *(*s).buf_ptr as i32 != '\u{0}' as i32 {
-            re_parse_error(
-                s,
-                b"extraneous characters at the end\x00" as *const u8 as *const std::os::raw::c_char,
-            );
+            re_parse_error(s, "extraneous characters at the end");
         } else if dbuf_error(&mut (*s).byte_code) != 0 {
             re_parse_out_of_memory(s);
         } else {
             stack_size = compute_stack_size((*s).byte_code.buf, (*s).byte_code.size as i32);
             if stack_size < 0 as i32 {
-                re_parse_error(
-                    s,
-                    b"too many imbricated quantifiers\x00" as *const u8
-                        as *const std::os::raw::c_char,
-                );
+                re_parse_error(s, "too many imbricated quantifiers");
             } else {
                 *(*s).byte_code.buf.offset(1 as i32 as isize) = (*s).capture_count as u8;
                 *(*s).byte_code.buf.offset(2 as i32 as isize) = stack_size as u8;
