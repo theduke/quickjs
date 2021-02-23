@@ -118,16 +118,19 @@ pub const UNICODE_GC_Mn: C2RustUnnamed_1 = 6;
 pub const UNICODE_GC_Lo: C2RustUnnamed_1 = 5;
 pub const UNICODE_GC_Lm: C2RustUnnamed_1 = 4;
 pub const UNICODE_GC_Lt: C2RustUnnamed_1 = 3;
-pub const POP_END: C2RustUnnamed_6 = 7;
-pub const POP_XOR: C2RustUnnamed_6 = 5;
 pub const UNICODE_PROP_ID_Continue1: C2RustUnnamed_3 = 10;
-pub const POP_PROP: C2RustUnnamed_6 = 1;
+
+pub type OpcodePop = u32;
+pub const POP_PROP: OpcodePop = 1;
+pub const POP_END: OpcodePop = 7;
+pub const POP_XOR: OpcodePop = 5;
+pub const POP_INVERT: OpcodePop = 6;
+pub const POP_UNION: OpcodePop = 3;
+pub const POP_INTER: OpcodePop = 4;
+pub const POP_CASE: OpcodePop = 2;
+pub const POP_GC: OpcodePop = 0;
+
 pub const UNICODE_PROP_ID_Start: C2RustUnnamed_3 = 48;
-pub const POP_INVERT: C2RustUnnamed_6 = 6;
-pub const POP_UNION: C2RustUnnamed_6 = 3;
-pub const POP_INTER: C2RustUnnamed_6 = 4;
-pub const POP_CASE: C2RustUnnamed_6 = 2;
-pub const POP_GC: C2RustUnnamed_6 = 0;
 pub const UNICODE_PROP_ID_Continue: C2RustUnnamed_3 = 63;
 pub const UNICODE_PROP_Changes_When_NFKC_Casefolded1: C2RustUnnamed_3 = 15;
 pub const UNICODE_PROP_Changes_When_NFKC_Casefolded: C2RustUnnamed_3 = 58;
@@ -388,7 +391,6 @@ pub const UNICODE_PROP_Hyphen: C2RustUnnamed_3 = 0;
  */
 pub type C2RustUnnamed_4 = u32;
 pub type C2RustUnnamed_5 = u32;
-pub type C2RustUnnamed_6 = u32;
 #[inline]
 unsafe fn max_int(mut a: i32, mut b: i32) -> i32 {
     if a > b {
@@ -29125,7 +29127,7 @@ unsafe fn unicode_case1(mut cr: *mut CharRange, mut case_mask: i32) -> i32 {
     }
     return 0 as i32;
 }
-unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> i32 {
+unsafe fn unicode_prop_ops(mut cr: *mut CharRange, args: &[i32]) -> i32 {
     let mut current_block: u64;
     let mut ap: ::std::ffi::VaListImpl;
     let mut stack: [CharRange; POP_STACK_LEN_MAX as usize] = [CharRange {
@@ -29140,17 +29142,19 @@ unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> 
     let mut ret: i32 = 0;
     let mut i: i32 = 0;
     let mut a: u32 = 0;
-    ap = args.clone();
+
+    let mut args = args.into_iter();
+
     stack_len = 0 as i32;
     loop {
-        op = ap.arg::<i32>();
+        op = *args.next().unwrap();
         match op {
             0 => {
                 if stack_len < 4 as i32 {
                 } else {
                     assert!(stack_len < POP_STACK_LEN_MAX);
                 }
-                a = ap.arg::<i32>() as u32;
+                a = *args.next().unwrap() as u32;
                 let fresh31 = stack_len;
                 stack_len = stack_len + 1;
                 cr_init(
@@ -29172,7 +29176,7 @@ unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> 
                 } else {
                     assert!(stack_len < POP_STACK_LEN_MAX);
                 }
-                a = ap.arg::<i32>() as u32;
+                a = *args.next().unwrap() as u32;
                 let fresh32 = stack_len;
                 stack_len = stack_len + 1;
                 cr_init(
@@ -29194,7 +29198,7 @@ unsafe extern "C" fn unicode_prop_ops(mut cr: *mut CharRange, mut args: ...) -> 
                 } else {
                     assert!(stack_len < POP_STACK_LEN_MAX);
                 }
-                a = ap.arg::<i32>() as u32;
+                a = *args.next().unwrap() as u32;
                 let fresh33 = stack_len;
                 stack_len = stack_len + 1;
                 cr_init(
@@ -29372,171 +29376,191 @@ pub unsafe fn unicode_prop(
         53 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_GC as i32,
-                (1 as u32) << UNICODE_GC_Cn as i32,
-                POP_INVERT as i32,
-                POP_END as i32,
+                &[
+                    POP_GC as i32,
+                    1 << UNICODE_GC_Cn as i32,
+                    POP_INVERT as i32,
+                    POP_END as i32,
+                ],
             )
         }
         65 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_GC as i32,
-                (1 as u32) << UNICODE_GC_Sm as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_Math as i32,
-                POP_UNION as i32,
-                POP_END as i32,
+                &[
+                    POP_GC as i32,
+                    1 << UNICODE_GC_Sm as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_Math as i32,
+                    POP_UNION as i32,
+                    POP_END as i32,
+                ],
             )
         }
         64 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_GC as i32,
-                (1 as u32) << UNICODE_GC_Ll as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_Lowercase as i32,
-                POP_UNION as i32,
-                POP_END as i32,
+                &[
+                    POP_GC as i32,
+                    1 << UNICODE_GC_Ll as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_Lowercase as i32,
+                    POP_UNION as i32,
+                    POP_END as i32,
+                ],
             )
         }
         66 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_GC as i32,
-                (1 as u32) << UNICODE_GC_Lu as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_Uppercase as i32,
-                POP_UNION as i32,
-                POP_END as i32,
+                &[
+                    POP_GC as i32,
+                    1 << UNICODE_GC_Lu as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_Uppercase as i32,
+                    POP_UNION as i32,
+                    POP_END as i32,
+                ],
             )
         }
         54 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_GC as i32,
-                (1 as u32) << UNICODE_GC_Lu as i32
-                    | (1 as u32) << UNICODE_GC_Ll as i32
-                    | (1 as u32) << UNICODE_GC_Lt as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_Uppercase as i32,
-                POP_UNION as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_Lowercase as i32,
-                POP_UNION as i32,
-                POP_END as i32,
+                &[
+                    POP_GC as i32,
+                    1 << UNICODE_GC_Lu as i32
+                        | 1 << UNICODE_GC_Ll as i32
+                        | 1 << UNICODE_GC_Lt as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_Uppercase as i32,
+                    POP_UNION as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_Lowercase as i32,
+                    POP_UNION as i32,
+                    POP_END as i32,
+                ],
             )
         }
         51 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_GC as i32,
-                (1 as u32) << UNICODE_GC_Lu as i32
-                    | (1 as u32) << UNICODE_GC_Ll as i32
-                    | (1 as u32) << UNICODE_GC_Lt as i32
-                    | (1 as u32) << UNICODE_GC_Lm as i32
-                    | (1 as u32) << UNICODE_GC_Lo as i32
-                    | (1 as u32) << UNICODE_GC_Nl as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_Uppercase as i32,
-                POP_UNION as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_Lowercase as i32,
-                POP_UNION as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_Alphabetic as i32,
-                POP_UNION as i32,
-                POP_END as i32,
+                &[
+                    POP_GC as i32,
+                    1 << UNICODE_GC_Lu as i32
+                        | 1 << UNICODE_GC_Ll as i32
+                        | 1 << UNICODE_GC_Lt as i32
+                        | 1 << UNICODE_GC_Lm as i32
+                        | 1 << UNICODE_GC_Lo as i32
+                        | 1 << UNICODE_GC_Nl as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_Uppercase as i32,
+                    POP_UNION as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_Lowercase as i32,
+                    POP_UNION as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_Alphabetic as i32,
+                    POP_UNION as i32,
+                    POP_END as i32,
+                ],
             )
         }
         61 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_GC as i32,
-                (1 as u32) << UNICODE_GC_Cc as i32
-                    | (1 as u32) << UNICODE_GC_Cf as i32
-                    | (1 as u32) << UNICODE_GC_Cs as i32
-                    | (1 as u32) << UNICODE_GC_Co as i32
-                    | (1 as u32) << UNICODE_GC_Cn as i32
-                    | (1 as u32) << UNICODE_GC_Zl as i32
-                    | (1 as u32) << UNICODE_GC_Zp as i32
-                    | (1 as u32) << UNICODE_GC_Me as i32
-                    | (1 as u32) << UNICODE_GC_Mn as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_Grapheme_Extend as i32,
-                POP_UNION as i32,
-                POP_INVERT as i32,
-                POP_END as i32,
+                &[
+                    POP_GC as i32,
+                    1 << UNICODE_GC_Cc as i32
+                        | 1 << UNICODE_GC_Cf as i32
+                        | 1 << UNICODE_GC_Cs as i32
+                        | 1 << UNICODE_GC_Co as i32
+                        | 1 << UNICODE_GC_Cn as i32
+                        | 1 << UNICODE_GC_Zl as i32
+                        | 1 << UNICODE_GC_Zp as i32
+                        | 1 << UNICODE_GC_Me as i32
+                        | 1 << UNICODE_GC_Mn as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_Grapheme_Extend as i32,
+                    POP_UNION as i32,
+                    POP_INVERT as i32,
+                    POP_END as i32,
+                ],
             )
         }
         62 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_GC as i32,
-                (1 as u32) << UNICODE_GC_Me as i32 | (1 as u32) << UNICODE_GC_Mn as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_Grapheme_Extend as i32,
-                POP_UNION as i32,
-                POP_END as i32,
+                &[
+                    POP_GC as i32,
+                    1 << UNICODE_GC_Me as i32 | 1 << UNICODE_GC_Mn as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_Grapheme_Extend as i32,
+                    POP_UNION as i32,
+                    POP_END as i32,
+                ],
             )
         }
         68 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_GC as i32,
-                (1 as u32) << UNICODE_GC_Lu as i32
-                    | (1 as u32) << UNICODE_GC_Ll as i32
-                    | (1 as u32) << UNICODE_GC_Lt as i32
-                    | (1 as u32) << UNICODE_GC_Lm as i32
-                    | (1 as u32) << UNICODE_GC_Lo as i32
-                    | (1 as u32) << UNICODE_GC_Nl as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_ID_Start as i32,
-                POP_UNION as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Pattern_Syntax as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Pattern_White_Space as i32,
-                POP_UNION as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_XID_Start1 as i32,
-                POP_UNION as i32,
-                POP_INVERT as i32,
-                POP_INTER as i32,
-                POP_END as i32,
+                &[
+                    POP_GC as i32,
+                    1 << UNICODE_GC_Lu as i32
+                        | 1 << UNICODE_GC_Ll as i32
+                        | 1 << UNICODE_GC_Lt as i32
+                        | 1 << UNICODE_GC_Lm as i32
+                        | 1 << UNICODE_GC_Lo as i32
+                        | 1 << UNICODE_GC_Nl as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_ID_Start as i32,
+                    POP_UNION as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Pattern_Syntax as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Pattern_White_Space as i32,
+                    POP_UNION as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_XID_Start1 as i32,
+                    POP_UNION as i32,
+                    POP_INVERT as i32,
+                    POP_INTER as i32,
+                    POP_END as i32,
+                ],
             )
         }
         67 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_GC as i32,
-                (1 as u32) << UNICODE_GC_Lu as i32
-                    | (1 as u32) << UNICODE_GC_Ll as i32
-                    | (1 as u32) << UNICODE_GC_Lt as i32
-                    | (1 as u32) << UNICODE_GC_Lm as i32
-                    | (1 as u32) << UNICODE_GC_Lo as i32
-                    | (1 as u32) << UNICODE_GC_Nl as i32
-                    | (1 as u32) << UNICODE_GC_Mn as i32
-                    | (1 as u32) << UNICODE_GC_Mc as i32
-                    | (1 as u32) << UNICODE_GC_Nd as i32
-                    | (1 as u32) << UNICODE_GC_Pc as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_ID_Start as i32,
-                POP_UNION as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Other_ID_Continue as i32,
-                POP_UNION as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Pattern_Syntax as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Pattern_White_Space as i32,
-                POP_UNION as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_XID_Continue1 as i32,
-                POP_UNION as i32,
-                POP_INVERT as i32,
-                POP_INTER as i32,
-                POP_END as i32,
+                &[
+                    POP_GC as i32,
+                    1 << UNICODE_GC_Lu as i32
+                        | 1 << UNICODE_GC_Ll as i32
+                        | 1 << UNICODE_GC_Lt as i32
+                        | 1 << UNICODE_GC_Lm as i32
+                        | 1 << UNICODE_GC_Lo as i32
+                        | 1 << UNICODE_GC_Nl as i32
+                        | 1 << UNICODE_GC_Mn as i32
+                        | 1 << UNICODE_GC_Mc as i32
+                        | 1 << UNICODE_GC_Nd as i32
+                        | 1 << UNICODE_GC_Pc as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_ID_Start as i32,
+                    POP_UNION as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Other_ID_Continue as i32,
+                    POP_UNION as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Pattern_Syntax as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Pattern_White_Space as i32,
+                    POP_UNION as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_XID_Continue1 as i32,
+                    POP_UNION as i32,
+                    POP_INVERT as i32,
+                    POP_INTER as i32,
+                    POP_END as i32,
+                ],
             )
         }
         60 => ret = unicode_case1(cr, (1 as i32) << 0 as i32),
@@ -29550,46 +29574,54 @@ pub unsafe fn unicode_prop(
         59 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_CASE as i32,
-                (1 as i32) << 0 as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Changes_When_Titlecased1 as i32,
-                POP_XOR as i32,
-                POP_END as i32,
+                &[
+                    POP_CASE as i32,
+                    1 << 0 as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Changes_When_Titlecased1 as i32,
+                    POP_XOR as i32,
+                    POP_END as i32,
+                ],
             )
         }
         55 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_CASE as i32,
-                (1 as i32) << 2 as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Changes_When_Casefolded1 as i32,
-                POP_XOR as i32,
-                POP_END as i32,
+                &[
+                    POP_CASE as i32,
+                    1 << 2 as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Changes_When_Casefolded1 as i32,
+                    POP_XOR as i32,
+                    POP_END as i32,
+                ],
             )
         }
         58 => {
             ret = unicode_prop_ops(
                 cr,
-                POP_CASE as i32,
-                (1 as i32) << 2 as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_Changes_When_NFKC_Casefolded1 as i32,
-                POP_XOR as i32,
-                POP_END as i32,
+                &[
+                    POP_CASE as i32,
+                    1 << 2 as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_Changes_When_NFKC_Casefolded1 as i32,
+                    POP_XOR as i32,
+                    POP_END as i32,
+                ],
             )
         }
         63 => {
             /* we use the existing tables */
             ret = unicode_prop_ops(
                 cr,
-                POP_PROP as i32,
-                UNICODE_PROP_ID_Start as i32,
-                POP_PROP as i32,
-                UNICODE_PROP_ID_Continue1 as i32,
-                POP_XOR as i32,
-                POP_END as i32,
+                &[
+                    POP_PROP as i32,
+                    UNICODE_PROP_ID_Start as i32,
+                    POP_PROP as i32,
+                    UNICODE_PROP_ID_Continue1 as i32,
+                    POP_XOR as i32,
+                    POP_END as i32,
+                ],
             )
         }
         _ => {
@@ -29597,7 +29629,7 @@ pub unsafe fn unicode_prop(
                 >= (::std::mem::size_of::<[*const u8; 50]>() as u64)
                     .wrapping_div(::std::mem::size_of::<*const u8>() as u64)
             {
-                return -(2 as i32);
+                return -1;
             }
             ret = unicode_prop1(cr, prop_idx)
         }
