@@ -1,6 +1,6 @@
 # SlimJS
 
-SlimJS is a lightweight Javascript engine written in `Rust`. 
+SlimJS is a (**very much WIP**) lightweight Javascript engine written in `Rust`. 
 
 ## Origins
 
