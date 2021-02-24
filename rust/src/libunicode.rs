@@ -1,9 +1,8 @@
 use std::process::abort;
 
 use crate::cutils::{
-    cstr_find_char, cstr_len, dbuf_error, dbuf_init2, dbuf_put,
-    dbuf_put_u32, dbuf_realloc, global_realloc, ptr_compare, DynBuf, DynBufReallocFunc, PtrExt,
-    BOOL, FALSE, TRUE,
+    cstr_find_char, cstr_len, dbuf_error, dbuf_init2, dbuf_put, dbuf_put_u32, dbuf_realloc,
+    global_realloc, ptr_compare, DynBuf, DynBufReallocFunc, PtrExt, BOOL, FALSE, TRUE,
 };
 
 const POP_STACK_LEN_MAX: i32 = 4;

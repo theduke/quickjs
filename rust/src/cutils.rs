@@ -14,9 +14,11 @@ pub type DynBufReallocFunc = unsafe fn(
 // Used for debugging.
 pub unsafe fn cstr_to_string(ptr: *const c_char) -> Result<String, std::str::Utf8Error> {
     if ptr.is_null() {
-        return Ok(String::new())
+        return Ok(String::new());
     } else {
-        std::ffi::CStr::from_ptr(ptr).to_str().map(|x| x.to_string())
+        std::ffi::CStr::from_ptr(ptr)
+            .to_str()
+            .map(|x| x.to_string())
     }
 }
 
@@ -37,8 +39,10 @@ pub struct CStrWriter {
 
 impl CStrWriter {
     pub unsafe fn new(ptr: *mut c_char, len: usize) -> Self {
-        Self{
-            ptr, len, written: 0,
+        Self {
+            ptr,
+            len,
+            written: 0,
         }
     }
 }

@@ -3,9 +3,9 @@ use ::c2rust_bitfields;
 use std::process::abort;
 
 use crate::cutils::{
-     cstr_append_sized, cstr_compare, cstr_find_char, cstr_len,
-    dbuf_error, dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self, dbuf_put_u16, dbuf_put_u32,
-    dbuf_putc, dbuf_realloc, pstrcpy, ptr_compare, DynBuf, PtrExt, BOOL, FALSE, TRUE,
+    cstr_append_sized, cstr_compare, cstr_find_char, cstr_len, dbuf_error, dbuf_free, dbuf_init2,
+    dbuf_put, dbuf_put_self, dbuf_put_u16, dbuf_put_u32, dbuf_putc, dbuf_realloc, pstrcpy,
+    ptr_compare, DynBuf, PtrExt, BOOL, FALSE, TRUE,
 };
 
 use crate::libunicode::{
