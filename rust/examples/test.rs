@@ -1,4 +1,4 @@
-use slimjs::quickjs::*;
+use slimjs::*;
 
 use std::ffi::CString;
 
@@ -37,9 +37,7 @@ fn main() {
             JS_EVAL_TYPE_GLOBAL as i32,
         );
 
-        if value_raw.tag == slimjs::quickjs::JS_TAG_EXCEPTION as i64
-            || value_raw.tag == slimjs::quickjs::JS_TAG_STRING as i64
-        {
+        if value_raw.tag == JS_TAG_EXCEPTION as i64 || value_raw.tag == JS_TAG_STRING as i64 {
             let ptr = unsafe { JS_ToCStringLen2(ctx, std::ptr::null_mut(), value_raw, 0) };
 
             if ptr.is_null() {
