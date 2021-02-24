@@ -10,10 +10,6 @@ publish = false
 edition = "2018"
 autobins = false
 
-[[bin]]
-name = "slimjsc"
-path = "src/main.rs"
-
 [lib]
 crate-type = ["staticlib", "rlib", "cdylib"]
 
@@ -24,6 +20,7 @@ c2rust-asm-casts = "0.2"
 printf-compat = "0.1.1"
 format_num = "0.1.0"
 chrono = "0.4.19"
+libc = "0.2.86"
 
 
 [target.'cfg(not(all(target_arch = "wasm32", target_os = "unknown")))'.dependencies]

@@ -36,6 +36,40 @@ pub unsafe extern "C" fn cstr_snprintf(
     cstr_vsnprintf(buf, buf_size, format_str, args.as_va_list())
 }
 
+pub struct CStrWriter {
+    ptr: *mut c_char,
+    len: usize,
+    pub written: usize,
+}
+
+impl CStrWriter {
+    pub unsafe fn new(ptr: *mut c_char, len: usize) -> Self {
+        Self{
+            ptr, len, written: 0,
+        }
+    }
+}
+
+/*
+pub struct StrWriter<'a>{
+    s: &mut 'a str,
+}
+
+impl std::fmt::Write for CStrWriter {
+    fn write_str(&mut self, value: &str) -> Result<(), std::fmt::Error> {
+        if value.len() <= self.len {
+            Err(std::fmt::Error::default())
+        } else {
+            unsafe {
+                self.ptr.copy_from(value.as_bytes().as_ptr() as *const c_char, value.len());
+            }
+            self.written = value.len();
+            Ok(())
+        }
+    }
+}
+*/
+
 pub unsafe fn cstr_vsnprintf(
     buf: *mut c_char,
     buf_size: usize,

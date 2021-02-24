@@ -7,8 +7,20 @@ fn make_cstring(value: impl Into<Vec<u8>>) -> CString {
 }
 
 #[test]
-fn eval() {
-    let code = "1 + 1";
+fn test_random_features() {
+    eprintln!("starting...");
+
+    // let code = "\"abc\".length + [1, 2, 3, 4].length";
+    let code = r#"
+        function f() {
+            let a = 22;
+            let b = 100.55;
+            let c = a + b;
+            return "offset: " + new Date().getTimezoneOffset() + " / " + (c + " / ").repeat(44) + " " + parseFloat("66.66");
+        }
+
+        f()
+    "#;
 
     unsafe {
         let rt = JS_NewRuntime();
@@ -26,6 +38,21 @@ fn eval() {
             JS_EVAL_TYPE_GLOBAL as i32,
         );
 
-        dbg!(value_raw.tag);
+        if value_raw.tag == slimjs::quickjs::JS_TAG_EXCEPTION as i64
+            || value_raw.tag == slimjs::quickjs::JS_TAG_STRING as i64
+        {
+            let ptr = unsafe { JS_ToCStringLen2(ctx, std::ptr::null_mut(), value_raw, 0) };
+
+            if ptr.is_null() {
+                panic!("no exception");
+            }
+
+            let cstr = unsafe { std::ffi::CStr::from_ptr(ptr) };
+
+            let s = cstr.to_str().unwrap().to_string();
+            eprintln!("string value: {}", s);
+        }
+
+        dbg!(value_raw);
     }
 }
