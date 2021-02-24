@@ -332,7 +332,6 @@ pub struct StackItem {
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#[no_mangle]
 pub unsafe fn pstrcpy(
     mut buf: *mut std::os::raw::c_char,
     mut buf_size: i32,
@@ -357,7 +356,6 @@ pub unsafe fn pstrcpy(
     *q = '\u{0}' as i32 as std::os::raw::c_char;
 }
 /* strcat and truncate. */
-#[no_mangle]
 pub unsafe fn pstrcat(
     mut buf: *mut std::os::raw::c_char,
     mut buf_size: i32,
@@ -370,7 +368,6 @@ pub unsafe fn pstrcat(
     }
     return buf;
 }
-#[no_mangle]
 pub unsafe fn strstart(
     mut str: *const std::os::raw::c_char,
     mut val: *const std::os::raw::c_char,
@@ -392,7 +389,6 @@ pub unsafe fn strstart(
     }
     return 1 as i32;
 }
-#[no_mangle]
 pub unsafe fn has_suffix(
     mut str: *const std::os::raw::c_char,
     mut suffix: *const std::os::raw::c_char,
@@ -426,7 +422,6 @@ unsafe fn dbuf_default_realloc(
     global_realloc(ptr as *mut u8, size as usize) as *mut std::ffi::c_void
 }
 
-#[no_mangle]
 pub unsafe fn dbuf_init2(
     mut s: *mut DynBuf,
     mut opaque: *mut std::ffi::c_void,
@@ -447,12 +442,10 @@ pub unsafe fn dbuf_init2(
     (*s).opaque = opaque;
     (*s).realloc_func = realloc_func;
 }
-#[no_mangle]
 pub unsafe fn dbuf_init(mut s: *mut DynBuf) {
     dbuf_init2(s, 0 as *mut std::ffi::c_void, None);
 }
 /* return < 0 if error */
-#[no_mangle]
 pub unsafe fn dbuf_realloc(mut s: *mut DynBuf, mut new_size: usize) -> i32 {
     let mut size: usize = 0;
     let mut new_buf: *mut u8 = 0 as *mut u8;
@@ -494,7 +487,6 @@ pub unsafe fn dbuf_put_u64(mut s: *mut DynBuf, mut val: u64) -> i32 {
     return dbuf_put(s, &mut val as *mut u64 as *mut u8, 8);
 }
 
-#[no_mangle]
 pub unsafe fn dbuf_write(
     mut s: *mut DynBuf,
     mut offset: usize,
@@ -517,7 +509,6 @@ pub unsafe fn dbuf_write(
     0
 }
 
-#[no_mangle]
 pub unsafe fn dbuf_put(mut s: *mut DynBuf, mut data: *const u8, mut len: usize) -> i32 {
     if ((*s).size.wrapping_add(len as usize) > (*s).allocated_size) {
         if dbuf_realloc(s, (*s).size.wrapping_add(len as usize)) != 0 {
@@ -531,7 +522,6 @@ pub unsafe fn dbuf_put(mut s: *mut DynBuf, mut data: *const u8, mut len: usize) 
     0
 }
 
-#[no_mangle]
 pub unsafe fn dbuf_put_self(mut s: *mut DynBuf, mut offset: usize, mut len: usize) -> i32 {
     if ((*s).size.wrapping_add(len) > (*s).allocated_size) as i32 as i64 != 0 {
         if dbuf_realloc(s, (*s).size.wrapping_add(len)) != 0 {
@@ -545,11 +535,9 @@ pub unsafe fn dbuf_put_self(mut s: *mut DynBuf, mut offset: usize, mut len: usiz
     (*s).size = ((*s).size as usize).wrapping_add(len);
     0
 }
-#[no_mangle]
 pub unsafe fn dbuf_putc(mut s: *mut DynBuf, mut c: u8) -> i32 {
     return dbuf_put(s, &mut c, 1);
 }
-#[no_mangle]
 pub unsafe fn dbuf_putstr(mut s: *mut DynBuf, mut str: *const std::os::raw::c_char) -> i32 {
     return dbuf_put(s, str as *const u8, cstr_len(str));
 }
@@ -566,7 +554,6 @@ impl std::fmt::Write for DynBuf {
     }
 }
 
-#[no_mangle]
 pub unsafe fn dbuf_free(mut s: *mut DynBuf) {
     /* we test s->buf as a fail safe to avoid crashing if dbuf_free()
     is called twice */
@@ -980,7 +967,6 @@ unsafe fn med3(
     };
 }
 /* pointer based version with local stack and insertion sort threshhold */
-#[no_mangle]
 pub unsafe fn rqsort(
     mut base: *mut std::ffi::c_void,
     mut nmemb: usize,

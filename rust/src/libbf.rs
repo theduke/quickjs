@@ -360,7 +360,6 @@ unsafe fn sat_add(mut a: slimb_t, mut b: slimb_t) -> slimb_t {
     }
     return r;
 }
-#[no_mangle]
 pub unsafe fn bf_context_init(
     mut s: *mut bf_context_t,
     mut realloc_func: Option<bf_realloc_func_t>,
@@ -370,11 +369,9 @@ pub unsafe fn bf_context_init(
     (*s).realloc_func = realloc_func;
     (*s).realloc_opaque = realloc_opaque;
 }
-#[no_mangle]
 pub unsafe fn bf_context_end(mut s: *mut bf_context_t) {
     bf_clear_cache(s);
 }
-#[no_mangle]
 pub unsafe fn bf_init(mut s: *mut bf_context_t, mut r: *mut bf_t) {
     (*r).ctx = s;
     (*r).sign = 0 as i32;
@@ -383,7 +380,6 @@ pub unsafe fn bf_init(mut s: *mut bf_context_t, mut r: *mut bf_t) {
     (*r).tab = 0 as *mut limb_t;
 }
 /* return 0 if OK, -1 if alloc error */
-#[no_mangle]
 pub unsafe fn bf_resize(mut r: *mut bf_t, mut len: limb_t) -> i32 {
     let mut tab: *mut limb_t = 0 as *mut limb_t;
     if len != (*r).len {
@@ -401,7 +397,6 @@ pub unsafe fn bf_resize(mut r: *mut bf_t, mut len: limb_t) -> i32 {
     0
 }
 /* return 0 or BF_ST_MEM_ERROR */
-#[no_mangle]
 pub unsafe fn bf_set_ui(mut r: *mut bf_t, mut a: u64) -> i32 {
     (*r).sign = 0 as i32;
     if a == 0 as i32 as u64 {
@@ -422,7 +417,6 @@ pub unsafe fn bf_set_ui(mut r: *mut bf_t, mut a: u64) -> i32 {
     return 0 as i32;
 }
 /* return 0 or BF_ST_MEM_ERROR */
-#[no_mangle]
 pub unsafe fn bf_set_si(mut r: *mut bf_t, mut a: i64) -> i32 {
     let mut ret: i32 = 0; /* cannot fail */
     if a < 0 as i32 as i64 {
@@ -433,26 +427,22 @@ pub unsafe fn bf_set_si(mut r: *mut bf_t, mut a: i64) -> i32 {
     } /* cannot fail */
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bf_set_nan(mut r: *mut bf_t) {
     bf_resize(r, 0 as i32 as limb_t);
     (*r).expn = 9223372036854775807 as i64;
     (*r).sign = 0 as i32;
 }
-#[no_mangle]
 pub unsafe fn bf_set_zero(mut r: *mut bf_t, mut is_neg: i32) {
     bf_resize(r, 0 as i32 as limb_t);
     (*r).expn = -(9223372036854775807 as i64) - 1 as i32 as i64;
     (*r).sign = is_neg;
 }
-#[no_mangle]
 pub unsafe fn bf_set_inf(mut r: *mut bf_t, mut is_neg: i32) {
     bf_resize(r, 0 as i32 as limb_t);
     (*r).expn = 9223372036854775807 as i64 - 1 as i32 as i64;
     (*r).sign = is_neg;
 }
 /* return 0 or BF_ST_MEM_ERROR */
-#[no_mangle]
 pub unsafe fn bf_set(mut r: *mut bf_t, mut a: *const bf_t) -> i32 {
     if r == a as *mut bf_t {
         return 0 as i32;
@@ -470,7 +460,6 @@ pub unsafe fn bf_set(mut r: *mut bf_t, mut a: *const bf_t) -> i32 {
     return 0 as i32;
 }
 /* equivalent to bf_set(r, a); bf_delete(a) */
-#[no_mangle]
 pub unsafe fn bf_move(mut r: *mut bf_t, mut a: *mut bf_t) {
     let mut s: *mut bf_context_t = (*r).ctx;
     if r == a {
@@ -850,7 +839,6 @@ unsafe fn __bf_round(
     return ret;
 }
 /* 'r' must be a finite number. */
-#[no_mangle]
 pub unsafe fn bf_normalize_and_round(
     mut r: *mut bf_t,
     mut prec1: limb_t,
@@ -903,7 +891,6 @@ pub unsafe fn bf_normalize_and_round(
 the exact result r is such that |r-a| <= 2^(EXP(a)-k). */
 /* XXX: check the case where the exponent would be incremented by the
 rounding */
-#[no_mangle]
 pub unsafe fn bf_can_round(
     mut a: *const bf_t,
     mut prec: slimb_t,
@@ -954,7 +941,6 @@ pub unsafe fn bf_can_round(
     return FALSE as i32;
 }
 /* Cannot fail with BF_ST_MEM_ERROR. */
-#[no_mangle]
 pub unsafe fn bf_round(mut r: *mut bf_t, mut prec: limb_t, mut flags: bf_flags_t) -> i32 {
     if (*r).len == 0 as i32 as u64 {
         return 0 as i32;
@@ -963,7 +949,6 @@ pub unsafe fn bf_round(mut r: *mut bf_t, mut prec: limb_t, mut flags: bf_flags_t
 }
 
 /*
-#[no_mangle]
 pub unsafe fn mp_print_str(
     mut str: *const std::os::raw::c_char,
     mut tab: *const limb_t,
@@ -988,7 +973,6 @@ pub unsafe fn mp_print_str(
 
 /*
 /* for debugging */
-#[no_mangle]
 pub unsafe fn bf_print_str(mut str: *const std::os::raw::c_char, mut a: *const bf_t) {
     let mut i: slimb_t = 0;
     printf(b"%s=\x00" as *const u8 as *const std::os::raw::c_char, str);
@@ -1023,7 +1007,6 @@ pub unsafe fn bf_print_str(mut str: *const std::os::raw::c_char, mut a: *const b
 
 /* compare the absolute value of 'a' and 'b'. Return < 0 if a < b, 0
 if a = b and > 0 otherwise. */
-#[no_mangle]
 pub unsafe fn bf_cmpu(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     let mut i: slimb_t = 0;
     let mut len: limb_t = 0;
@@ -1053,7 +1036,6 @@ pub unsafe fn bf_cmpu(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     return 0 as i32;
 }
 /* Full order: -0 < 0, NaN == NaN and NaN is larger than all other numbers */
-#[no_mangle]
 pub unsafe fn bf_cmp_full(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     let mut res: i32 = 0;
     if (*a).expn == 9223372036854775807 as i64 || (*b).expn == 9223372036854775807 as i64 {
@@ -1077,7 +1059,6 @@ pub unsafe fn bf_cmp_full(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
 /* Standard floating point comparison: return 2 if one of the operands
 is NaN (unordered) or -1, 0, 1 depending on the ordering assuming
 -0 == +0 */
-#[no_mangle]
 pub unsafe fn bf_cmp(mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     let mut res: i32 = 0;
     if (*a).expn == 9223372036854775807 as i64 || (*b).expn == 9223372036854775807 as i64 {
@@ -1426,7 +1407,6 @@ unsafe fn __bf_sub(
 ) -> i32 {
     return bf_add_internal(r, a, b, prec, flags, 1 as i32);
 }
-#[no_mangle]
 pub unsafe fn mp_add(
     mut res: *mut limb_t,
     mut op1: *const limb_t,
@@ -1452,7 +1432,6 @@ pub unsafe fn mp_add(
     }
     return k;
 }
-#[no_mangle]
 pub unsafe fn mp_add_ui(mut tab: *mut limb_t, mut b: limb_t, mut n: u64) -> limb_t {
     let mut i: u64 = 0;
     let mut k: limb_t = 0;
@@ -1470,7 +1449,6 @@ pub unsafe fn mp_add_ui(mut tab: *mut limb_t, mut b: limb_t, mut n: u64) -> limb
     }
     return k;
 }
-#[no_mangle]
 pub unsafe fn mp_sub(
     mut res: *mut limb_t,
     mut op1: *const limb_t,
@@ -1519,7 +1497,6 @@ unsafe fn mp_neg(
     }
     return k;
 }
-#[no_mangle]
 pub unsafe fn mp_sub_ui(mut tab: *mut limb_t, mut b: limb_t, mut n: mp_size_t) -> limb_t {
     let mut i: mp_size_t = 0;
     let mut k: limb_t = 0;
@@ -1640,7 +1617,6 @@ unsafe fn mp_mul_basecase(
 }
 /* return 0 if OK, -1 if memory error */
 /* XXX: change API so that result can be allocated */
-#[no_mangle]
 pub unsafe fn mp_mul(
     mut s: *mut bf_context_t,
     mut result: *mut limb_t,
@@ -1892,7 +1868,6 @@ has n limbs with a[n-1] >= B/2 and 'r' has n+1 limbs with r[n] = 1.
 
 See Modern Computer Arithmetic by Richard P. Brent and Paul
 Zimmermann, algorithm 3.5 */
-#[no_mangle]
 pub unsafe fn mp_recip(
     mut s: *mut bf_context_t,
     mut tabr: *mut limb_t,
@@ -2212,7 +2187,6 @@ unsafe fn mp_divnorm_large(
     bf_free(s, tabt as *mut std::ffi::c_void);
     return -(1 as i32);
 }
-#[no_mangle]
 pub unsafe fn bf_mul(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -2324,7 +2298,6 @@ pub unsafe fn bf_mul(
     return ret;
 }
 /* multiply 'r' by 2^e */
-#[no_mangle]
 pub unsafe fn bf_mul_2exp(
     mut r: *mut bf_t,
     mut e: slimb_t,
@@ -2344,7 +2317,6 @@ pub unsafe fn bf_mul_2exp(
 }
 /* Return e such as a=m*2^e with m odd integer. return 0 if a is zero,
 Infinite or Nan. */
-#[no_mangle]
 pub unsafe fn bf_get_exp_min(mut a: *const bf_t) -> slimb_t {
     let mut i: slimb_t = 0;
     let mut v: limb_t = 0;
@@ -2499,7 +2471,6 @@ unsafe fn __bf_div(
    'q' is an integer. 'r' is rounded with prec and flags (prec can be
    BF_PREC_INF).
 */
-#[no_mangle]
 pub unsafe fn bf_divrem(
     mut q: *mut bf_t,
     mut r: *mut bf_t,
@@ -2648,7 +2619,6 @@ pub unsafe fn bf_divrem(
     bf_set_nan(r);
     return (1 as i32) << 5 as i32;
 }
-#[no_mangle]
 pub unsafe fn bf_rem(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -2675,7 +2645,6 @@ pub unsafe fn bf_rem(
 unsafe fn bf_get_limb(mut pres: *mut slimb_t, mut a: *const bf_t, mut flags: i32) -> i32 {
     return bf_get_int64(pres, a, flags);
 }
-#[no_mangle]
 pub unsafe fn bf_remquo(
     mut pq: *mut slimb_t,
     mut r: *mut bf_t,
@@ -2955,7 +2924,6 @@ unsafe fn mp_sqrtrem1(mut pr: *mut limb_t, mut a: limb_t) -> limb_t {
     return s;
 }
 /* return floor(sqrt(a)) */
-#[no_mangle]
 pub unsafe fn bf_isqrt(mut a: limb_t) -> limb_t {
     let mut s: limb_t = 0; /* special case when q=2^l */
     let mut r: limb_t = 0;
@@ -3121,7 +3089,6 @@ unsafe fn mp_sqrtrem_rec(
 taba. Its r[n] is the returned value of the function. */
 /* Algorithm from the article "Karatsuba Square Root" by Paul Zimmermann and
 inspirated from its GMP implementation */
-#[no_mangle]
 pub unsafe fn mp_sqrtrem(
     mut s: *mut bf_context_t,
     mut tabs: *mut limb_t,
@@ -3158,7 +3125,6 @@ pub unsafe fn mp_sqrtrem(
 /* Integer square root with remainder. 'a' must be an integer. r =
 floor(sqrt(a)) and rem = a - r^2.  BF_ST_INEXACT is set if the result
 is inexact. 'rem' can be NULL if the remainder is not needed. */
-#[no_mangle]
 pub unsafe fn bf_sqrtrem(mut r: *mut bf_t, mut rem1: *mut bf_t, mut a: *const bf_t) -> i32 {
     let mut ret: i32 = 0;
     let mut current_block_30: u64;
@@ -3251,7 +3217,6 @@ pub unsafe fn bf_sqrtrem(mut r: *mut bf_t, mut rem1: *mut bf_t, mut a: *const bf
     }
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bf_sqrt(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -3388,7 +3353,6 @@ unsafe fn bf_op2(
     }
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bf_add(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -3414,7 +3378,6 @@ pub unsafe fn bf_add(
         ),
     );
 }
-#[no_mangle]
 pub unsafe fn bf_sub(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -3440,7 +3403,6 @@ pub unsafe fn bf_sub(
         ),
     );
 }
-#[no_mangle]
 pub unsafe fn bf_div(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -3466,7 +3428,6 @@ pub unsafe fn bf_div(
         ),
     );
 }
-#[no_mangle]
 pub unsafe fn bf_mul_ui(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -3488,7 +3449,6 @@ pub unsafe fn bf_mul_ui(
     bf_delete(&mut b);
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bf_mul_si(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -3510,7 +3470,6 @@ pub unsafe fn bf_mul_si(
     bf_delete(&mut b);
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bf_add_si(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -3589,7 +3548,6 @@ unsafe fn bf_pow_ui_ui(
     return ret;
 }
 /* convert to integer (infinite precision) */
-#[no_mangle]
 pub unsafe fn bf_rint(mut r: *mut bf_t, mut rnd_mode: i32) -> i32 {
     return bf_round(
         r,
@@ -3807,21 +3765,17 @@ unsafe fn bf_logic_op(
     return ret;
 }
 /* 'a' and 'b' must be integers. Return 0 or BF_ST_MEM_ERROR. */
-#[no_mangle]
 pub unsafe fn bf_logic_or(mut r: *mut bf_t, mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     return bf_logic_op(r, a, b, 0 as i32);
 }
 /* 'a' and 'b' must be integers. Return 0 or BF_ST_MEM_ERROR. */
-#[no_mangle]
 pub unsafe fn bf_logic_xor(mut r: *mut bf_t, mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     return bf_logic_op(r, a, b, 1 as i32);
 }
 /* 'a' and 'b' must be integers. Return 0 or BF_ST_MEM_ERROR. */
-#[no_mangle]
 pub unsafe fn bf_logic_and(mut r: *mut bf_t, mut a: *const bf_t, mut b: *const bf_t) -> i32 {
     return bf_logic_op(r, a, b, 2 as i32);
 }
-#[no_mangle]
 pub unsafe fn bf_get_float64(
     mut a: *const bf_t,
     mut pres: *mut f64,
@@ -3876,7 +3830,6 @@ pub unsafe fn bf_get_float64(
     *pres = u.d;
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bf_set_float64(mut a: *mut bf_t, mut d: f64) -> i32 {
     let mut current_block: u64;
     let mut u: Float64Union = Float64Union { d: 0. };
@@ -3929,7 +3882,6 @@ pub unsafe fn bf_set_float64(mut a: *mut bf_t, mut d: f64) -> i32 {
 }
 /* The rounding mode is always BF_RNDZ. Return BF_ST_INVALID_OP if there
 is an overflow and 0 otherwise. */
-#[no_mangle]
 pub unsafe fn bf_get_int32(mut pres: *mut i32, mut a: *const bf_t, mut flags: i32) -> i32 {
     let mut v: u32 = 0;
     let mut ret: i32 = 0;
@@ -3988,7 +3940,6 @@ pub unsafe fn bf_get_int32(mut pres: *mut i32, mut a: *const bf_t, mut flags: i3
 }
 /* The rounding mode is always BF_RNDZ. Return BF_ST_INVALID_OP if there
 is an overflow and 0 otherwise. */
-#[no_mangle]
 pub unsafe fn bf_get_int64(mut pres: *mut i64, mut a: *const bf_t, mut flags: i32) -> i32 {
     let mut v: u64 = 0;
     let mut ret: i32 = 0;
@@ -4045,7 +3996,6 @@ pub unsafe fn bf_get_int64(mut pres: *mut i64, mut a: *const bf_t, mut flags: i3
 }
 /* The rounding mode is always BF_RNDZ. Return BF_ST_INVALID_OP if there
 is an overflow and 0 otherwise. */
-#[no_mangle]
 pub unsafe fn bf_get_uint64(mut pres: *mut u64, mut a: *const bf_t) -> i32 {
     let mut v: u64 = 0;
     let mut ret: i32 = 0;
@@ -4255,7 +4205,6 @@ unsafe fn bf_integer_from_radix(
     return ret;
 }
 /* compute and round T * radix^expn. */
-#[no_mangle]
 pub unsafe fn bf_mul_pow_radix(
     mut r: *mut bf_t,
     mut T: *const bf_t,
@@ -4886,7 +4835,6 @@ unsafe fn bf_atof_internal(
    two, the parsed number is equal to r *
    (*pexponent)^radix. Otherwise *pexponent = 0.
 */
-#[no_mangle]
 pub unsafe fn bf_atof2(
     mut r: *mut bf_t,
     mut pexponent: *mut slimb_t,
@@ -4898,7 +4846,6 @@ pub unsafe fn bf_atof2(
 ) -> i32 {
     return bf_atof_internal(r, pexponent, str, pnext, radix, prec, flags, FALSE as i32);
 }
-#[no_mangle]
 pub unsafe fn bf_atof(
     mut r: *mut bf_t,
     mut str: *const std::os::raw::c_char,
@@ -5125,7 +5072,6 @@ static mut log2_radix: [limb_t; 35] = [
 /* compute floor(a*b) or ceil(a*b) with b = log2(radix) or
 b=1/log2(radix). For is_inv = 0, strict accuracy is not guaranteed
 when radix is not a power of two. */
-#[no_mangle]
 pub unsafe fn bf_mul_log2_radix(
     mut a1: slimb_t,
     mut radix: u32,
@@ -6398,7 +6344,6 @@ unsafe fn bf_ftoa_internal(
     }
     return 0 as *mut std::os::raw::c_char;
 }
-#[no_mangle]
 pub unsafe fn bf_ftoa(
     mut plen: *mut u64,
     mut a: *const bf_t,
@@ -6786,7 +6731,6 @@ unsafe fn bf_const_free(mut c: *mut BFConstCache) {
     bf_delete(&mut (*c).val);
     (c as *mut u8).write_bytes(0, std::mem::size_of::<BFConstCache>());
 }
-#[no_mangle]
 pub unsafe fn bf_const_log2(mut T: *mut bf_t, mut prec: limb_t, mut flags: bf_flags_t) -> i32 {
     let mut s: *mut bf_context_t = (*T).ctx;
     return bf_const_get(
@@ -6815,11 +6759,9 @@ unsafe fn bf_const_pi_signed(
         sign,
     );
 }
-#[no_mangle]
 pub unsafe fn bf_const_pi(mut T: *mut bf_t, mut prec: limb_t, mut flags: bf_flags_t) -> i32 {
     return bf_const_pi_signed(T, 0 as i32, prec, flags);
 }
-#[no_mangle]
 pub unsafe fn bf_clear_cache(mut s: *mut bf_context_t) {
     fft_clear_cache(s);
     bf_const_free(&mut (*s).log2_cache);
@@ -7122,7 +7064,6 @@ unsafe fn check_exp_underflow_overflow(
     bf_delete(T);
     return 0 as i32;
 }
-#[no_mangle]
 pub unsafe fn bf_exp(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -7368,7 +7309,6 @@ unsafe fn bf_log_internal(
     bf_delete(T);
     return (1 as i32) << 4 as i32;
 }
-#[no_mangle]
 pub unsafe fn bf_log(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -7585,7 +7525,6 @@ unsafe fn check_exact_power2n(mut r: *mut bf_t, mut x: *const bf_t, mut n: slimb
     return TRUE as i32;
 }
 /* prec = BF_PREC_INF is accepted for x and y integers and y >= 0 */
-#[no_mangle]
 pub unsafe fn bf_pow(
     mut r: *mut bf_t,
     mut x: *const bf_t,
@@ -8110,7 +8049,6 @@ unsafe fn bf_cos_internal(
 ) -> i32 {
     return bf_sincos(0 as *mut bf_t, r, a, prec);
 }
-#[no_mangle]
 pub unsafe fn bf_cos(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -8164,7 +8102,6 @@ unsafe fn bf_sin_internal(
 ) -> i32 {
     return bf_sincos(r, 0 as *mut bf_t, a, prec);
 }
-#[no_mangle]
 pub unsafe fn bf_sin(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -8241,7 +8178,6 @@ unsafe fn bf_tan_internal(
     bf_delete(T);
     return (1 as i32) << 4 as i32;
 }
-#[no_mangle]
 pub unsafe fn bf_tan(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -8454,7 +8390,6 @@ unsafe fn bf_atan_internal(
     bf_delete(T);
     return (1 as i32) << 4 as i32;
 }
-#[no_mangle]
 pub unsafe fn bf_atan(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -8591,7 +8526,6 @@ unsafe fn bf_atan2_internal(
     bf_delete(T);
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bf_atan2(
     mut r: *mut bf_t,
     mut y: *const bf_t,
@@ -8660,7 +8594,6 @@ unsafe fn bf_asin_internal(
     bf_delete(T);
     return (1 as i32) << 4 as i32;
 }
-#[no_mangle]
 pub unsafe fn bf_asin(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -8731,7 +8664,6 @@ pub unsafe fn bf_asin(
         0 as *mut std::ffi::c_void,
     );
 }
-#[no_mangle]
 pub unsafe fn bf_acos(
     mut r: *mut bf_t,
     mut a: *const bf_t,
@@ -8818,7 +8750,6 @@ unsafe fn fast_udiv(mut a: limb_t, mut s: *const FastDivData) -> limb_t {
     return t1.wrapping_add(t0) >> (*s).shift2 as i32;
 }
 /* contains 10^i */
-#[no_mangle]
 static mp_pow_dec: [limb_t; 20] = [
     1 as u32 as limb_t,
     10 as u32 as limb_t,
@@ -9015,7 +8946,6 @@ unsafe fn fast_shr_dec(mut a: limb_t, mut shift: i32) -> limb_t {
     return fast_udiv(a, &*mp_pow_div.as_ptr().offset(shift as isize));
 }
 /* division and remainder by 10^shift */
-#[no_mangle]
 pub unsafe fn mp_add_dec(
     mut res: *mut limb_t,
     mut op1: *const limb_t,
@@ -9046,7 +8976,6 @@ pub unsafe fn mp_add_dec(
     }
     return k;
 }
-#[no_mangle]
 pub unsafe fn mp_add_ui_dec(mut tab: *mut limb_t, mut b: limb_t, mut n: mp_size_t) -> limb_t {
     let mut base: limb_t = 10000000000000000000 as u64;
     let mut i: mp_size_t = 0;
@@ -9070,7 +8999,6 @@ pub unsafe fn mp_add_ui_dec(mut tab: *mut limb_t, mut b: limb_t, mut n: mp_size_
     }
     return k;
 }
-#[no_mangle]
 pub unsafe fn mp_sub_dec(
     mut res: *mut limb_t,
     mut op1: *const limb_t,
@@ -9097,7 +9025,6 @@ pub unsafe fn mp_sub_dec(
     }
     return k;
 }
-#[no_mangle]
 pub unsafe fn mp_sub_ui_dec(mut tab: *mut limb_t, mut b: limb_t, mut n: mp_size_t) -> limb_t {
     let mut base: limb_t = 10000000000000000000 as u64;
     let mut i: mp_size_t = 0;
@@ -9122,7 +9049,6 @@ pub unsafe fn mp_sub_ui_dec(mut tab: *mut limb_t, mut b: limb_t, mut n: mp_size_
     return k;
 }
 /* taba[] = taba[] * b + l. 0 <= b, l <= base - 1. Return the high carry */
-#[no_mangle]
 pub unsafe fn mp_mul1_dec(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
@@ -9182,7 +9108,6 @@ pub unsafe fn mp_mul1_dec(
 }
 /* tabr[] += taba[] * b. 0 <= b <= base - 1. Return the value to add
 to the high word */
-#[no_mangle]
 pub unsafe fn mp_add_mul1_dec(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
@@ -9246,7 +9171,6 @@ pub unsafe fn mp_add_mul1_dec(
 }
 /* tabr[] -= taba[] * b. 0 <= b <= base - 1. Return the value to
 substract to the high word. */
-#[no_mangle]
 pub unsafe fn mp_sub_mul1_dec(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
@@ -9319,7 +9243,6 @@ pub unsafe fn mp_sub_mul1_dec(
     return l;
 }
 /* size of the result : op1_size + op2_size. */
-#[no_mangle]
 pub unsafe fn mp_mul_basecase_dec(
     mut result: *mut limb_t,
     mut op1: *const limb_t,
@@ -9350,7 +9273,6 @@ pub unsafe fn mp_mul_basecase_dec(
 }
 /* taba[] = (taba[] + r*base^na) / b. 0 <= b < base. 0 <= r <
 b. Return the remainder. */
-#[no_mangle]
 pub unsafe fn mp_div1_dec(
     mut tabr: *mut limb_t,
     mut taba: *const limb_t,
@@ -9829,7 +9751,6 @@ unsafe fn mp_sqrtrem_rec_dec(
 r) with s=floor(sqrt(a)) and r=a-s^2. 0 <= r <= 2 * s. tabs has n
 limbs. r is returned in the lower n limbs of taba. Its r[n] is the
 returned value of the function. */
-#[no_mangle]
 pub unsafe fn mp_sqrtrem_dec(
     mut s: *mut bf_context_t,
     mut tabs: *mut limb_t,
@@ -10185,7 +10106,6 @@ unsafe fn clz_dec(mut a: limb_t) -> i32 {
 }
 /*
 /* for debugging */
-#[no_mangle]
 pub unsafe fn bfdec_print_str(mut str: *const std::os::raw::c_char, mut a: *const bfdec_t) {
     let mut i: slimb_t = 0;
     printf(b"%s=\x00" as *const u8 as *const std::os::raw::c_char, str);
@@ -10484,7 +10404,6 @@ unsafe fn __bfdec_round(
     return ret;
 }
 /* Cannot fail with BF_ST_MEM_ERROR. */
-#[no_mangle]
 pub unsafe fn bfdec_round(mut r: *mut bfdec_t, mut prec: limb_t, mut flags: bf_flags_t) -> i32 {
     if (*r).len == 0 as i32 as u64 {
         return 0 as i32;
@@ -10492,7 +10411,6 @@ pub unsafe fn bfdec_round(mut r: *mut bfdec_t, mut prec: limb_t, mut flags: bf_f
     return __bfdec_round(r, prec, flags, (*r).len);
 }
 /* 'r' must be a finite number. Cannot fail with BF_ST_MEM_ERROR.  */
-#[no_mangle]
 pub unsafe fn bfdec_normalize_and_round(
     mut r: *mut bfdec_t,
     mut prec1: limb_t,
@@ -10536,7 +10454,6 @@ pub unsafe fn bfdec_normalize_and_round(
     //    bf_print_str("r_final", r);
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bfdec_set_ui(mut r: *mut bfdec_t, mut v: u64) -> i32 {
     let mut current_block: u64;
     if v >= 10000000000000000000 as u64 {
@@ -10572,7 +10489,6 @@ pub unsafe fn bfdec_set_ui(mut r: *mut bfdec_t, mut v: u64) -> i32 {
         }
     };
 }
-#[no_mangle]
 pub unsafe fn bfdec_set_si(mut r: *mut bfdec_t, mut v: i64) -> i32 {
     let mut ret: i32 = 0;
     if v < 0 as i32 as i64 {
@@ -10815,7 +10731,6 @@ unsafe fn __bfdec_sub(
 ) -> i32 {
     return bfdec_add_internal(r, a, b, prec, flags, 1 as i32);
 }
-#[no_mangle]
 pub unsafe fn bfdec_add(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
@@ -10852,7 +10767,6 @@ pub unsafe fn bfdec_add(
         )),
     );
 }
-#[no_mangle]
 pub unsafe fn bfdec_sub(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
@@ -10889,7 +10803,6 @@ pub unsafe fn bfdec_sub(
         )),
     );
 }
-#[no_mangle]
 pub unsafe fn bfdec_mul(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
@@ -10971,7 +10884,6 @@ pub unsafe fn bfdec_mul(
     }
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bfdec_mul_si(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
@@ -10993,7 +10905,6 @@ pub unsafe fn bfdec_mul_si(
     bfdec_delete(&mut b);
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bfdec_add_si(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
@@ -11149,7 +11060,6 @@ unsafe fn __bfdec_div(
     bfdec_set_nan(r);
     return (1 as i32) << 5 as i32;
 }
-#[no_mangle]
 pub unsafe fn bfdec_div(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
@@ -11234,7 +11144,6 @@ unsafe fn bfdec_tdivremu(
    'q' is an integer. 'r' is rounded with prec and flags (prec can be
    BF_PREC_INF).
 */
-#[no_mangle]
 pub unsafe fn bfdec_divrem(
     mut q: *mut bfdec_t,
     mut r: *mut bfdec_t,
@@ -11413,7 +11322,6 @@ pub unsafe fn bfdec_divrem(
     bfdec_set_nan(r);
     return (1 as i32) << 5 as i32;
 }
-#[no_mangle]
 pub unsafe fn bfdec_rem(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
@@ -11437,7 +11345,6 @@ pub unsafe fn bfdec_rem(
     return ret;
 }
 /* convert to integer (infinite precision) */
-#[no_mangle]
 pub unsafe fn bfdec_rint(mut r: *mut bfdec_t, mut rnd_mode: i32) -> i32 {
     return bfdec_round(
         r,
@@ -11445,7 +11352,6 @@ pub unsafe fn bfdec_rint(mut r: *mut bfdec_t, mut rnd_mode: i32) -> i32 {
         (rnd_mode | (1 as i32) << 4 as i32) as bf_flags_t,
     );
 }
-#[no_mangle]
 pub unsafe fn bfdec_sqrt(
     mut r: *mut bfdec_t,
     mut a: *const bfdec_t,
@@ -11600,7 +11506,6 @@ pub unsafe fn bfdec_sqrt(
 }
 /* The rounding mode is always BF_RNDZ. Return BF_ST_OVERFLOW if there
 is an overflow and 0 otherwise. No memory error is possible. */
-#[no_mangle]
 pub unsafe fn bfdec_get_int32(mut pres: *mut i32, mut a: *const bfdec_t) -> i32 {
     let mut v: u32 = 0;
     let mut ret: i32 = 0;
@@ -11654,7 +11559,6 @@ pub unsafe fn bfdec_get_int32(mut pres: *mut i32, mut a: *const bfdec_t) -> i32 
     return ret;
 }
 /* power to an integer with infinite precision */
-#[no_mangle]
 pub unsafe fn bfdec_pow_ui(mut r: *mut bfdec_t, mut a: *const bfdec_t, mut b: limb_t) -> i32 {
     let mut ret: i32 = 0;
     let mut n_bits: i32 = 0;
@@ -11694,7 +11598,6 @@ pub unsafe fn bfdec_pow_ui(mut r: *mut bfdec_t, mut a: *const bfdec_t, mut b: li
     }
     return ret;
 }
-#[no_mangle]
 pub unsafe fn bfdec_ftoa(
     mut plen: *mut u64,
     mut a: *const bfdec_t,
@@ -11703,7 +11606,6 @@ pub unsafe fn bfdec_ftoa(
 ) -> *mut std::os::raw::c_char {
     return bf_ftoa_internal(plen, a as *const bf_t, 10 as i32, prec, flags, TRUE as i32);
 }
-#[no_mangle]
 pub unsafe fn bfdec_atof(
     mut r: *mut bfdec_t,
     mut str: *const std::os::raw::c_char,
@@ -12625,7 +12527,6 @@ unsafe fn ntt_static_init(mut s1: *mut bf_context_t) -> i32 {
     }
     return 0 as i32;
 }
-#[no_mangle]
 pub unsafe fn bf_get_fft_size(mut pdpl: *mut i32, mut pnb_mods: *mut i32, mut len: limb_t) -> i32 {
     let mut dpl: i32 = 0;
     let mut fft_len_log2: i32 = 0;

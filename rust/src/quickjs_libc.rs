@@ -12,19 +12,12 @@ extern "C" {
     pub type JSContext;
     pub type JSGCObjectHeader;
     pub type JSModuleDef;
-    #[no_mangle]
     fn strtol(_: *const std::os::raw::c_char, _: *mut *mut std::os::raw::c_char, _: i32) -> i64;
-    #[no_mangle]
     fn malloc(_: u64) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn free(__ptr: *mut std::ffi::c_void);
-    #[no_mangle]
     fn atexit(__func: Option<unsafe fn() -> ()>) -> i32;
-    #[no_mangle]
     fn exit(_: i32) -> !;
-    #[no_mangle]
     fn getenv(__name: *const std::os::raw::c_char) -> *mut std::os::raw::c_char;
-    #[no_mangle]
     fn select(
         __nfds: i32,
         __readfds: *mut fd_set,
@@ -32,329 +25,199 @@ extern "C" {
         __exceptfds: *mut fd_set,
         __timeout: *mut timeval,
     ) -> i32;
-    #[no_mangle]
     fn setenv(
         __name: *const std::os::raw::c_char,
         __value: *const std::os::raw::c_char,
         __replace: i32,
     ) -> i32;
-    #[no_mangle]
     fn unsetenv(__name: *const std::os::raw::c_char) -> i32;
-    #[no_mangle]
     fn realpath(
         __name: *const std::os::raw::c_char,
         __resolved: *mut std::os::raw::c_char,
     ) -> *mut std::os::raw::c_char;
-    #[no_mangle]
     static mut stdin: *mut FILE;
-    #[no_mangle]
     static mut stdout: *mut FILE;
-    #[no_mangle]
     static mut stderr: *mut FILE;
-    #[no_mangle]
     fn remove(__filename: *const std::os::raw::c_char) -> i32;
-    #[no_mangle]
     fn rename(__old: *const std::os::raw::c_char, __new: *const std::os::raw::c_char) -> i32;
-    #[no_mangle]
     fn tmpfile() -> *mut FILE;
-    #[no_mangle]
     fn fclose(__stream: *mut FILE) -> i32;
-    #[no_mangle]
     fn fflush(__stream: *mut FILE) -> i32;
-    #[no_mangle]
     fn fopen(_: *const std::os::raw::c_char, _: *const std::os::raw::c_char) -> *mut FILE;
-    #[no_mangle]
     fn fdopen(__fd: i32, __modes: *const std::os::raw::c_char) -> *mut FILE;
-    #[no_mangle]
     fn fprintf(_: *mut FILE, _: *const std::os::raw::c_char, _: ...) -> i32;
-    #[no_mangle]
     fn snprintf(
         _: *mut std::os::raw::c_char,
         _: u64,
         _: *const std::os::raw::c_char,
         _: ...
     ) -> i32;
-    #[no_mangle]
     fn fgetc(__stream: *mut FILE) -> i32;
-    #[no_mangle]
     fn fputc(__c: i32, __stream: *mut FILE) -> i32;
-    #[no_mangle]
     fn putc(__c: i32, __stream: *mut FILE) -> i32;
-    #[no_mangle]
     fn fread(_: *mut std::ffi::c_void, _: u64, _: u64, _: *mut FILE) -> u64;
-    #[no_mangle]
     fn fwrite(_: *const std::ffi::c_void, _: u64, _: u64, _: *mut FILE) -> u64;
-    #[no_mangle]
     fn fseek(__stream: *mut FILE, __off: i64, __whence: i32) -> i32;
-    #[no_mangle]
     fn ftell(__stream: *mut FILE) -> i64;
-    #[no_mangle]
     fn fseeko(__stream: *mut FILE, __off: __off_t, __whence: i32) -> i32;
-    #[no_mangle]
     fn ftello(__stream: *mut FILE) -> __off_t;
-    #[no_mangle]
     fn clearerr(__stream: *mut FILE);
-    #[no_mangle]
     fn feof(__stream: *mut FILE) -> i32;
-    #[no_mangle]
     fn ferror(__stream: *mut FILE) -> i32;
-    #[no_mangle]
     fn fileno(__stream: *mut FILE) -> i32;
-    #[no_mangle]
     fn popen(
         __command: *const std::os::raw::c_char,
         __modes: *const std::os::raw::c_char,
     ) -> *mut FILE;
-    #[no_mangle]
     fn pclose(__stream: *mut FILE) -> i32;
-    #[no_mangle]
     fn memcpy(
         _: *mut std::ffi::c_void,
         _: *const std::ffi::c_void,
         _: u64,
     ) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn memset(_: *mut std::ffi::c_void, _: i32, _: u64) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn strcpy(
         _: *mut std::os::raw::c_char,
         _: *const std::os::raw::c_char,
     ) -> *mut std::os::raw::c_char;
-    #[no_mangle]
     fn strcmp(_: *const std::os::raw::c_char, _: *const std::os::raw::c_char) -> i32;
-    #[no_mangle]
     fn strchr(_: *const std::os::raw::c_char, _: i32) -> *mut std::os::raw::c_char;
-    #[no_mangle]
     fn strlen(_: *const std::os::raw::c_char) -> u64;
-    #[no_mangle]
     fn strerror(_: i32) -> *mut std::os::raw::c_char;
-    #[no_mangle]
     fn strspn(_: *const std::os::raw::c_char, _: *const std::os::raw::c_char) -> u64;
-    #[no_mangle]
     fn __assert_fail(
         __assertion: *const std::os::raw::c_char,
         __file: *const std::os::raw::c_char,
         __line: u32,
         __function: *const std::os::raw::c_char,
     ) -> !;
-    #[no_mangle]
     fn lseek(__fd: i32, __offset: __off_t, __whence: i32) -> __off_t;
-    #[no_mangle]
     fn close(__fd: i32) -> i32;
-    #[no_mangle]
     fn read(__fd: i32, __buf: *mut std::ffi::c_void, __nbytes: size_t) -> ssize_t;
-    #[no_mangle]
     fn write(__fd: i32, __buf: *const std::ffi::c_void, __n: size_t) -> ssize_t;
-    #[no_mangle]
     fn pipe(__pipedes: *mut i32) -> i32;
-    #[no_mangle]
     fn chdir(__path: *const std::os::raw::c_char) -> i32;
-    #[no_mangle]
     fn getcwd(__buf: *mut std::os::raw::c_char, __size: size_t) -> *mut std::os::raw::c_char;
-    #[no_mangle]
     fn dup(__fd: i32) -> i32;
-    #[no_mangle]
     fn dup2(__fd: i32, __fd2: i32) -> i32;
-    #[no_mangle]
     static mut environ: *mut *mut std::os::raw::c_char;
-    #[no_mangle]
     fn execve(
         __path: *const std::os::raw::c_char,
         __argv: *const *mut std::os::raw::c_char,
         __envp: *const *mut std::os::raw::c_char,
     ) -> i32;
-    #[no_mangle]
     fn _exit(_: i32) -> !;
-    #[no_mangle]
     fn sysconf(__name: i32) -> i64;
-    #[no_mangle]
     fn setuid(__uid: __uid_t) -> i32;
-    #[no_mangle]
     fn setgid(__gid: __gid_t) -> i32;
-    #[no_mangle]
     fn fork() -> __pid_t;
-    #[no_mangle]
     fn isatty(__fd: i32) -> i32;
-    #[no_mangle]
     fn symlink(__from: *const std::os::raw::c_char, __to: *const std::os::raw::c_char) -> i32;
-    #[no_mangle]
     fn readlink(
         __path: *const std::os::raw::c_char,
         __buf: *mut std::os::raw::c_char,
         __len: size_t,
     ) -> ssize_t;
-    #[no_mangle]
     fn __errno_location() -> *mut i32;
-    #[no_mangle]
     fn open(__file: *const std::os::raw::c_char, __oflag: i32, _: ...) -> i32;
-    #[no_mangle]
     fn utimes(__file: *const std::os::raw::c_char, __tvp: *const timeval) -> i32;
-    #[no_mangle]
     fn nanosleep(__requested_time: *const timespec, __remaining: *mut timespec) -> i32;
-    #[no_mangle]
     fn clock_gettime(__clock_id: clockid_t, __tp: *mut timespec) -> i32;
-    #[no_mangle]
     fn signal(__sig: i32, __handler: __sighandler_t) -> __sighandler_t;
-    #[no_mangle]
     fn kill(__pid: __pid_t, __sig: i32) -> i32;
-    #[no_mangle]
     fn mkdir(__path: *const std::os::raw::c_char, __mode: __mode_t) -> i32;
-    #[no_mangle]
     fn __xstat(__ver: i32, __filename: *const std::os::raw::c_char, __stat_buf: *mut stat) -> i32;
-    #[no_mangle]
     fn __lxstat(__ver: i32, __filename: *const std::os::raw::c_char, __stat_buf: *mut stat) -> i32;
-    #[no_mangle]
     fn opendir(__name: *const std::os::raw::c_char) -> *mut DIR;
-    #[no_mangle]
     fn readdir(__dirp: *mut DIR) -> *mut dirent;
-    #[no_mangle]
     fn closedir(__dirp: *mut DIR) -> i32;
-    #[no_mangle]
     fn dlopen(__file: *const std::os::raw::c_char, __mode: i32) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn dlclose(__handle: *mut std::ffi::c_void) -> i32;
-    #[no_mangle]
     fn dlsym(
         __handle: *mut std::ffi::c_void,
         __name: *const std::os::raw::c_char,
     ) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn tcgetattr(__fd: i32, __termios_p: *mut termios) -> i32;
-    #[no_mangle]
     fn tcsetattr(__fd: i32, __optional_actions: i32, __termios_p: *const termios) -> i32;
-    #[no_mangle]
     fn ioctl(__fd: i32, __request: u64, _: ...) -> i32;
-    #[no_mangle]
     fn waitpid(__pid: __pid_t, __stat_loc: *mut i32, __options: i32) -> __pid_t;
-    #[no_mangle]
     fn pstrcpy(buf: *mut std::os::raw::c_char, buf_size: i32, str: *const std::os::raw::c_char);
-    #[no_mangle]
     fn pstrcat(
         buf: *mut std::os::raw::c_char,
         buf_size: i32,
         s: *const std::os::raw::c_char,
     ) -> *mut std::os::raw::c_char;
-    #[no_mangle]
     fn has_suffix(str: *const std::os::raw::c_char, suffix: *const std::os::raw::c_char) -> i32;
-    #[no_mangle]
     fn dbuf_init2(
         s: *mut DynBuf,
         opaque: *mut std::ffi::c_void,
         realloc_func: Option<DynBufReallocFunc>,
     );
-    #[no_mangle]
     fn dbuf_put(s: *mut DynBuf, data: *const uint8_t, len: size_t) -> i32;
-    #[no_mangle]
     fn dbuf_putc(s: *mut DynBuf, c: uint8_t) -> i32;
-    #[no_mangle]
     fn dbuf_putstr(s: *mut DynBuf, str: *const std::os::raw::c_char) -> i32;
-    #[no_mangle]
     fn dbuf_printf(s: *mut DynBuf, fmt: *const std::os::raw::c_char, _: ...) -> i32;
-    #[no_mangle]
     fn dbuf_free(s: *mut DynBuf);
-    #[no_mangle]
     fn unicode_to_utf8(buf: *mut uint8_t, c: u32) -> i32;
-    #[no_mangle]
     fn unicode_from_utf8(p: *const uint8_t, max_len: i32, pp: *mut *const uint8_t) -> i32;
-    #[no_mangle]
     fn JS_GetRuntimeOpaque(rt: *mut JSRuntime) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn JS_SetRuntimeOpaque(rt: *mut JSRuntime, opaque: *mut std::ffi::c_void);
-    #[no_mangle]
     fn JS_MarkValue(rt: *mut JSRuntime, val: JSValue, mark_func: Option<JS_MarkFunc>);
-    #[no_mangle]
     fn JS_RunGC(rt: *mut JSRuntime);
-    #[no_mangle]
     fn JS_GetRuntime(ctx: *mut JSContext) -> *mut JSRuntime;
-    #[no_mangle]
     fn JS_SetClassProto(ctx: *mut JSContext, class_id: JSClassID, obj: JSValue);
-    #[no_mangle]
     fn js_free_rt(rt: *mut JSRuntime, ptr: *mut std::ffi::c_void);
-    #[no_mangle]
     fn js_realloc_rt(
         rt: *mut JSRuntime,
         ptr: *mut std::ffi::c_void,
         size: size_t,
     ) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn js_malloc(ctx: *mut JSContext, size: size_t) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn js_free(ctx: *mut JSContext, ptr: *mut std::ffi::c_void);
-    #[no_mangle]
     fn js_mallocz(ctx: *mut JSContext, size: size_t) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn JS_NewAtomLen(ctx: *mut JSContext, str: *const std::os::raw::c_char, len: size_t) -> JSAtom;
-    #[no_mangle]
     fn JS_FreeAtom(ctx: *mut JSContext, v: JSAtom);
-    #[no_mangle]
     fn JS_AtomToCString(ctx: *mut JSContext, atom: JSAtom) -> *const std::os::raw::c_char;
-    #[no_mangle]
     fn JS_NewClassID(pclass_id: *mut JSClassID) -> JSClassID;
-    #[no_mangle]
     fn JS_NewClass(rt: *mut JSRuntime, class_id: JSClassID, class_def: *const JSClassDef) -> i32;
-    #[no_mangle]
     fn JS_NewBigInt64(ctx: *mut JSContext, v: int64_t) -> JSValue;
-    #[no_mangle]
     fn JS_GetException(ctx: *mut JSContext) -> JSValue;
-    #[no_mangle]
     fn JS_IsError(ctx: *mut JSContext, val: JSValue) -> i32;
-    #[no_mangle]
     fn JS_ResetUncatchableError(ctx: *mut JSContext);
-    #[no_mangle]
     fn JS_ThrowTypeError(ctx: *mut JSContext, fmt: *const std::os::raw::c_char, _: ...) -> JSValue;
-    #[no_mangle]
     fn JS_ThrowReferenceError(
         ctx: *mut JSContext,
         fmt: *const std::os::raw::c_char,
         _: ...
     ) -> JSValue;
-    #[no_mangle]
     fn JS_ThrowRangeError(ctx: *mut JSContext, fmt: *const std::os::raw::c_char, _: ...)
         -> JSValue;
-    #[no_mangle]
     fn JS_ThrowOutOfMemory(ctx: *mut JSContext) -> JSValue;
-    #[no_mangle]
     fn __JS_FreeValue(ctx: *mut JSContext, v: JSValue);
-    #[no_mangle]
     fn __JS_FreeValueRT(rt: *mut JSRuntime, v: JSValue);
-    #[no_mangle]
     fn JS_ToBool(ctx: *mut JSContext, val: JSValue) -> i32;
-    #[no_mangle]
     fn JS_ToInt32(ctx: *mut JSContext, pres: *mut int32_t, val: JSValue) -> i32;
-    #[no_mangle]
     fn JS_ToInt64(ctx: *mut JSContext, pres: *mut int64_t, val: JSValue) -> i32;
-    #[no_mangle]
     fn JS_ToIndex(ctx: *mut JSContext, plen: *mut uint64_t, val: JSValue) -> i32;
-    #[no_mangle]
     fn JS_ToFloat64(ctx: *mut JSContext, pres: *mut f64, val: JSValue) -> i32;
-    #[no_mangle]
     fn JS_ToInt64Ext(ctx: *mut JSContext, pres: *mut int64_t, val: JSValue) -> i32;
-    #[no_mangle]
     fn JS_NewStringLen(
         ctx: *mut JSContext,
         str1: *const std::os::raw::c_char,
         len1: size_t,
     ) -> JSValue;
-    #[no_mangle]
     fn JS_NewString(ctx: *mut JSContext, str: *const std::os::raw::c_char) -> JSValue;
-    #[no_mangle]
     fn JS_ToCStringLen2(
         ctx: *mut JSContext,
         plen: *mut size_t,
         val1: JSValue,
         cesu8: i32,
     ) -> *const std::os::raw::c_char;
-    #[no_mangle]
     fn JS_FreeCString(ctx: *mut JSContext, ptr: *const std::os::raw::c_char);
-    #[no_mangle]
     fn JS_NewObjectClass(ctx: *mut JSContext, class_id: i32) -> JSValue;
-    #[no_mangle]
     fn JS_NewObject(ctx: *mut JSContext) -> JSValue;
-    #[no_mangle]
     fn JS_IsFunction(ctx: *mut JSContext, val: JSValue) -> i32;
-    #[no_mangle]
     fn JS_NewArray(ctx: *mut JSContext) -> JSValue;
-    #[no_mangle]
     fn JS_GetPropertyInternal(
         ctx: *mut JSContext,
         obj: JSValue,
@@ -362,29 +225,24 @@ extern "C" {
         receiver: JSValue,
         throw_ref_error: i32,
     ) -> JSValue;
-    #[no_mangle]
     fn JS_GetPropertyStr(
         ctx: *mut JSContext,
         this_obj: JSValue,
         prop: *const std::os::raw::c_char,
     ) -> JSValue;
-    #[no_mangle]
     fn JS_GetPropertyUint32(ctx: *mut JSContext, this_obj: JSValue, idx: uint32_t) -> JSValue;
-    #[no_mangle]
     fn JS_SetPropertyUint32(
         ctx: *mut JSContext,
         this_obj: JSValue,
         idx: uint32_t,
         val: JSValue,
     ) -> i32;
-    #[no_mangle]
     fn JS_SetPropertyStr(
         ctx: *mut JSContext,
         this_obj: JSValue,
         prop: *const std::os::raw::c_char,
         val: JSValue,
     ) -> i32;
-    #[no_mangle]
     fn JS_GetOwnPropertyNames(
         ctx: *mut JSContext,
         ptab: *mut *mut JSPropertyEnum,
@@ -392,7 +250,6 @@ extern "C" {
         obj: JSValue,
         flags: i32,
     ) -> i32;
-    #[no_mangle]
     fn JS_Call(
         ctx: *mut JSContext,
         func_obj: JSValue,
@@ -400,7 +257,6 @@ extern "C" {
         argc: i32,
         argv: *mut JSValue,
     ) -> JSValue;
-    #[no_mangle]
     fn JS_Eval(
         ctx: *mut JSContext,
         input: *const std::os::raw::c_char,
@@ -408,9 +264,7 @@ extern "C" {
         filename: *const std::os::raw::c_char,
         eval_flags: i32,
     ) -> JSValue;
-    #[no_mangle]
     fn JS_GetGlobalObject(ctx: *mut JSContext) -> JSValue;
-    #[no_mangle]
     fn JS_DefinePropertyValue(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -418,7 +272,6 @@ extern "C" {
         val: JSValue,
         flags: i32,
     ) -> i32;
-    #[no_mangle]
     fn JS_DefinePropertyValueUint32(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -426,7 +279,6 @@ extern "C" {
         val: JSValue,
         flags: i32,
     ) -> i32;
-    #[no_mangle]
     fn JS_DefinePropertyValueStr(
         ctx: *mut JSContext,
         this_obj: JSValue,
@@ -434,17 +286,13 @@ extern "C" {
         val: JSValue,
         flags: i32,
     ) -> i32;
-    #[no_mangle]
     fn JS_SetOpaque(obj: JSValue, opaque: *mut std::ffi::c_void);
-    #[no_mangle]
     fn JS_GetOpaque(obj: JSValue, class_id: JSClassID) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn JS_GetOpaque2(
         ctx: *mut JSContext,
         obj: JSValue,
         class_id: JSClassID,
     ) -> *mut std::ffi::c_void;
-    #[no_mangle]
     fn JS_ParseJSON2(
         ctx: *mut JSContext,
         buf: *const std::os::raw::c_char,
@@ -452,34 +300,24 @@ extern "C" {
         filename: *const std::os::raw::c_char,
         flags: i32,
     ) -> JSValue;
-    #[no_mangle]
     fn JS_NewArrayBufferCopy(ctx: *mut JSContext, buf: *const uint8_t, len: size_t) -> JSValue;
-    #[no_mangle]
     fn JS_GetArrayBuffer(ctx: *mut JSContext, psize: *mut size_t, obj: JSValue) -> *mut uint8_t;
-    #[no_mangle]
     fn JS_SetInterruptHandler(
         rt: *mut JSRuntime,
         cb: Option<JSInterruptHandler>,
         opaque: *mut std::ffi::c_void,
     );
-    #[no_mangle]
     fn JS_GetImportMeta(ctx: *mut JSContext, m: *mut JSModuleDef) -> JSValue;
-    #[no_mangle]
     fn JS_GetModuleName(ctx: *mut JSContext, m: *mut JSModuleDef) -> JSAtom;
-    #[no_mangle]
     fn JS_ExecutePendingJob(rt: *mut JSRuntime, pctx: *mut *mut JSContext) -> i32;
-    #[no_mangle]
     fn JS_ReadObject(
         ctx: *mut JSContext,
         buf: *const uint8_t,
         buf_len: size_t,
         flags: i32,
     ) -> JSValue;
-    #[no_mangle]
     fn JS_EvalFunction(ctx: *mut JSContext, fun_obj: JSValue) -> JSValue;
-    #[no_mangle]
     fn JS_ResolveModule(ctx: *mut JSContext, obj: JSValue) -> i32;
-    #[no_mangle]
     fn JS_NewCFunction2(
         ctx: *mut JSContext,
         func: Option<JSCFunction>,
@@ -488,40 +326,34 @@ extern "C" {
         cproto: JSCFunctionEnum,
         magic: i32,
     ) -> JSValue;
-    #[no_mangle]
     fn JS_SetPropertyFunctionList(
         ctx: *mut JSContext,
         obj: JSValue,
         tab: *const JSCFunctionListEntry,
         len: i32,
     );
-    #[no_mangle]
     fn JS_NewCModule(
         ctx: *mut JSContext,
         name_str: *const std::os::raw::c_char,
         func: Option<JSModuleInitFunc>,
     ) -> *mut JSModuleDef;
-    #[no_mangle]
     fn JS_AddModuleExport(
         ctx: *mut JSContext,
         m: *mut JSModuleDef,
         name_str: *const std::os::raw::c_char,
     ) -> i32;
-    #[no_mangle]
     fn JS_AddModuleExportList(
         ctx: *mut JSContext,
         m: *mut JSModuleDef,
         tab: *const JSCFunctionListEntry,
         len: i32,
     ) -> i32;
-    #[no_mangle]
     fn JS_SetModuleExportList(
         ctx: *mut JSContext,
         m: *mut JSModuleDef,
         tab: *const JSCFunctionListEntry,
         len: i32,
     ) -> i32;
-    #[no_mangle]
     fn JS_SetModuleExport(
         ctx: *mut JSContext,
         m: *mut JSModuleDef,
@@ -3012,7 +2844,6 @@ unsafe fn js_printf_internal(
     dbuf_free(&mut dbuf);
     return res;
 }
-#[no_mangle]
 pub unsafe fn js_load_file(
     mut ctx: *mut JSContext,
     mut pbuf_len: *mut size_t,
@@ -3229,7 +3060,6 @@ unsafe fn js_module_loader_so(
     return 0 as *mut JSModuleDef;
 }
 /* !_WIN32 */
-#[no_mangle]
 pub unsafe fn js_module_set_import_meta(
     mut ctx: *mut JSContext,
     mut func_val: JSValue,
@@ -3321,7 +3151,6 @@ pub unsafe fn js_module_set_import_meta(
     JS_FreeValue(ctx, meta_obj);
     return 0 as i32;
 }
-#[no_mangle]
 pub unsafe fn js_module_loader(
     mut ctx: *mut JSContext,
     mut module_name: *const std::os::raw::c_char,
@@ -5641,7 +5470,6 @@ unsafe fn js_std_init(mut ctx: *mut JSContext, mut m: *mut JSModuleDef) -> i32 {
     );
     return 0 as i32;
 }
-#[no_mangle]
 pub unsafe fn js_init_module_std(
     mut ctx: *mut JSContext,
     mut module_name: *const std::os::raw::c_char,
@@ -8116,7 +7944,6 @@ unsafe fn js_os_dup2(
 }
 /* !_WIN32 */
 /* USE_WORKER */
-#[no_mangle]
 pub unsafe fn js_std_set_worker_new_context_func(
     mut func: Option<unsafe fn(_: *mut JSRuntime) -> *mut JSContext>,
 ) {
@@ -9499,7 +9326,6 @@ unsafe fn js_os_init(mut ctx: *mut JSContext, mut m: *mut JSModuleDef) -> i32 {
             .wrapping_div(::std::mem::size_of::<JSCFunctionListEntry>() as u64) as i32,
     );
 }
-#[no_mangle]
 pub unsafe fn js_init_module_os(
     mut ctx: *mut JSContext,
     mut module_name: *const std::os::raw::c_char,
@@ -9560,7 +9386,6 @@ unsafe fn js_print(
         init
     };
 }
-#[no_mangle]
 pub unsafe fn js_std_add_helpers(
     mut ctx: *mut JSContext,
     mut argc: i32,
@@ -9667,7 +9492,6 @@ pub unsafe fn js_std_add_helpers(
     );
     JS_FreeValue(ctx, global_obj);
 }
-#[no_mangle]
 pub unsafe fn js_std_init_handlers(mut rt: *mut JSRuntime) {
     let mut ts: *mut JSThreadState = 0 as *mut JSThreadState;
     ts = malloc(::std::mem::size_of::<JSThreadState>() as u64) as *mut JSThreadState;
@@ -9690,7 +9514,6 @@ pub unsafe fn js_std_init_handlers(mut rt: *mut JSRuntime) {
     init_list_head(&mut (*ts).port_list);
     JS_SetRuntimeOpaque(rt, ts as *mut std::ffi::c_void);
 }
-#[no_mangle]
 pub unsafe fn js_std_free_handlers(mut rt: *mut JSRuntime) {
     let mut ts: *mut JSThreadState = JS_GetRuntimeOpaque(rt) as *mut JSThreadState;
     let mut el: *mut list_head = 0 as *mut list_head;
@@ -9769,7 +9592,6 @@ unsafe fn js_std_dump_error1(mut ctx: *mut JSContext, mut exception_val: JSValue
         JS_FreeValue(ctx, val);
     };
 }
-#[no_mangle]
 pub unsafe fn js_std_dump_error(mut ctx: *mut JSContext) {
     let mut exception_val: JSValue = JSValue {
         u: JSValueUnion { int32: 0 },
@@ -9779,7 +9601,6 @@ pub unsafe fn js_std_dump_error(mut ctx: *mut JSContext) {
     js_std_dump_error1(ctx, exception_val);
     JS_FreeValue(ctx, exception_val);
 }
-#[no_mangle]
 pub unsafe fn js_std_promise_rejection_tracker(
     mut ctx: *mut JSContext,
     mut promise: JSValue,
@@ -9797,7 +9618,6 @@ pub unsafe fn js_std_promise_rejection_tracker(
     };
 }
 /* main loop which calls the user JS callbacks */
-#[no_mangle]
 pub unsafe fn js_std_loop(mut ctx: *mut JSContext) {
     let mut ctx1: *mut JSContext = 0 as *mut JSContext;
     let mut err: i32 = 0;
@@ -9819,7 +9639,6 @@ pub unsafe fn js_std_loop(mut ctx: *mut JSContext) {
         }
     }
 }
-#[no_mangle]
 pub unsafe fn js_std_eval_binary(
     mut ctx: *mut JSContext,
     mut buf: *const uint8_t,

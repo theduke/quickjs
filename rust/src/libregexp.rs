@@ -454,7 +454,6 @@ static char_range_s: [u16; 21] = [
     (0xfeff as i32 + 1 as i32) as u16,
 ];
 
-#[no_mangle]
 pub unsafe fn lre_is_space(mut c: i32) -> i32 {
     let mut i: i32 = 0;
     let mut n: i32 = 0;
@@ -478,14 +477,12 @@ pub unsafe fn lre_is_space(mut c: i32) -> i32 {
     }
     return FALSE as i32;
 }
-#[no_mangle]
 static lre_id_start_table_ascii: [u32; 4] = [0, 0x10, 0x87fffffe, 0x7fffffe];
 
 pub fn lre_id_start_table_ascii_get(index: usize) -> u32 {
     lre_id_start_table_ascii[index]
 }
 
-#[no_mangle]
 static lre_id_continue_table_ascii: [u32; 4] = [0, 0x3ff0010, 0x87fffffe, 0x7fffffe];
 
 pub fn lre_id_continue_table_ascii_get(index: usize) -> u32 {
@@ -710,7 +707,6 @@ converted to a unicode character (unicode regexp case).
 Return the unicode char and update *pp if recognized,
 return -1 if malformed escape,
 return -2 otherwise. */
-#[no_mangle]
 pub unsafe fn lre_parse_escape(mut pp: *mut *const u8, mut allow_utf16: i32) -> i32 {
     let mut p: *const u8 = 0 as *const u8;
     let mut c: u32 = 0;
@@ -4618,7 +4614,6 @@ unsafe fn compute_stack_size(mut bc_buf: *const u8, mut bc_buf_len: i32) -> i32 
    Return NULL if error and allocate an error message in *perror_msg,
    otherwise the compiled bytecode and its length in plen.
 */
-#[no_mangle]
 pub unsafe fn lre_compile(
     mut plen: *mut i32,
     mut error_msg: *mut std::os::raw::c_char,
@@ -5762,7 +5757,6 @@ unsafe fn lre_exec_backtrack(
 /* Return 1 if match, 0 if not match or -1 if error. cindex is the
 starting position of the match and must be such as 0 <= cindex <=
 clen. */
-#[no_mangle]
 pub unsafe fn lre_exec(
     mut capture: *mut *mut u8,
     mut bc_buf: *const u8,
@@ -5844,17 +5838,14 @@ pub unsafe fn lre_exec(
     );
     return ret;
 }
-#[no_mangle]
 pub unsafe fn lre_get_capture_count(mut bc_buf: *const u8) -> i32 {
     return *bc_buf.offset(1 as i32 as isize) as i32;
 }
-#[no_mangle]
 pub unsafe fn lre_get_flags(mut bc_buf: *const u8) -> i32 {
     return *bc_buf.offset(0 as i32 as isize) as i32;
 }
 /* Return NULL if no group names. Otherwise, return a pointer to
 'capture_count - 1' zero terminated UTF-8 strings. */
-#[no_mangle]
 pub unsafe fn lre_get_groupnames(mut bc_buf: *const u8) -> *const std::os::raw::c_char {
     let mut re_bytecode_len: u32 = 0;
     if lre_get_flags(bc_buf) & (1 as i32) << 7 as i32 == 0 as i32 {

@@ -27462,7 +27462,6 @@ static mut unicode_prop_len_table: [u16; 50] = [0; 50];
    1 = to lower
    2 = case folding (= to lower with modifications)
 */
-#[no_mangle]
 pub unsafe fn lre_case_conv(mut res: *mut u32, mut c: u32, mut conv_type: i32) -> i32 {
     if c < 128 as i32 as u32 {
         if conv_type != 0 {
@@ -27704,7 +27703,6 @@ unsafe fn lre_is_in_table(
         bit ^= 1 as i32 as u32
     }
 }
-#[no_mangle]
 pub unsafe fn lre_is_cased(mut c: u32) -> i32 {
     let mut v: u32 = 0;
     let mut code: u32 = 0;
@@ -27736,7 +27734,6 @@ pub unsafe fn lre_is_cased(mut c: u32) -> i32 {
         (::std::mem::size_of::<[u8; 18]>() as u64).wrapping_div(3 as i32 as u64) as i32,
     );
 }
-#[no_mangle]
 pub unsafe fn lre_is_case_ignorable(mut c: u32) -> i32 {
     return lre_is_in_table(
         c,
@@ -27753,7 +27750,6 @@ unsafe fn cr_default_realloc(
     global_realloc(ptr as *mut u8, size as usize) as *mut std::ffi::c_void
 }
 
-#[no_mangle]
 pub unsafe fn cr_init(
     mut cr: *mut CharRange,
     mut mem_opaque: *mut std::ffi::c_void,
@@ -27776,7 +27772,6 @@ pub unsafe fn cr_init(
         )
     };
 }
-#[no_mangle]
 pub unsafe fn cr_free(mut cr: *mut CharRange) {
     (*cr).realloc_func.expect("non-null function pointer")(
         (*cr).mem_opaque,
@@ -27784,7 +27779,6 @@ pub unsafe fn cr_free(mut cr: *mut CharRange) {
         0 as i32 as usize,
     );
 }
-#[no_mangle]
 pub unsafe fn cr_realloc(mut cr: *mut CharRange, mut size: i32) -> i32 {
     let mut new_size: i32 = 0;
     let mut new_buf: *mut u32 = 0 as *mut u32;
@@ -27803,7 +27797,6 @@ pub unsafe fn cr_realloc(mut cr: *mut CharRange, mut size: i32) -> i32 {
     }
     return 0 as i32;
 }
-#[no_mangle]
 pub unsafe fn cr_copy(mut cr: *mut CharRange, mut cr1: *const CharRange) -> i32 {
     if cr_realloc(cr, (*cr1).len) != 0 {
         return -(1 as i32);
@@ -27848,7 +27841,6 @@ unsafe fn cr_compress(mut cr: *mut CharRange) {
     (*cr).len = k;
 }
 /* union or intersection */
-#[no_mangle]
 pub unsafe fn cr_op(
     mut cr: *mut CharRange,
     mut a_pt: *const u32,
@@ -27917,7 +27909,6 @@ pub unsafe fn cr_op(
     cr_compress(cr);
     return 0 as i32;
 }
-#[no_mangle]
 pub unsafe fn cr_union1(mut cr: *mut CharRange, mut b_pt: *const u32, mut b_len: i32) -> i32 {
     let mut a: CharRange = *cr;
     let mut ret: i32 = 0;
@@ -27928,7 +27919,6 @@ pub unsafe fn cr_union1(mut cr: *mut CharRange, mut b_pt: *const u32, mut b_len:
     cr_free(&mut a);
     return ret;
 }
-#[no_mangle]
 pub unsafe fn cr_invert(mut cr: *mut CharRange) -> i32 {
     let mut len: i32 = 0;
     len = (*cr).len;
@@ -27945,7 +27935,6 @@ pub unsafe fn cr_invert(mut cr: *mut CharRange) -> i32 {
     cr_compress(cr);
     return 0 as i32;
 }
-#[no_mangle]
 pub unsafe fn lre_is_id_start(mut c: u32) -> i32 {
     return lre_is_in_table(
         c,
@@ -27954,7 +27943,6 @@ pub unsafe fn lre_is_id_start(mut c: u32) -> i32 {
         (::std::mem::size_of::<[u8; 99]>() as u64).wrapping_div(3 as i32 as u64) as i32,
     );
 }
-#[no_mangle]
 pub unsafe fn lre_is_id_continue(mut c: u32) -> i32 {
     return (lre_is_id_start(c) != 0
         || lre_is_in_table(
@@ -28438,7 +28426,6 @@ unsafe fn compose_pair(mut c0: u32, mut c1: u32) -> i32 {
         return unicode_compose_pair(c0, c1);
     };
 }
-#[no_mangle]
 pub unsafe fn unicode_normalize(
     mut pdst: *mut *mut u32,
     mut src: *const u32,
@@ -28608,7 +28595,6 @@ unsafe fn unicode_find_name(
 }
 /* 'cr' must be initialized and empty. Return 0 if OK, -1 if error, -2
 if not found */
-#[no_mangle]
 pub unsafe fn unicode_script(
     mut cr: *mut CharRange,
     mut script_name: *const std::os::raw::c_char,
@@ -29326,7 +29312,6 @@ static mut unicode_gc_mask_table: [u32; 8] = [
 ];
 /* 'cr' must be initialized and empty. Return 0 if OK, -1 if error, -2
 if not found */
-#[no_mangle]
 pub unsafe fn unicode_general_category(
     mut cr: *mut CharRange,
     mut gc_name: *const std::os::raw::c_char,
@@ -29346,7 +29331,6 @@ pub unsafe fn unicode_general_category(
 }
 /* 'cr' must be initialized and empty. Return 0 if OK, -1 if error, -2
 if not found */
-#[no_mangle]
 pub unsafe fn unicode_prop(
     mut cr: *mut CharRange,
     mut prop_name: *const std::os::raw::c_char,
@@ -29636,7 +29620,6 @@ pub unsafe fn unicode_prop(
 
 /* Note: at most 31 bits are encoded. At most UTF8_CHAR_LEN_MAX bytes
 are output. */
-#[no_mangle]
 pub unsafe fn unicode_to_utf8(mut buf: *mut u8, mut c: u32) -> i32 {
     let mut q: *mut u8 = buf;
     if c < 0x80 as i32 as u32 {
@@ -29709,7 +29692,6 @@ static mut utf8_first_code_mask: [std::os::raw::c_uchar; 5] = [
 
 /* return -1 if error. *pp is not updated in this case. max_len must
 be >= 1. The maximum length for a UTF8 byte sequence is 6 bytes. */
-#[no_mangle]
 pub unsafe fn unicode_from_utf8(mut p: *const u8, mut max_len: i32, mut pp: *mut *const u8) -> i32 {
     let mut l: i32 = 0;
     let mut c: i32 = 0;
