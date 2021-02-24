@@ -25,12 +25,7 @@ mod cutils;
 mod libbf;
 mod libregexp;
 mod libunicode;
-mod quickjs;
-
-pub use quickjs::{
-    JSValue, JS_Eval, JS_NewContext, JS_NewRuntime, JS_ToCStringLen2, JS_EVAL_TYPE_GLOBAL,
-    JS_TAG_EXCEPTION, JS_TAG_STRING,
-};
+pub mod quickjs;
 
 // #[cfg(not(target_arch = "wasm32"))]
 // pub mod quickjs_libc;

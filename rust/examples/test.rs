@@ -1,4 +1,4 @@
-use slimjs::*;
+use slimjs::quickjs::*;
 
 use std::ffi::CString;
 
