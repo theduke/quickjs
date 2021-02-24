@@ -6,8 +6,7 @@ fn make_cstring(value: impl Into<Vec<u8>>) -> CString {
     CString::new(value).unwrap()
 }
 
-#[test]
-fn test_random_features() {
+fn main() {
     eprintln!("starting...");
 
     // let code = "\"abc\".length + [1, 2, 3, 4].length";
