@@ -191,6 +191,7 @@ unsafe fn cr_add_point(mut cr: *mut CharRange, mut v: u32) -> i32 {
     *(*cr).points.offset(fresh0 as isize) = v;
     return 0 as i32;
 }
+
 #[inline]
 unsafe fn cr_union_interval(mut cr: *mut CharRange, mut c1: u32, mut c2: u32) -> i32 {
     let mut b_pt: [u32; 2] = [0; 2];
@@ -198,7 +199,8 @@ unsafe fn cr_union_interval(mut cr: *mut CharRange, mut c1: u32, mut c2: u32) ->
     b_pt[1 as i32 as usize] = c2.wrapping_add(1 as i32 as u32);
     return cr_union1(cr, b_pt.as_mut_ptr(), 2 as i32);
 }
-static mut reopcode_info: [REOpCode; 29] = [
+
+static reopcode_info: [REOpCode; 29] = [
     {
         let mut init = REOpCode {
             size: 1 as i32 as u8,
@@ -421,13 +423,14 @@ unsafe fn lre_canonicalize(mut c: u32, mut is_utf16: BOOL) -> u32 {
     }
     return c;
 }
-static mut char_range_d: [u16; 3] = [
+static char_range_d: [u16; 3] = [
     1 as i32 as u16,
     0x30 as i32 as u16,
     (0x39 as i32 + 1 as i32) as u16,
 ];
+
 /* code point ranges for Zs,Zl or Zp property */
-static mut char_range_s: [u16; 21] = [
+static char_range_s: [u16; 21] = [
     10 as i32 as u16,
     0x9 as i32 as u16,
     (0xd as i32 + 1 as i32) as u16,
@@ -450,6 +453,7 @@ static mut char_range_s: [u16; 21] = [
     0xfeff as i32 as u16,
     (0xfeff as i32 + 1 as i32) as u16,
 ];
+
 #[no_mangle]
 pub unsafe fn lre_is_space(mut c: i32) -> i32 {
     let mut i: i32 = 0;
@@ -475,20 +479,20 @@ pub unsafe fn lre_is_space(mut c: i32) -> i32 {
     return FALSE as i32;
 }
 #[no_mangle]
-pub static mut lre_id_start_table_ascii: [u32; 4] = [
-    0 as i32 as u32,
-    0x10 as i32 as u32,
-    0x87fffffe as u32,
-    0x7fffffe as i32 as u32,
-];
+static lre_id_start_table_ascii: [u32; 4] = [0, 0x10, 0x87fffffe, 0x7fffffe];
+
+pub fn lre_id_start_table_ascii_get(index: usize) -> u32 {
+    lre_id_start_table_ascii[index]
+}
+
 #[no_mangle]
-pub static mut lre_id_continue_table_ascii: [u32; 4] = [
-    0 as i32 as u32,
-    0x3ff0010 as i32 as u32,
-    0x87fffffe as u32,
-    0x7fffffe as i32 as u32,
-];
-static mut char_range_w: [u16; 9] = [
+static lre_id_continue_table_ascii: [u32; 4] = [0, 0x3ff0010, 0x87fffffe, 0x7fffffe];
+
+pub fn lre_id_continue_table_ascii_get(index: usize) -> u32 {
+    lre_id_continue_table_ascii[index]
+}
+
+static char_range_w: [u16; 9] = [
     4 as i32 as u16,
     0x30 as i32 as u16,
     (0x39 as i32 + 1 as i32) as u16,
@@ -499,6 +503,7 @@ static mut char_range_w: [u16; 9] = [
     0x61 as i32 as u16,
     (0x7a as i32 + 1 as i32) as u16,
 ];
+
 static mut char_range_table: [*const u16; 3] = unsafe {
     [
         char_range_d.as_ptr(),
@@ -506,6 +511,7 @@ static mut char_range_table: [*const u16; 3] = unsafe {
         char_range_w.as_ptr(),
     ]
 };
+
 unsafe fn cr_init_char_range(mut s: *mut REParseState, mut cr: *mut CharRange, mut c: u32) -> i32 {
     let mut current_block: u64;
     let mut invert: BOOL = 0;

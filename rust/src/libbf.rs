@@ -8819,7 +8819,7 @@ unsafe fn fast_udiv(mut a: limb_t, mut s: *const FastDivData) -> limb_t {
 }
 /* contains 10^i */
 #[no_mangle]
-pub static mut mp_pow_dec: [limb_t; 20] = [
+static mp_pow_dec: [limb_t; 20] = [
     1 as u32 as limb_t,
     10 as u32 as limb_t,
     100 as u32 as limb_t,
@@ -8841,6 +8841,11 @@ pub static mut mp_pow_dec: [limb_t; 20] = [
     1000000000000000000 as u64,
     10000000000000000000 as u64,
 ];
+
+pub fn mp_pow_dec_get(index: usize) -> limb_t {
+    mp_pow_dec[index]
+}
+
 /* precomputed from fast_udiv_init(10^i) */
 static mut mp_pow_div: [FastDivData; 20] = [
     {
