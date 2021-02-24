@@ -3,7 +3,7 @@ use ::c2rust_bitfields;
 use std::process::abort;
 
 use crate::cutils::{
-    __builtin_va_list, __va_list_tag, cstr_append_sized, cstr_compare, cstr_find_char, cstr_len,
+     cstr_append_sized, cstr_compare, cstr_find_char, cstr_len,
     dbuf_error, dbuf_free, dbuf_init2, dbuf_put, dbuf_put_self, dbuf_put_u16, dbuf_put_u32,
     dbuf_putc, dbuf_realloc, pstrcpy, ptr_compare, DynBuf, PtrExt, BOOL, FALSE, TRUE,
 };
@@ -16,7 +16,6 @@ use crate::libunicode::{
 
 use crate::quickjs::{lre_check_stack_overflow, lre_realloc};
 
-pub type va_list = __builtin_va_list;
 pub type intptr_t = isize;
 pub type uintptr_t = usize;
 

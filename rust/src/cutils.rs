@@ -1,23 +1,6 @@
 use std::io::Write;
 use std::os::raw::c_char;
 
-extern "C" {
-    #[no_mangle]
-    fn memcmp(_: *const u8, _: *const u8, _: usize) -> i32;
-}
-
-pub type __builtin_va_list = [__va_list_tag; 1];
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct __va_list_tag {
-    pub gp_offset: u32,
-    pub fp_offset: u32,
-    pub overflow_arg_area: *mut std::ffi::c_void,
-    pub reg_save_area: *mut std::ffi::c_void,
-}
-
-pub type va_list = __builtin_va_list;
 pub type BOOL = i32;
 pub const TRUE: BOOL = 1;
 pub const FALSE: BOOL = 0;
@@ -26,6 +9,16 @@ pub type DynBufReallocFunc = unsafe fn(
     _: *mut std::ffi::c_void,
     _: usize,
 ) -> *mut std::ffi::c_void;
+
+// Turn a char pointer into a String.
+// Used for debugging.
+pub unsafe fn cstr_to_string(ptr: *const c_char) -> Result<String, std::str::Utf8Error> {
+    if ptr.is_null() {
+        return Ok(String::new())
+    } else {
+        std::ffi::CStr::from_ptr(ptr).to_str().map(|x| x.to_string())
+    }
+}
 
 pub unsafe extern "C" fn cstr_snprintf(
     buf: *mut c_char,
@@ -241,8 +234,24 @@ pub unsafe fn global_realloc(ptr: *mut u8, new_size: usize) -> *mut u8 {
 }
 
 #[inline]
-pub unsafe fn ptr_compare(a: *const u8, b: *const u8, len: usize) -> i32 {
-    memcmp(a, b, len)
+pub unsafe fn ptr_compare(mut a: *const u8, mut b: *const u8, len: usize) -> i32 {
+    // FIXME: this is super slow and a primitive replacement for `libc::memcmp`!
+    // Refactor all code to use something faster.
+    use std::cmp::Ordering;
+    for i in 0..len {
+        match (*a).cmp(&*b) {
+            Ordering::Less => {
+                return -1;
+            }
+            Ordering::Greater => {
+                return 1;
+            }
+            Ordering::Equal => {}
+        }
+        a = a.add(1);
+        b = b.add(1);
+    }
+    0
 }
 
 // TODO: remove!
